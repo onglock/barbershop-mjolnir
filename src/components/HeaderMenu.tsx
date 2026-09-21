@@ -56,7 +56,7 @@ export default function HeaderMenu({ links }: Props) {
             className="fixed inset-0 z-[90] flex flex-col bg-bg-deep lg:hidden"
           >
             <div className="flex h-16 items-center justify-between px-6">
-              <span className="text-label uppercase text-text">Молот</span>
+              <span className="text-label uppercase text-text">Мьёльнир</span>
               <button
                 type="button"
                 aria-label="Закрыть меню"

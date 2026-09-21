@@ -16,8 +16,8 @@ const buttonVariants = cva(
         /* Заливка латунью: текст только цветом фона — 9.13:1 */
         accent: "bg-accent text-bg hover:bg-accent-hover hover:-translate-y-0.5",
         outline:
-          "border-border bg-transparent text-text hover:border-accent hover:text-accent hover:-translate-y-0.5",
-        ghost: "bg-transparent text-text-muted hover:text-text",
+          "border-border bg-transparent text-text hover:border-accent-warm hover:text-accent-warm hover:-translate-y-0.5",
+        ghost: "bg-transparent text-text-muted hover:text-accent-warm",
       },
       size: {
         sm: "h-8 gap-1 px-4",

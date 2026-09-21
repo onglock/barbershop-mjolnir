@@ -14,9 +14,9 @@ const stats = [
 	<!-- Призрачный заголовок: гигантский текст с opacity 0.08 на фоне -->
 	<span
 		aria-hidden="true"
-		class="pointer-events-none absolute -top-4 left-0 select-none whitespace-nowrap text-display uppercase text-text opacity-[0.08] lg:-top-10"
+		class="pointer-events-none absolute -top-4 left-0 select-none whitespace-nowrap font-manifest text-display uppercase text-text opacity-[0.08] lg:-top-10"
 	>
-		Молот
+		Мьёльнир
 	</span>
 
 	<div class="relative mx-auto max-w-[1400px]">
@@ -24,7 +24,7 @@ const stats = [
 			<div class="lg:col-span-6">
 				<p class="text-label uppercase text-text-muted">Манифест</p>
 
-				<h2 class="mt-6 max-w-[12ch] text-display uppercase text-text">Ремесло, а не скидки</h2>
+				<h2 class="mt-6 max-w-[12ch] font-manifest text-display uppercase text-text">Ремесло, а не скидки</h2>
 
 				<p class="mt-12 text-body text-text">
 					Мы открылись в 2014 году на Никольской — в подвале с кирпичными стенами и одним креслом. Правило
@@ -51,7 +51,7 @@ const stats = [
 			<div class="lg:col-span-6">
 				<Image
 					src={manifestPhoto}
-					alt="Барбершоп «Молот»: зеркала, подвесные лампы и мастер за работой"
+					alt="Барбершоп «Мьёльнир»: зеркала, подвесные лампы и мастер за работой"
 					widths={[480, 800, 1200]}
 					sizes="(min-width: 1024px) 45vw, 100vw"
 					format="webp"
@@ -68,7 +68,7 @@ const stats = [
 			{
 				stats.map((stat) => (
 					<div>
-						<p class="text-display text-accent">{stat.value}</p>
+						<p class="font-display text-display text-accent">{stat.value}</p>
 						<p class="mt-4 text-label uppercase text-text-muted">{stat.label}</p>
 					</div>
 				))

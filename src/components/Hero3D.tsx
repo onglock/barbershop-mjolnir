@@ -4,7 +4,7 @@ import { Environment } from '@react-three/drei';
 import { useInView, useReducedMotion } from 'framer-motion';
 import * as THREE from 'three';
 
-const ACCENT = '#DCA657'; // латунь — единственный акцент проекта
+const ACCENT = '#7BA5C9'; // сталь — акцент палитры 1
 const WOOD = '#3A2E24'; // рукоятка
 
 /**
@@ -173,33 +173,33 @@ export default function Hero3D() {
 					<Environment resolution={64} frames={1}>
 						<mesh scale={40}>
 							<sphereGeometry args={[1, 24, 24]} />
-							<meshBasicMaterial color="#07090C" side={THREE.BackSide} />
+							<meshBasicMaterial color="#010305" side={THREE.BackSide} />
 						</mesh>
 						{/* Мягкий тёплый источник сверху-слева */}
 						<mesh position={[-8, 10, 4]}>
 							<planeGeometry args={[22, 22]} />
-							<meshBasicMaterial color="#C8A16A" />
+							<meshBasicMaterial color="#CC9C42" />
 						</mesh>
 						{/* Узкая яркая полоса: даёт резкий блик на грани головы */}
 						<mesh position={[-2, 5, 6]} rotation={[0, 0, -0.7]}>
 							<planeGeometry args={[0.7, 14]} />
-							<meshBasicMaterial color="#FFE9C4" />
+							<meshBasicMaterial color="#E8ECEE" />
 						</mesh>
 						{/* Холодная подсветка справа, чтобы металл не был одноцветным */}
 						<mesh position={[8, -2, 5]}>
 							<planeGeometry args={[10, 10]} />
-							<meshBasicMaterial color="#5A646E" />
+							<meshBasicMaterial color="#94999D" />
 						</mesh>
 						<mesh position={[0, 0, -10]}>
 							<planeGeometry args={[20, 12]} />
-							<meshBasicMaterial color="#141920" />
+							<meshBasicMaterial color="#030609" />
 						</mesh>
 					</Environment>
 
 					<ambientLight intensity={0.3} />
 					<directionalLight position={[-4, 6, 3]} intensity={1.6} />
 					<pointLight position={[4, 1, 2]} intensity={25} color={ACCENT} distance={14} />
-					<pointLight position={[-2.5, 3.5, 4]} intensity={18} color="#FFF1D6" distance={12} />
+					<pointLight position={[-2.5, 3.5, 4]} intensity={18} color="#E8ECEE" distance={12} />
 
 					<Hammer pointer={pointer} reduced={reduced} />
 				</Canvas>

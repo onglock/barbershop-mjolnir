@@ -2,7 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
-@import "@fontsource-variable/inter-tight";
+@import "@fontsource/forum/400.css";      /* Forum: у семейства только 400, 700 нет */
+@import "@fontsource/literata/400.css";
+@import "@fontsource/literata/700.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -20,7 +22,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   «МОЛОТ» — дизайн-токены
+   «МЬЁЛЬНИР» — дизайн-токены
    Уровень 1 — примитивы: сырые OKLCH, без семантики
    Уровень 2 — смысловые токены (:root ниже)
    Уровень 3 — компонентные (в компонентах, через var())
@@ -46,9 +48,10 @@
 }
 
 @theme inline {
-  /* ── Шрифты: Inter Tight — заголовки, Inter — тело ─────────────── */
+  /* ── Шрифты: Forum — заголовки, Literata — Manifest, Inter — тело ── */
   --font-sans: 'Inter Variable', sans-serif;
-  --font-heading: 'Inter Tight Variable', sans-serif;
+  --font-display: 'Forum', serif;        /* заголовки: было Inter Tight */
+  --font-manifest: 'Literata', serif;    /* Manifest: призрачный заголовок + h2 */
 
   /* ── Смысловые токены → утилиты Tailwind ───────────────────────── */
   --color-bg: var(--bg);
@@ -57,6 +60,7 @@
   --color-text-muted: var(--text-muted);
   --color-surface: var(--surface);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-warm: var(--accent-warm);
   --color-error: var(--error);
 
   /* ── Единый набор easing (personal-style §6) ───────────────────── */
@@ -112,24 +116,27 @@
    Сайт всегда тёмный, поэтому палитра живёт в :root, а блок .dark не
    нужен: двух источников правды быть не должно.                      */
 :root {
-  /* Уровень 1 — примитивы (холодная сталь H=250 + латунь H=75) */
-  --ink-950: oklch(10% 0.014 250);
-  --ink-900: oklch(14% 0.012 250);
-  --ink-800: oklch(20% 0.012 250);
-  --ink-500: oklch(66% 0.010 250);
-  --sand-100: oklch(93% 0.008 75);
-  --brass-500: oklch(76% 0.115 75);
-  --brass-600: oklch(70% 0.115 75);
-  --error: oklch(68% 0.16 32);       /* #EA6D56  ошибки валидации      */
+  /* Уровень 1 — примитивы. Палитра 1 «Северное сияние»: холодная сталь
+     H=240–245 + янтарь H=80. Значения — PROJECT-STATE.md §11, вариант 1. */
+  --ink-950: oklch(9% 0.012 240);    /* #010305  фон темнее                */
+  --ink-900: oklch(12% 0.010 240);   /* #030609  фон страницы              */
+  --ink-800: oklch(18% 0.012 240);   /* производная: приподнятая поверхность */
+  --ink-500: oklch(68% 0.008 240);   /* #94999D  второстепенный текст      */
+  --frost-100: oklch(94% 0.005 240); /* #E8ECEE  основной текст            */
+  --steel-500: oklch(70.5% 0.070 245); /* #7BA5C9  единственный акцент     */
+  --steel-600: oklch(64.5% 0.075 245); /* производная: hover акцента       */
+  --amber-500: oklch(72% 0.12 80);   /* #CC9C42  тёплый микроакцент        */
+  --error: oklch(68% 0.16 32);       /* #EA6D56  ошибки валидации          */
 
   /* Уровень 2 — роли */
-  --bg: var(--ink-900);          /* #060A0E  фон страницы           */
-  --bg-deep: var(--ink-950);     /* #020407  тёмные полосы, deep    */
+  --bg: var(--ink-900);          /* #030609  фон страницы           */
+  --bg-deep: var(--ink-950);     /* #010305  тёмные полосы, deep    */
   --surface: var(--ink-800);     /* приподнятая поверхность         */
-  --text: var(--sand-100);       /* #EBE7E2  основной текст         */
-  --text-muted: var(--ink-500);  /* #8E9398  второстепенный текст   */
-  --accent: var(--brass-500);    /* #DCA657  единственный акцент    */
-  --accent-hover: var(--brass-600);
+  --text: var(--frost-100);      /* #E8ECEE  основной текст         */
+  --text-muted: var(--ink-500);  /* #94999D  второстепенный текст   */
+  --accent: var(--steel-500);    /* #7BA5C9  единственный акцент    */
+  --accent-hover: var(--steel-600);
+  --accent-warm: var(--amber-500); /* #CC9C42  только микроакценты  */
   --border: oklch(1 0 0 / 0.10); /* волосяная линия 1px             */
 
   /* Мостик shadcn/ui → наши роли.
@@ -201,7 +208,7 @@
   h1,
   h2,
   h3 {
-    font-family: var(--font-heading);
+    font-family: var(--font-display);
     text-wrap: balance;
   }
 

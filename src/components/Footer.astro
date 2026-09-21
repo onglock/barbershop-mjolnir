@@ -44,7 +44,7 @@ const ctaClass = buttonVariants({ variant: 'outline', size: 'lg' });
 	<!-- Fo1: водяной знак. Нижняя часть уходит за край — клипается overflow-hidden -->
 	<span
 		aria-hidden="true"
-		class="pointer-events-none absolute inset-x-0 -bottom-[0.16em] select-none whitespace-nowrap text-center font-heading text-[22vw] leading-[0.8] font-semibold uppercase tracking-[-0.045em] text-text opacity-[0.07]"
+		class="pointer-events-none absolute inset-x-0 -bottom-[0.16em] select-none whitespace-nowrap text-center font-display text-[22vw] leading-[0.8] font-semibold uppercase tracking-[-0.045em] text-text opacity-[0.07]"
 	>
 		Мьёльнир
 	</span>
@@ -55,7 +55,7 @@ const ctaClass = buttonVariants({ variant: 'outline', size: 'lg' });
 			<div>
 				<a href="#top" class="group inline-flex min-h-11 items-center gap-2">
 					<span
-						class="font-heading text-2xl font-semibold uppercase tracking-[-0.045em] text-text transition-colors duration-200 ease-hover group-hover:text-accent"
+						class="font-display text-2xl font-semibold uppercase tracking-[-0.045em] text-text transition-colors duration-200 ease-hover group-hover:text-accent"
 					>
 						Мьёльнир
 					</span>
@@ -75,9 +75,15 @@ const ctaClass = buttonVariants({ variant: 'outline', size: 'lg' });
 							<li>
 								<a
 									href={link.href}
-									class="inline-flex min-h-11 items-center py-2 text-body text-text transition-colors duration-200 ease-hover hover:text-accent"
+									class="group inline-flex min-h-11 items-center py-2 text-body text-text transition-colors duration-200 ease-hover hover:text-accent-warm"
 								>
-									{link.label}
+									<span class="relative">
+										{link.label}
+										<span
+											aria-hidden="true"
+											class="absolute -bottom-1 left-0 h-px w-full origin-left scale-x-0 bg-accent-warm transition-transform duration-300 ease-hover group-hover:scale-x-100"
+										/>
+									</span>
 								</a>
 							</li>
 						))
@@ -94,7 +100,7 @@ const ctaClass = buttonVariants({ variant: 'outline', size: 'lg' });
 						<!-- TODO: заменить на реальный телефон -->
 						<a
 							href="tel:+749****4567"
-							class="inline-flex min-h-11 items-center py-2 transition-colors duration-200 ease-hover hover:text-accent"
+							class="inline-flex min-h-11 items-center py-2 transition-colors duration-200 ease-hover hover:text-accent-warm"
 						>
 							{phone}
 						</a>
@@ -108,9 +114,15 @@ const ctaClass = buttonVariants({ variant: 'outline', size: 'lg' });
 							<li>
 								<a
 									href={s.href}
-									class="inline-flex min-h-11 items-center py-2 text-label uppercase text-text-muted transition-colors duration-200 ease-hover hover:text-accent"
+									class="group inline-flex min-h-11 items-center py-2 text-label uppercase text-text-muted transition-colors duration-200 ease-hover hover:text-accent-warm"
 								>
-									{s.label}
+									<span class="relative">
+										{s.label}
+										<span
+											aria-hidden="true"
+											class="absolute -bottom-1 left-0 h-px w-full origin-left scale-x-0 bg-accent-warm transition-transform duration-300 ease-hover group-hover:scale-x-100"
+										/>
+									</span>
 								</a>
 							</li>
 						))
