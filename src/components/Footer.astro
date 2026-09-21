@@ -1,0 +1,150 @@
+---
+// Футер: Fo2 «Занавес» + Fo1 «Водяной знак МЬЁЛЬНИР».
+//
+// Занавес — чистый CSS, без JS: футер приклеен к низу вьюпорта
+// (position: sticky; bottom: 0), а main с непрозрачным фоном и большим
+// z-index едет поверх него. К концу документа контент уходит вверх и
+// «поднимает занавес». Работает только ≥768px и только когда
+// prefers-reduced-motion не требует покоя: там футер встаёт в обычный поток
+// (статичный финальный вид). Подробности — в <style> ниже.
+//
+// Водяной знак — огромная надпись, обрезанная нижним краем секции.
+// Декоративный: aria-hidden, реальное название секция дублирует текстом
+// в левой колонке, поэтому для поиска и скринридеров потерь нет.
+
+import { buttonVariants } from './ui/button';
+
+const links = [
+	{ href: '#services', label: 'Услуги' },
+	{ href: '#masters', label: 'Мастера' },
+	{ href: '#reviews', label: 'Отзывы' },
+	{ href: '#faq', label: 'Вопросы' },
+	{ href: '#contact', label: 'Контакты' },
+];
+
+// TODO: заменить на реальные соцсети — сейчас заглушки
+const socials = [
+	{ href: '#', label: 'Телеграм' },
+	{ href: '#', label: 'ВКонтакте' },
+];
+
+const phone = '+7 (495) 123-45-67';
+const hours = 'Ежедневно 10:00 — 22:00';
+const year = new Date().getFullYear();
+
+// Классы кнопки берём у того же варианта, что и в шапке: .astro не умеет
+// радикс-Slot, поэтому buttonVariants() — единственный общий источник.
+const ctaClass = buttonVariants({ variant: 'outline', size: 'lg' });
+---
+
+<footer
+	data-footer
+	class="relative isolate overflow-hidden border-t border-border bg-bg-deep pt-16 pb-28 lg:pt-24 lg:pb-36"
+>
+	<!-- Fo1: водяной знак. Нижняя часть уходит за край — клипается overflow-hidden -->
+	<span
+		aria-hidden="true"
+		class="pointer-events-none absolute inset-x-0 -bottom-[0.16em] select-none whitespace-nowrap text-center font-heading text-[22vw] leading-[0.8] font-semibold uppercase tracking-[-0.045em] text-text opacity-[0.07]"
+	>
+		Мьёльнир
+	</span>
+
+	<div class="relative mx-auto max-w-[1400px] px-6 lg:px-8">
+		<div class="grid gap-12 md:grid-cols-3">
+			<!-- Название -->
+			<div>
+				<a href="#top" class="group inline-flex min-h-11 items-center gap-2">
+					<span
+						class="font-heading text-2xl font-semibold uppercase tracking-[-0.045em] text-text transition-colors duration-200 ease-hover group-hover:text-accent"
+					>
+						Мьёльнир
+					</span>
+					<span class="text-label uppercase text-text-muted">барбершоп</span>
+				</a>
+				<p class="mt-6 max-w-[28ch] text-body text-text-muted">
+					Мужские стрижки, борода и королевское бритьё на Никольской.
+				</p>
+			</div>
+
+			<!-- Навигация -->
+			<nav aria-label="Навигация в футере">
+				<p class="text-label uppercase text-text-muted">Разделы</p>
+				<ul class="mt-6 space-y-3">
+					{
+						links.map((link) => (
+							<li>
+								<a
+									href={link.href}
+									class="inline-flex min-h-11 items-center py-2 text-body text-text transition-colors duration-200 ease-hover hover:text-accent"
+								>
+									{link.label}
+								</a>
+							</li>
+						))
+					}
+				</ul>
+			</nav>
+
+			<!-- Контакты -->
+			<div>
+				<p class="text-label uppercase text-text-muted">Контакты</p>
+				<address class="mt-6 space-y-3 text-body not-italic text-text">
+					<p>Никольская — рядом городская парковка</p>
+					<p>
+						<!-- TODO: заменить на реальный телефон -->
+						<a
+							href="tel:+749****4567"
+							class="inline-flex min-h-11 items-center py-2 transition-colors duration-200 ease-hover hover:text-accent"
+						>
+							{phone}
+						</a>
+					</p>
+					<p class="text-text-muted">{hours}</p>
+				</address>
+
+				<ul class="mt-6 flex flex-wrap gap-x-6 gap-y-2">
+					{
+						socials.map((s) => (
+							<li>
+								<a
+									href={s.href}
+									class="inline-flex min-h-11 items-center py-2 text-label uppercase text-text-muted transition-colors duration-200 ease-hover hover:text-accent"
+								>
+									{s.label}
+								</a>
+							</li>
+						))
+					}
+				</ul>
+
+				<a href="#contact" class={`${ctaClass} mt-8`}>Записаться</a>
+			</div>
+		</div>
+
+		<div
+			class="mt-16 flex flex-col gap-4 border-t border-border pt-8 sm:flex-row sm:items-center sm:justify-between"
+		>
+			<p class="text-label uppercase text-text-muted">© {year} Мьёльнир</p>
+			<p class="text-label uppercase text-text-muted">Москва, Никольская</p>
+		</div>
+	</div>
+</footer>
+
+<style>
+	/* Fo2 «Занавес». Приклеиваем футер к низу вьюпорта: main (position:
+	   relative, z-index 10, непрозрачный фон — это в index.astro) едет
+	   поверх него, а сам футер остаётся на месте. К концу документа
+	   занавес открывается целиком.
+
+	   Условия: только ≥768px (на телефоне эффект смысла не имеет и мешает
+	   тап-зонам) и только при prefers-reduced-motion: no-preference —
+	   тем, кто просил покой, занавес не показываем вовсе, футер стоит в
+	   обычном потоке в своём финальном виде. */
+	@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+		footer[data-footer] {
+			position: sticky;
+			bottom: 0;
+			z-index: 0;
+		}
+	}
+</style>
