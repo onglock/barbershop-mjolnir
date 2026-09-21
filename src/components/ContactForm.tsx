@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { useMagnetic } from '@/lib/useMagnetic';
 import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from './ui/button';
@@ -70,6 +71,7 @@ function formatPhone(raw: string): string {
 export default function ContactForm() {
 	const reduced = useReducedMotion() ?? false;
 	const uid = useId();
+	const submitRef = useMagnetic<HTMLButtonElement>({ sound: true });
 	const [values, setValues] = useState<Values>(EMPTY);
 	const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
 	const [sent, setSent] = useState(false);
@@ -259,7 +261,7 @@ export default function ContactForm() {
 							</p>
 
 							<div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-								<button type="submit" className={cn(buttonVariants({ variant: 'accent', size: 'lg' }))}>
+								<button ref={submitRef} type="submit" className={cn(buttonVariants({ variant: 'accent', size: 'lg' }))}>
 									Записаться на стрижку
 								</button>
 								<p className="text-label uppercase text-text-muted">* — обязательные поля</p>

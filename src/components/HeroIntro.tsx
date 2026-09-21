@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { motion, useMotionValue, useReducedMotion, useSpring } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { buttonVariants } from './ui/button';
+import { useMagnetic } from '@/lib/useMagnetic';
 
 const EASE_SCENE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const EASE_HOVER: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -9,39 +9,18 @@ const TITLE = 'Сталь. Время. Ремесло.';
 const SUBTITLE = 'Стрижка — не пятнадцать минут, а внимание к форме головы, росту волос и вашему утру.';
 
 /**
- * Магнитная кнопка (animation-patterns §5.4). На тач-устройствах и при
- * prefers-reduced-motion ведёт себя как обычная ссылка — магнит не включаем.
+ * Магнитная CTA (§10.1). Механика — в lib/magnetic.ts: ленивое притяжение,
+ * подхват с сотрясением 2–3 кадра и синтезированный «клац». Хук сам выключает
+ * магнит при prefers-reduced-motion и на устройствах без курсора, поэтому
+ * кнопка остаётся обычной ссылкой. Вход в сцену анимирует внешняя обёртка —
+ * transform магнита и transform Framer Motion не пересекаются.
  */
-function MagneticCta({ reduced }: { reduced: boolean }) {
-	const x = useMotionValue(0);
-	const y = useMotionValue(0);
-	const springX = useSpring(x, { stiffness: 200, damping: 20 });
-	const springY = useSpring(y, { stiffness: 200, damping: 20 });
-	const enabled = useRef(false);
-
-	useEffect(() => {
-		enabled.current =
-			!reduced && window.matchMedia('(hover: hover) and (min-width: 1024px)').matches;
-	}, [reduced]);
-
+function MagneticCta() {
+	const ref = useMagnetic<HTMLAnchorElement>({ sound: true });
 	return (
-		<motion.a
-			href="#contact"
-			style={{ x: springX, y: springY }}
-			className={buttonVariants({ variant: 'accent', size: 'lg' })}
-			onMouseMove={(event) => {
-				if (!enabled.current) return;
-				const rect = event.currentTarget.getBoundingClientRect();
-				x.set((event.clientX - rect.left - rect.width / 2) * 0.3);
-				y.set((event.clientY - rect.top - rect.height / 2) * 0.3);
-			}}
-			onMouseLeave={() => {
-				x.set(0);
-				y.set(0);
-			}}
-		>
+		<a ref={ref} href="#contact" className={buttonVariants({ variant: 'accent', size: 'lg' })}>
 			Записаться
-		</motion.a>
+		</a>
 	);
 }
 
@@ -102,7 +81,7 @@ export default function HeroIntro() {
 					</motion.p>
 
 					<motion.div className="mt-12" {...fade(1.1)}>
-						<MagneticCta reduced={reduced} />
+						<MagneticCta />
 					</motion.div>
 				</div>
 			</div>

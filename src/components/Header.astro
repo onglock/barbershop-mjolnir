@@ -1,7 +1,7 @@
 ---
 // Шапка: фиксированная, прозрачная на первом экране, с волосяной линией
 // и матовым стеклом после прокрутки. Статика — JS только на смену состояния.
-import { buttonVariants } from './ui/button';
+import HammerButton from './HammerButton.astro';
 import HeaderMenu from './HeaderMenu';
 
 const links = [
@@ -15,7 +15,6 @@ const links = [
 // Классы кнопки берём из того же варианта, что и <Button>, но применяем к <a>:
 // вариант радикс-Slot (`asChild`) не сливает props при SSR из .astro, потому что
 // дети приходят как слот Astro и Slot получает не единственный элемент.
-const ctaClass = buttonVariants({ variant: 'accent', size: 'lg' });
 ---
 
 <header
@@ -55,8 +54,14 @@ const ctaClass = buttonVariants({ variant: 'accent', size: 'lg' });
 				+7 (495) 123-45-67
 			</a>
 
+			<!-- Кнопка-молот: до ритуала тусклая, первый клик запускает ритуал,
+			     после — обычная кнопка со скроллом к форме (§10.2). Вариант
+			     оформления — проп variant, ждёт выбора Кирилла. -->
 			<div class="hidden sm:block">
-				<a href="#contact" class={ctaClass}>Записаться</a>
+				<HammerButton variant="v1" />
+			</div>
+			<div class="sm:hidden">
+				<HammerButton variant="v2" compact />
 			</div>
 
 			<!-- Бургер + полноэкранное меню: остров, грузится по idle -->
@@ -66,6 +71,11 @@ const ctaClass = buttonVariants({ variant: 'accent', size: 'lg' });
 </header>
 
 <script>
+	import { initRitual } from '../lib/ritualInit';
+
+	/* Ритуал: клик по кнопке-молоту. Полёт молота — задача B, здесь тема и звук. */
+	initRitual();
+
 	const header = document.querySelector('[data-header]');
 	if (header) {
 		const sync = () => {

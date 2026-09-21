@@ -45,17 +45,28 @@ const {
 		     хвоста. Lenis остаётся инициализированным для программных переходов
 		     (scrollTo). syncTouch: false — то же для тач-устройств; прежняя
 		     опция smoothTouch в Lenis больше не существует и была пустышкой. -->
+		<!-- Магнитные кнопки: разметка .astro включает их по атрибуту data-magnetic -->
+		<script>
+			import '../lib/magnet-init';
+		</script>
+
 		<script>
 			import Lenis from 'lenis';
 
 			const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 			if (!reduced) {
+				/* Ссылка наружу: нужна для программных переходов (кнопка-молот → форма).
+				   Lenis перехватывает скролл и возвращает позицию, если двигать её мимо него. */
 				const lenis = new Lenis({
 					lerp: 0.1,
 					smoothWheel: false,
 					syncTouch: false,
 				});
+
+				/* Ссылка наружу: Lenis возвращает позицию, если прокрутить мимо него,
+				   поэтому программные переходы (кнопка-молот → форма) идут через него. */
+				window.__lenis = lenis;
 
 				const raf = (time) => {
 					lenis.raf(time);

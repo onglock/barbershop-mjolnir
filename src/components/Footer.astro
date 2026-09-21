@@ -75,6 +75,7 @@ const ctaClass = buttonVariants({ variant: 'outline', size: 'lg' });
 							<li>
 								<a
 									href={link.href}
+									data-magnetic
 									class="group inline-flex min-h-11 items-center py-2 text-body text-text transition-colors duration-200 ease-hover hover:text-accent-warm"
 								>
 									<span class="relative">
@@ -100,6 +101,7 @@ const ctaClass = buttonVariants({ variant: 'outline', size: 'lg' });
 						<!-- TODO: заменить на реальный телефон -->
 						<a
 							href="tel:+749****4567"
+							data-magnetic
 							class="inline-flex min-h-11 items-center py-2 transition-colors duration-200 ease-hover hover:text-accent-warm"
 						>
 							{phone}
@@ -114,6 +116,7 @@ const ctaClass = buttonVariants({ variant: 'outline', size: 'lg' });
 							<li>
 								<a
 									href={s.href}
+									data-magnetic
 									class="group inline-flex min-h-11 items-center py-2 text-label uppercase text-text-muted transition-colors duration-200 ease-hover hover:text-accent-warm"
 								>
 									<span class="relative">
@@ -129,7 +132,7 @@ const ctaClass = buttonVariants({ variant: 'outline', size: 'lg' });
 					}
 				</ul>
 
-				<a href="#contact" class={`${ctaClass} mt-8`}>Записаться</a>
+				<a href="#contact" data-magnetic class={`${ctaClass} mt-8`}>Записаться</a>
 			</div>
 		</div>
 

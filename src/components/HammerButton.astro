@@ -1,0 +1,67 @@
+---
+/**
+ * Кнопка-молот для шапки (§10.2, задача A).
+ *
+ * Три варианта оформления — `variant`: v1 «силуэт + подпись», v2 «только молот,
+ * подпись по наведению», v3 «молот как подложка». Выбор варианта — один проп.
+ *
+ * Кнопка кликабельна всегда: первый клик до ритуала запускает ритуал, после
+ * ритуала — скролл к форме. Логику ведёт `lib/ritualInit.ts` по атрибуту
+ * `data-ritual-hammer`, поэтому сама кнопка — чистая разметка.
+ */
+
+const props = Astro.props;
+const variant = props.variant || 'v1';
+const compact = props.compact || false;
+const label = props.label || 'Записаться';
+const ctaHref = props.href || '#contact';
+const extra = props.class || '';
+
+const hammer = (size, cls) =>
+  `<svg viewBox="0 0 24 24" width="${size}" height="${size}" class="${cls}" aria-hidden="true" fill="currentColor">
+    <path d="M3.6 5.2h16.8c.5 0 .9.4.85.9l-.65 5.1c-.06.45-.44.8-.9.8H4.3c-.46 0-.84-.35-.9-.8l-.65-5.1c-.05-.5.34-.9.85-.9Z" />
+    <path d="M10.7 12h2.6v7.1c0 .9-.6 1.6-1.3 1.6s-1.3-.7-1.3-1.6V12Z" />
+  </svg>`;
+
+const base =
+  'group/ritual inline-flex min-h-12 items-center border border-border text-text-muted transition-colors duration-300 hover:border-text/40 hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 data-[state=active]:text-text data-[state=active]:border-text/25';
+---
+
+<a
+  href={ctaHref}
+  data-ritual-hammer
+  class:list={[
+    base,
+    compact && 'h-11 w-11 min-h-11 min-w-11 justify-center',
+    !compact && variant === 'v1' && 'gap-2.5 px-4',
+    !compact && variant === 'v2' && 'px-3.5',
+    !compact && variant === 'v3' && 'relative overflow-hidden px-6',
+    extra
+  ]}
+  aria-label={`${label} — кнопка-молот`}
+>
+  {
+    compact ? (
+      <span set:html={hammer(22, '')} />
+    ) : variant === 'v3' ? (
+      <>
+        <span class="pointer-events-none absolute -left-2 top-1/2 -translate-y-1/2 opacity-[0.16]" set:html={hammer(46, '')} />
+        <span class="relative pl-5 font-display text-[13px] uppercase tracking-[0.16em]">{label}</span>
+      </>
+    ) : (
+      <>
+        <span class:list={['shrink-0', variant === 'v1' && 'opacity-70']} set:html={hammer(variant === 'v1' ? 20 : 22, '')} />
+        <span
+          class:list={[
+            'font-display text-[13px] uppercase tracking-[0.14em]',
+            variant === 'v1' && 'ml-2.5',
+            variant === 'v2' &&
+              'ml-0 max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-all duration-300 group-hover/ritual:ml-2.5 group-hover/ritual:max-w-[9rem] group-hover/ritual:opacity-100'
+          ]}
+        >
+          {label}
+        </span>
+      </>
+    )
+  }
+</a>
