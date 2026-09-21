@@ -1,0 +1,78 @@
+---
+// Манифест: философия ремесла + фото интерьера + три цифры вместо блока выгод.
+import { Image } from 'astro:assets';
+import manifestPhoto from '../assets/manifest-interior.jpg';
+
+const stats = [
+	{ value: '2014', label: 'год основания' },
+	{ value: '3', label: 'мастера' },
+	{ value: '900+', label: 'клиентов в месяц' },
+];
+---
+
+<section id="manifest" class="relative overflow-hidden border-b border-border px-6 py-24 lg:px-8 lg:py-32">
+	<!-- Призрачный заголовок: гигантский текст с opacity 0.08 на фоне -->
+	<span
+		aria-hidden="true"
+		class="pointer-events-none absolute -top-4 left-0 select-none whitespace-nowrap text-display uppercase text-text opacity-[0.08] lg:-top-10"
+	>
+		Молот
+	</span>
+
+	<div class="relative mx-auto max-w-[1400px]">
+		<div class="grid gap-16 lg:grid-cols-12 lg:gap-12">
+			<div class="lg:col-span-6">
+				<p class="text-label uppercase text-text-muted">Манифест</p>
+
+				<h2 class="mt-6 max-w-[12ch] text-display uppercase text-text">Ремесло, а не скидки</h2>
+
+				<p class="mt-12 text-body text-text">
+					Мы открылись в 2014 году на Никольской — в подвале с кирпичными стенами и одним креслом. Правило
+					с тех пор не менялось: один мастер, один клиент, одно кресло. Никакой записи каждые двадцать минут.
+				</p>
+
+				<p class="mt-6 text-body text-text-muted">
+					Стрижка — это не услуга за пятнадцать минут. Мы разбираем форму головы, направление роста волос,
+					то, чем вы укладываетесь дома. На это нужно время, и мы его тратим: за спиной мастера не стоит
+					следующий.
+				</p>
+
+				<p class="mt-6 text-body text-text-muted">
+					Работаем только инструментом, которым пользуемся сами: опасные бритвы, японские ножницы, воск
+					вместо лака. После восьми вечера новых клиентов не берём — у мастера должна быть свежая рука.
+				</p>
+
+				<p class="mt-6 text-body text-text-muted">
+					Если пришли с фотографией из интернета — разберём, сядет ли форма на вашу голову, и честно скажем,
+					если нет.
+				</p>
+			</div>
+
+			<div class="lg:col-span-6">
+				<Image
+					src={manifestPhoto}
+					alt="Барбершоп «Молот»: зеркала, подвесные лампы и мастер за работой"
+					widths={[480, 800, 1200]}
+					sizes="(min-width: 1024px) 45vw, 100vw"
+					format="webp"
+					quality={80}
+					loading="lazy"
+					decoding="async"
+					class="w-full border border-border"
+				/>
+			</div>
+		</div>
+
+		<!-- Цифры вместо прилагательных -->
+		<div class="mt-24 grid gap-12 border-t border-border pt-12 sm:grid-cols-3 lg:mt-32">
+			{
+				stats.map((stat) => (
+					<div>
+						<p class="text-display text-accent">{stat.value}</p>
+						<p class="mt-4 text-label uppercase text-text-muted">{stat.label}</p>
+					</div>
+				))
+			}
+		</div>
+	</div>
+</section>
