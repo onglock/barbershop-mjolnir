@@ -1,0 +1,40 @@
+---
+// Отзывы: три колонки на десктопе, горизонтальный snap-скролл на мобильных.
+// Снап — чистый CSS, ни строчки JS.
+
+const reviews = [
+	{
+		author: 'Андрей, программист',
+		text: 'Стрижка держит форму три недели — впервые перестал думать про укладку по утрам. Мастер показал, в какую сторону сушить и чем, теперь получается даже самому.',
+	},
+	{
+		author: 'Сергей, предприниматель',
+		text: 'Хожу с бородой семь лет и только здесь понял, что такое контур. Два месяца — и форма держится сама, между визитами ничего не подбриваю.',
+	},
+	{
+		author: 'Кирилл, дизайнер',
+		text: 'Пришёл с фотографией из интернета. Мне честно сказали, что форма не сядет на мою голову, и предложили вариант рядом. Вышло лучше картинки.',
+	},
+];
+---
+
+<section id="reviews" class="scroll-mt-24 border-b border-border px-6 py-24 lg:px-8 lg:py-32">
+	<div class="mx-auto max-w-[1400px]">
+		<p class="text-label uppercase text-text-muted">Отзывы</p>
+
+		<h2 class="mt-6 max-w-[14ch] text-display uppercase text-text">Что говорят</h2>
+
+		<div
+			class="mt-16 flex snap-x snap-mandatory gap-6 overflow-x-auto pb-2 [scrollbar-width:none] [-webkit-overflow-scrolling:touch] lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden"
+		>
+			{
+				reviews.map((review) => (
+					<figure class="w-[82%] flex-none snap-start border border-border p-8 sm:w-[58%] lg:w-auto">
+						<blockquote class="text-body text-text">«{review.text}»</blockquote>
+						<figcaption class="mt-8 text-label uppercase text-text-muted">{review.author}</figcaption>
+					</figure>
+				))
+			}
+		</div>
+	</div>
+</section>
