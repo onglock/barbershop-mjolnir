@@ -1,0 +1,65 @@
+---
+// Мастера: три карточки с фото. Подъём и акцентная граница на hover — чистый CSS.
+import { Image } from 'astro:assets';
+import master01 from '../assets/master-01.jpg';
+import master02 from '../assets/master-02.jpg';
+import master03 from '../assets/master-03.jpg';
+
+const masters = [
+	{
+		photo: master01,
+		name: 'Артём Соколов',
+		role: 'старший мастер',
+		alt: 'Артём Соколов стрижёт клиента в кресле',
+		text: 'Двенадцать лет в профессии, начинал в Петербурге. Классические мужские формы и тонкие волосы — его тема. Ведёт молодых мастеров цеха.',
+	},
+	{
+		photo: master02,
+		name: 'Данил Ковалёв',
+		role: 'барбер',
+		alt: 'Данил Ковалёв стрижёт мальчика машинкой',
+		text: 'Шесть лет за креслом. Быстро и точно работает машинкой, любит фейды и короткие формы. Подбирает укладку под тип волос за пару минут.',
+	},
+	{
+		photo: master03,
+		name: 'Максим Лебедев',
+		role: 'мастер бритья',
+		alt: 'Максим Лебедев работает машинкой над формой клиента',
+		text: 'Девять лет, из них пять — только бритьё. Держит опасную бритву так, что клиенты засыпают в кресле. Делает королевское бритьё и камуфляж седины.',
+	},
+];
+---
+
+<section id="masters" class="scroll-mt-24 border-b border-border px-6 py-24 lg:px-8 lg:py-32">
+	<div class="mx-auto max-w-[1400px]">
+		<p class="text-label uppercase text-text-muted">Мастера</p>
+
+		<h2 class="mt-6 max-w-[14ch] text-display uppercase text-text">Кто стрижёт</h2>
+
+		<div class="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+			{
+				masters.map((master) => (
+					<article class="border border-border transition-all duration-300 ease-hover hover:-translate-y-1 hover:border-accent">
+						<Image
+							src={master.photo}
+							alt={master.alt}
+							widths={[400, 600, 800]}
+							sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
+							format="webp"
+							quality={80}
+							loading="lazy"
+							decoding="async"
+							class="aspect-[2/3] w-full border-b border-border object-cover"
+						/>
+
+						<div class="p-6">
+							<h3 class="text-body font-medium uppercase text-text">{master.name}</h3>
+							<p class="mt-2 text-label uppercase text-text-muted">{master.role}</p>
+							<p class="mt-4 text-body text-text-muted">{master.text}</p>
+						</div>
+					</article>
+				))
+			}
+		</div>
+	</div>
+</section>
