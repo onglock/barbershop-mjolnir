@@ -1,130 +1,218 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/figtree";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/inter-tight";
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── hover только на устройствах с мышью ─────────────────────────────
+   Tailwind v4 отдаёт `hover:` голым `:hover` без медиазапроса (проверено
+   по собранному CSS). На тач-устройствах такое правило может залипнуть
+   после тапа. Переопределяем вариант: правило живёт внутри
+   @media (hover: hover) и на тач не применяется вовсе.                  */
+@custom-variant hover {
+  @media (hover: hover) {
+    &:hover {
+      @slot;
+    }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   «МОЛОТ» — дизайн-токены
+   Уровень 1 — примитивы: сырые OKLCH, без семантики
+   Уровень 2 — смысловые токены (:root ниже)
+   Уровень 3 — компонентные (в компонентах, через var())
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Типографическая шкала: ровно 3 размера на весь сайт ─────────────
+   Блок намеренно не inline: утилиты ссылаются на переменную, поэтому
+   размер тела можно переопределить медиазапросом ниже.               */
+@theme {
+  --text-display: clamp(2.5rem, 8vw, 5.75rem); /* 40px → 92px */
+  --text-display--line-height: 0.98;
+  --text-display--letter-spacing: -0.045em;
+  --text-display--font-weight: 600;
+
+  --text-body: 1.0625rem; /* 17px */
+  --text-body--line-height: 1.6;
+  --text-body--letter-spacing: -0.01em;
+
+  --text-label: 0.75rem; /* 12px */
+  --text-label--line-height: 1;
+  --text-label--letter-spacing: 0.12em;
+  --text-label--font-weight: 500;
+}
+
 @theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'Figtree Variable', sans-serif;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
-    --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+  /* ── Шрифты: Inter Tight — заголовки, Inter — тело ─────────────── */
+  --font-sans: 'Inter Variable', sans-serif;
+  --font-heading: 'Inter Tight Variable', sans-serif;
+
+  /* ── Смысловые токены → утилиты Tailwind ───────────────────────── */
+  --color-bg: var(--bg);
+  --color-bg-deep: var(--bg-deep);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-surface: var(--surface);
+  --color-accent-hover: var(--accent-hover);
+  --color-error: var(--error);
+
+  /* ── Единый набор easing (personal-style §6) ───────────────────── */
+  --ease-scene: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-hover: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-curtain: cubic-bezier(0.76, 0, 0.24, 1);
+
+  /* ── Мостик к shadcn/ui (значения — в :root ниже) ──────────────── */
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  /* Радиусы: база 0 → плоские поверхности, редакционный стиль.
+     calc(var(--radius) * N) даёт 0 на всех ступенях.                */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ── Уровень 2: смысловые токены ─────────────────────────────────────
+   Сайт всегда тёмный, поэтому палитра живёт в :root, а блок .dark не
+   нужен: двух источников правды быть не должно.                      */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+  /* Уровень 1 — примитивы (холодная сталь H=250 + латунь H=75) */
+  --ink-950: oklch(10% 0.014 250);
+  --ink-900: oklch(14% 0.012 250);
+  --ink-800: oklch(20% 0.012 250);
+  --ink-500: oklch(66% 0.010 250);
+  --sand-100: oklch(93% 0.008 75);
+  --brass-500: oklch(76% 0.115 75);
+  --brass-600: oklch(70% 0.115 75);
+  --error: oklch(68% 0.16 32);       /* #EA6D56  ошибки валидации      */
+
+  /* Уровень 2 — роли */
+  --bg: var(--ink-900);          /* #060A0E  фон страницы           */
+  --bg-deep: var(--ink-950);     /* #020407  тёмные полосы, deep    */
+  --surface: var(--ink-800);     /* приподнятая поверхность         */
+  --text: var(--sand-100);       /* #EBE7E2  основной текст         */
+  --text-muted: var(--ink-500);  /* #8E9398  второстепенный текст   */
+  --accent: var(--brass-500);    /* #DCA657  единственный акцент    */
+  --accent-hover: var(--brass-600);
+  --border: oklch(1 0 0 / 0.10); /* волосяная линия 1px             */
+
+  /* Мостик shadcn/ui → наши роли.
+     Имена --muted и --muted-foreground остаются за shadcn: --muted — это
+     приподнятая поверхность, --muted-foreground — второстепенный текст.
+     Наш собственный токен для второстепенного текста называется --text-muted. */
+  --muted: var(--surface);
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--bg-deep);
+  --card-foreground: var(--text);
+  --popover: var(--bg-deep);
+  --popover-foreground: var(--text);
+  --primary: var(--accent);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--text);
+  --accent-foreground: var(--bg);
+  --muted-foreground: var(--text-muted);
+  --destructive: oklch(62% 0.19 25);
+  --input: oklch(1 0 0 / 0.14);
+  --ring: var(--accent);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0px;
+  --sidebar: var(--bg-deep);
+  --sidebar-foreground: var(--text);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: var(--bg);
+  --sidebar-accent: var(--surface);
+  --sidebar-accent-foreground: var(--text);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--accent);
 }
 
-.dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+/* Тело текста на телефоне — 16px: при меньшем Safari зумит поля ввода */
+@media (max-width: 767px) {
+  :root {
+    --text-body: 1rem;
+  }
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
-  body {
-    @apply bg-background text-foreground;
-    }
+    -webkit-tap-highlight-color: transparent;
+  }
+
   html {
     @apply font-sans;
-    }
+    scroll-behavior: smooth;
+    /* Safe area (mobile-first §10). Шапка получает padding-top на величину
+       выреза, значит её высота растёт на столько же. scroll-padding
+       складывается с scroll-margin секций (96px), поэтому зазор между
+       шапкой и заголовком секции остаётся прежним — 32px — и на
+       устройствах с «бровью», и без неё. */
+    scroll-padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+    text-wrap: balance;
+  }
+
+  /* Focus-visible на всех интерактивных элементах (personal-style §9) */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--bg);
+  }
 }
