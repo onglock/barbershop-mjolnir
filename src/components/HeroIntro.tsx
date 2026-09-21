@@ -1,0 +1,130 @@
+import { useEffect, useRef } from 'react';
+import { motion, useMotionValue, useReducedMotion, useSpring } from 'framer-motion';
+import { buttonVariants } from './ui/button';
+
+const EASE_SCENE: [number, number, number, number] = [0.16, 1, 0.3, 1];
+const EASE_HOVER: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
+const TITLE = 'Сталь. Время. Ремесло.';
+const SUBTITLE = 'Стрижка — не пятнадцать минут, а внимание к форме головы, росту волос и вашему утру.';
+
+/**
+ * Магнитная кнопка (animation-patterns §5.4). На тач-устройствах и при
+ * prefers-reduced-motion ведёт себя как обычная ссылка — магнит не включаем.
+ */
+function MagneticCta({ reduced }: { reduced: boolean }) {
+	const x = useMotionValue(0);
+	const y = useMotionValue(0);
+	const springX = useSpring(x, { stiffness: 200, damping: 20 });
+	const springY = useSpring(y, { stiffness: 200, damping: 20 });
+	const enabled = useRef(false);
+
+	useEffect(() => {
+		enabled.current =
+			!reduced && window.matchMedia('(hover: hover) and (min-width: 1024px)').matches;
+	}, [reduced]);
+
+	return (
+		<motion.a
+			href="#contact"
+			style={{ x: springX, y: springY }}
+			className={buttonVariants({ variant: 'accent', size: 'lg' })}
+			onMouseMove={(event) => {
+				if (!enabled.current) return;
+				const rect = event.currentTarget.getBoundingClientRect();
+				x.set((event.clientX - rect.left - rect.width / 2) * 0.3);
+				y.set((event.clientY - rect.top - rect.height / 2) * 0.3);
+			}}
+			onMouseLeave={() => {
+				x.set(0);
+				y.set(0);
+			}}
+		>
+			Записаться
+		</motion.a>
+	);
+}
+
+/**
+ * Сцена входа hero: лейбл → сплит-текст заголовка → подзаголовок → CTA →
+ * индикатор скролла. При prefers-reduced-motion каскад пропускается: каждому
+ * элементу явно задаётся конечное состояние с нулевой длительностью.
+ *
+ * Почему не «initial/animate = undefined»: сервер не знает про медиазапрос,
+ * поэтому в SSR-разметке уже лежат стартовые стили (opacity 0, blur, сдвиг).
+ * Если на клиенте просто не передать анимацию, элемент остаётся в этом
+ * стартовом состоянии — текст пропадает совсем.
+ */
+export default function HeroIntro() {
+	const reduced = useReducedMotion() ?? false;
+	const words = TITLE.split(' ');
+
+	const fade = (delay: number) => ({
+		initial: { opacity: reduced ? 1 : 0 },
+		animate: { opacity: 1 },
+		transition: reduced ? { duration: 0 } : { duration: 0.8, delay, ease: EASE_HOVER },
+	});
+
+	return (
+		<div className="pointer-events-none absolute inset-0 z-[3]">
+			<div className="mx-auto flex h-full w-full max-w-[1400px] flex-col justify-center px-6 pt-24 lg:px-8">
+				<div className="pointer-events-auto max-w-[680px]">
+					<motion.p className="text-label uppercase text-text-muted" {...fade(0.1)}>
+						Барбершоп · Москва · с 2014
+					</motion.p>
+
+					<h1 className="mt-8 text-display uppercase text-text lg:max-w-[11ch]">
+						{words.map((word, index) => (
+							<span key={word} className="inline-block overflow-hidden align-bottom">
+								<motion.span
+									className="inline-block"
+									initial={
+										reduced
+											? { y: 0, opacity: 1, filter: 'blur(0px)' }
+											: { y: '100%', opacity: 0, filter: 'blur(8px)' }
+									}
+									animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
+									transition={
+										reduced
+											? { duration: 0 }
+											: { duration: 0.9, delay: 0.3 + index * 0.06, ease: EASE_SCENE }
+									}
+								>
+									{word}
+									{index < words.length - 1 ? '\u00A0' : ''}
+								</motion.span>
+							</span>
+						))}
+					</h1>
+
+					<motion.p className="mt-8 max-w-[42ch] text-body text-text-muted" {...fade(0.9)}>
+						{SUBTITLE}
+					</motion.p>
+
+					<motion.div className="mt-12" {...fade(1.1)}>
+						<MagneticCta reduced={reduced} />
+					</motion.div>
+				</div>
+			</div>
+
+			{/* Индикатор скролла: 40px линия + подпись, пульсация 2s.
+			     Отступ снизу = 2rem + safe area (mobile-first §10), иначе на
+			     iPhone с домашней полосой линия уезжает под системный индикатор. */}
+			<motion.div
+				className="absolute left-1/2 flex -translate-x-1/2 flex-col items-center gap-3"
+				style={{ bottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}
+				{...fade(1.5)}
+			>
+				<span className="text-label uppercase text-text-muted">Скролл</span>
+				<motion.span
+					className="block h-10 w-px bg-accent"
+					initial={{ opacity: reduced ? 1 : 0.4 }}
+					animate={reduced ? { opacity: 1 } : { opacity: [0.4, 1, 0.4] }}
+					transition={
+						reduced ? { duration: 0 } : { duration: 2, repeat: Infinity, ease: 'easeInOut' }
+					}
+				/>
+			</motion.div>
+		</div>
+	);
+}
