@@ -1,0 +1,436 @@
+---
+/**
+ * ВРЕМЕННАЯ dev-страница: рендер 3D-молота в 2D-слои (задача A1+A2, путь A).
+ *
+ * Берёт .glb из public/models/, ставит ту же камеру и тот же свет, что были
+ * в Hero3D.tsx, и отдаёт PNG с альфой в двух состояниях:
+ *   cold — холодная сталь для Hero;
+ *   hot  — раскалённый металл для полёта (задача A3).
+ * Оба прохода идут с одной камеры и одного кадра — совмещение по построению.
+ *
+ * Плюс depth — карта глубины (бонус, для смещения по курсору в будущем).
+ *
+ * Если .glb ещё нет — рисует процедурную заглушку, чтобы можно было проверить
+ * всю цепочку (рендер → обрезка по альфе → файл) до прихода модели.
+ *
+ * В прод не собирается: редирект на главную.
+ */
+if (import.meta.env.PROD) return Astro.redirect('/');
+---
+
+<!doctype html>
+<html lang="ru">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex, nofollow" />
+		<title>Рендер молота в 2D — служебная страница</title>
+		<style>
+			body { margin: 0; background: #0a0e12; color: #e8ecee; font: 14px/1.5 ui-monospace, monospace; }
+			.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 16px; border-bottom: 1px solid #24303a; }
+			button, a { min-height: 40px; padding: 8px 14px; background: transparent; color: #e8ecee; border: 1px solid #24303a; cursor: pointer; font: inherit; text-decoration: none; display: inline-flex; align-items: center; }
+			button:hover, a:hover { border-color: #7ba5c9; color: #7ba5c9; }
+			#stage { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; padding: 16px; }
+			.card { border: 1px solid #24303a; padding: 8px; }
+			.card img { width: 100%; height: auto; background: repeating-conic-gradient(#1a222a 0% 25%, #12181e 0% 50%) 50% / 16px 16px; }
+			.card p { margin: 6px 0 0; color: #8b959d; font-size: 12px; }
+			#log { padding: 0 16px 24px; white-space: pre-wrap; color: #8b959d; font-size: 12px; }
+		</style>
+	</head>
+	<body>
+		<div class="bar">
+			<strong>Рендер молота</strong>
+			<span id="status">загрузка…</span>
+			<button id="btn-cold">Холодный → файл</button>
+			<button id="btn-hot">Раскалённый → файл</button>
+			<button id="btn-depth">Карта глубины</button>
+			<label>ширина <input id="w" type="number" value="2400" min="400" max="4000" style="width:80px;background:#0a0e12;color:#e8ecee;border:1px solid #24303a;padding:6px" /></label>
+			<label>поворот Y <input id="rotY" type="number" value="-0.45" step="0.05" style="width:80px;background:#0a0e12;color:#e8ecee;border:1px solid #24303a;padding:6px" /></label>
+			<label>поворот X <input id="rotX" type="number" value="0.12" step="0.05" style="width:80px;background:#0a0e12;color:#e8ecee;border:1px solid #24303a;padding:6px" /></label>
+		</div>
+		<div id="stage">
+			<div class="card"><img id="img-cold" alt="" /><p id="cap-cold">холодный</p></div>
+			<div class="card"><img id="img-hot" alt="" /><p id="cap-hot">раскалённый</p></div>
+		</div>
+		<div id="log"></div>
+
+		<script>
+			import * as THREE from 'three';
+			import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+			const log = (s: string) => {
+				const el = document.getElementById('log');
+				if (el) el.textContent += s + '\n';
+			};
+			const setStatus = (s: string) => {
+				const el = document.getElementById('status');
+				if (el) el.textContent = s;
+			};
+
+			/* Палитра берётся из Hero3D.tsx, чтобы 2D-слой жил в том же свете. */
+			const ACCENT = '#7BA5C9';
+			const WOOD = '#3A2E24';
+			const HOT_EMISSIVE = '#CC9C42';
+
+			type Mode = 'cold' | 'hot' | 'depth';
+			declare global {
+				interface Window {
+					__renderHammer?: (mode: Mode, width?: number) => { data: string; w: number; h: number; cropped: [number, number] };
+					__hammerReady?: boolean;
+					__hammerSource?: string;
+				}
+			}
+
+			let scene: THREE.Scene;
+			let camera: THREE.PerspectiveCamera;
+			let renderer: THREE.WebGLRenderer;
+			const model = new THREE.Group();
+			let source = 'заглушка (процедурная)';
+
+			/* ---------- сцена: камера, свет, окружение — как в Hero3D ---------- */
+
+			function buildScene() {
+				scene = new THREE.Scene();
+
+				renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+				renderer.setClearAlpha(0);
+				renderer.toneMapping = THREE.ACESFilmicToneMapping;
+				renderer.toneMappingExposure = 1.05;
+				document.body.appendChild(renderer.domElement);
+				renderer.domElement.style.position = 'absolute';
+				renderer.domElement.style.left = '-10000px';
+				renderer.domElement.style.top = '0';
+
+				camera = new THREE.PerspectiveCamera(30, 1, 0.1, 200);
+
+				/* Окружение запекаем из четырёх плоскостей — тот же приём,
+				   что в Hero3D, без обращения к CDN. */
+				const envScene = new THREE.Scene();
+				const sphere = new THREE.Mesh(
+					new THREE.SphereGeometry(1, 24, 24),
+					new THREE.MeshBasicMaterial({ color: '#010305', side: THREE.BackSide })
+				);
+				sphere.scale.setScalar(40);
+				envScene.add(sphere);
+
+				const warm = new THREE.Mesh(new THREE.PlaneGeometry(22, 22), new THREE.MeshBasicMaterial({ color: '#CC9C42' }));
+				warm.position.set(-8, 10, 4);
+				envScene.add(warm);
+
+				const strip = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 14), new THREE.MeshBasicMaterial({ color: '#E8ECEE' }));
+				strip.position.set(-2, 5, 6);
+				strip.rotation.z = -0.7;
+				envScene.add(strip);
+
+				const cool = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.MeshBasicMaterial({ color: '#94999D' }));
+				cool.position.set(8, -2, 5);
+				envScene.add(cool);
+
+				const back = new THREE.Mesh(new THREE.PlaneGeometry(20, 12), new THREE.MeshBasicMaterial({ color: '#030609' }));
+				back.position.set(0, 0, -10);
+				envScene.add(back);
+
+				const pmrem = new THREE.PMREMGenerator(renderer);
+				scene.environment = pmrem.fromScene(envScene, 0.04).texture;
+
+				scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+				const dir = new THREE.DirectionalLight(0xffffff, 1.6);
+				dir.position.set(-4, 6, 3);
+				scene.add(dir);
+				const p1 = new THREE.PointLight(new THREE.Color(ACCENT), 25, 14);
+				p1.position.set(4, 1, 2);
+				scene.add(p1);
+				const p2 = new THREE.PointLight(new THREE.Color('#E8ECEE'), 18, 12);
+				p2.position.set(-2.5, 3.5, 4);
+				scene.add(p2);
+
+				scene.add(model);
+			}
+
+			/* ---------- заглушка: та же геометрия, что была в Hero3D ---------- */
+
+			function buildStandIn() {
+				const g = new THREE.Group();
+				const steel = (r = 0.28, m = 0.7) => new THREE.MeshStandardMaterial({ color: ACCENT, metalness: m, roughness: r, envMapIntensity: 1.8 });
+
+				const head = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.9, 0.9), steel());
+				head.position.set(0, 0.45, 0);
+				g.add(head);
+
+				const face = new THREE.Mesh(new THREE.CylinderGeometry(0.47, 0.47, 0.3, 32), steel(0.2, 0.78));
+				face.position.set(-0.85, 0.45, 0);
+				face.rotation.z = Math.PI / 2;
+				g.add(face);
+
+				const back = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.62, 0.62), steel(0.32, 0.72));
+				back.position.set(0.95, 0.42, 0);
+				g.add(back);
+
+				const handle = new THREE.Mesh(
+					new THREE.CylinderGeometry(0.18, 0.22, 2.2, 32),
+					new THREE.MeshStandardMaterial({ color: WOOD, metalness: 0.1, roughness: 0.85 })
+				);
+				handle.position.set(0, -0.78, 0);
+				g.add(handle);
+
+				return g;
+			}
+
+			/* ---------- материалы состояний ---------- */
+
+			function applyMode(mode: Mode) {
+				model.traverse((o) => {
+					const mesh = o as THREE.Mesh;
+					if (!mesh.isMesh) return;
+					const orig = (mesh.userData.origMaterial as THREE.MeshStandardMaterial) || null;
+					if (!orig) return;
+
+					if (mode === 'depth') {
+						/* Карта глубины: MeshDepthMaterial с BasicDepthPacking даёт
+						   линейную серую шкалу по расстоянию до камеры. */
+						const m = new THREE.MeshDepthMaterial({ depthPacking: THREE.BasicDepthPacking });
+						mesh.material = m;
+						return;
+					}
+
+					const m = orig.clone();
+					if (mode === 'hot') {
+						/* Раскалённый: светится ГОЛОВА, рукоятка остаётся тёмной кожей.
+						   Базовый PBR-материал НЕ трогаем — иначе рукоятка уходит
+						   в чёрное. Всё тепло добавляем эмиссией по мировой высоте:
+						   у модели несколько примитивов со своими системами координат,
+						   поэтому локальная высота не годится. */
+						m.emissive = new THREE.Color(HOT_EMISSIVE);
+						m.emissiveIntensity = 0;
+
+						model.updateMatrixWorld(true);
+						const wbox = new THREE.Box3().setFromObject(model);
+						const wMin = wbox.min.y + (wbox.max.y - wbox.min.y) * 0.60;
+						const wMax = wbox.min.y + (wbox.max.y - wbox.min.y) * 0.72;
+
+						m.onBeforeCompile = (shader) => {
+							shader.uniforms.uHot = { value: new THREE.Color(HOT_EMISSIVE) };
+							shader.uniforms.uMinY = { value: wMin };
+							shader.uniforms.uMaxY = { value: wMax };
+							shader.vertexShader = shader.vertexShader
+								.replace('#include <common>', '#include <common>\nvarying float vWorldY;')
+								.replace(
+									'#include <begin_vertex>',
+									'#include <begin_vertex>\nvWorldY = (modelMatrix * vec4(position, 1.0)).y;'
+								);
+							shader.fragmentShader = shader.fragmentShader
+								.replace(
+									'#include <common>',
+									'#include <common>\nvarying float vWorldY;\nuniform vec3 uHot;\nuniform float uMinY;\nuniform float uMaxY;'
+								)
+								.replace(
+									'#include <emissivemap_fragment>',
+									'#include <emissivemap_fragment>\n' +
+										'float heat = smoothstep(uMinY, uMaxY, vWorldY);\n' +
+										'totalEmissiveRadiance += uHot * heat * 0.85;'
+								);
+						};
+						m.needsUpdate = true;
+						mesh.material = m;
+						return;
+					}
+					/* холодный: чистый клон исходного материала, без свечения */
+					m.emissive = new THREE.Color('#000000');
+					m.emissiveIntensity = 0;
+					mesh.material = m;
+				});
+			}
+
+			/* ---------- кадрирование: камера по габаритам модели ---------- */
+
+			function frameCamera() {
+				model.rotation.set(Number((document.getElementById('rotX') as HTMLInputElement).value) || 0, Number((document.getElementById('rotY') as HTMLInputElement).value) || 0, -0.22);
+				model.updateMatrixWorld(true);
+
+				const box = new THREE.Box3().setFromObject(model);
+				const size = box.getSize(new THREE.Vector3());
+				const center = box.getCenter(new THREE.Vector3());
+				const radius = Math.max(size.x, size.y, size.z) * 0.5;
+
+				/* Направление — как у камеры в Hero3D: справа и чуть сверху. */
+				const dirv = new THREE.Vector3(0.18, 0.22, 1).normalize();
+				const dist = (radius / Math.tan((30 * Math.PI) / 180 / 2)) * 1.15;
+
+				camera.position.copy(center).addScaledVector(dirv, dist);
+				camera.lookAt(center);
+				camera.updateProjectionMatrix();
+
+				return { size, center, radius };
+			}
+
+			/* ---------- рендер + обрезка по альфе ---------- */
+
+			function renderCropped(mode: Mode, width: number) {
+				const box = new THREE.Box3().setFromObject(model);
+				const size = box.getSize(new THREE.Vector3());
+				const aspect = Math.max(0.25, size.x / Math.max(0.0001, size.y));
+				const w = Math.round(width);
+				const h = Math.round(width / aspect);
+
+				renderer.setSize(w, h, false);
+				camera.aspect = w / h;
+				camera.updateProjectionMatrix();
+
+				if (mode === 'depth') {
+					/* Глубина: считаем яркость по расстоянию до камеры. */
+					const camPos = camera.position.clone();
+					model.traverse((o) => {
+						const mesh = o as THREE.Mesh;
+						if (!mesh.isMesh) return;
+						const c = new THREE.Box3().setFromObject(mesh).getCenter(new THREE.Vector3());
+						const d = camPos.distanceTo(c);
+						const t = THREE.MathUtils.clamp(1 - (d - size.length() * 0.4) / (size.length() * 1.2), 0, 1);
+						(mesh.material as THREE.MeshBasicMaterial).color = new THREE.Color().setScalar(t);
+					});
+				}
+
+				renderer.render(scene, camera);
+
+				const src = renderer.domElement;
+				const ctx = src.getContext('webgl2') || src.getContext('webgl');
+				void ctx;
+
+				/* Обрезаем по непрозрачным пикселям, добавив 4% поля. */
+				const tmp = document.createElement('canvas');
+				tmp.width = w;
+				tmp.height = h;
+				const c2 = tmp.getContext('2d')!;
+				c2.drawImage(src, 0, 0);
+				const img = c2.getImageData(0, 0, w, h).data;
+
+				let minX = w, minY = h, maxX = -1, maxY = -1;
+				for (let y = 0; y < h; y++) {
+					for (let x = 0; x < w; x++) {
+						const a = img[(y * w + x) * 4 + 3];
+						if (a > 8) {
+							if (x < minX) minX = x;
+							if (x > maxX) maxX = x;
+							if (y < minY) minY = y;
+							if (y > maxY) maxY = y;
+						}
+					}
+				}
+				if (maxX < 0) return { data: '', w: 0, h: 0, cropped: [0, 0] as [number, number] };
+
+				const pad = Math.round(Math.max(maxX - minX, maxY - minY) * 0.04);
+				minX = Math.max(0, minX - pad);
+				minY = Math.max(0, minY - pad);
+				maxX = Math.min(w - 1, maxX + pad);
+				maxY = Math.min(h - 1, maxY + pad);
+
+				const cw = maxX - minX + 1;
+				const ch = maxY - minY + 1;
+				const out = document.createElement('canvas');
+				out.width = cw;
+				out.height = ch;
+				out.getContext('2d')!.drawImage(src, minX, minY, cw, ch, 0, 0, cw, ch);
+
+				return { data: out.toDataURL('image/png'), w: cw, h: ch, cropped: [minX, minY] as [number, number] };
+			}
+
+			/* ---------- инициализация ---------- */
+
+			function installThumb(mode: Mode, imgEl: HTMLImageElement, capEl: HTMLElement, width: number) {
+				/* Камеру и поворот ставим ДО материала: градиент свечения считает
+				   мировую высоту, а она зависит от поворота модели. */
+				frameCamera();
+				applyMode(mode);
+				const res = renderCropped(mode, width);
+				if (!res.data) {
+					capEl.textContent = `${mode}: пусто`;
+					return res;
+				}
+				imgEl.src = res.data;
+				capEl.textContent = `${mode}: ${res.w}×${res.h} px`;
+				return res;
+			}
+
+			async function init() {
+				buildScene();
+				setStatus('сцена собрана, ищу модель…');
+				window.__hammerReady = false;
+
+				let loaded = false;
+				try {
+					const res = await fetch('/models/hammer.glb', { method: 'HEAD' });
+					loaded = res.ok;
+				} catch {
+					loaded = false;
+				}
+
+				if (loaded) {
+					try {
+						const gltf = await new GLTFLoader().loadAsync('/models/hammer.glb');
+						const g = gltf.scene;
+						g.traverse((o) => {
+							const mesh = o as THREE.Mesh;
+							if (mesh.isMesh && mesh.material) {
+								const m = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as THREE.MeshStandardMaterial;
+								mesh.userData.origMaterial = m.clone();
+							}
+						});
+						model.add(g);
+						source = 'Norse War Hammer (.glb)';
+					} catch (e) {
+						log('ошибка загрузки .glb: ' + e);
+					}
+				}
+
+				if (!model.children.length) {
+					model.add(buildStandIn());
+					model.traverse((o) => {
+						const mesh = o as THREE.Mesh;
+						if (mesh.isMesh && mesh.material) mesh.userData.origMaterial = (mesh.material as THREE.MeshStandardMaterial).clone();
+					});
+					source = 'заглушка (процедурная) — .glb не найден';
+				}
+
+				window.__hammerSource = source;
+				const box = new THREE.Box3().setFromObject(model);
+				const size = box.getSize(new THREE.Vector3());
+				log(`источник: ${source}`);
+				log(`габариты модели: ${size.x.toFixed(3)} × ${size.y.toFixed(3)} × ${size.z.toFixed(3)}`);
+
+				installThumb('cold', document.getElementById('img-cold') as HTMLImageElement, document.getElementById('cap-cold') as HTMLElement, 1200);
+				installThumb('hot', document.getElementById('img-hot') as HTMLImageElement, document.getElementById('cap-hot') as HTMLElement, 1200);
+
+				window.__renderHammer = (mode: Mode, width = 2400) => {
+					frameCamera();
+					applyMode(mode);
+					return renderCropped(mode, width);
+				};
+				window.__hammerReady = true;
+				setStatus(`готово · ${source}`);
+			}
+
+			document.getElementById('btn-cold')?.addEventListener('click', () => {
+				const w = Number((document.getElementById('w') as HTMLInputElement).value) || 2400;
+				const r = installThumb('cold', document.getElementById('img-cold') as HTMLImageElement, document.getElementById('cap-cold') as HTMLElement, w);
+				if (r.data) download(r.data, 'hammer-cold.png');
+			});
+			document.getElementById('btn-hot')?.addEventListener('click', () => {
+				const w = Number((document.getElementById('w') as HTMLInputElement).value) || 2400;
+				const r = installThumb('hot', document.getElementById('img-hot') as HTMLImageElement, document.getElementById('cap-hot') as HTMLElement, w);
+				if (r.data) download(r.data, 'hammer-hot.png');
+			});
+			document.getElementById('btn-depth')?.addEventListener('click', () => {
+				const w = Number((document.getElementById('w') as HTMLInputElement).value) || 2400;
+				const r = installThumb('depth', document.getElementById('img-hot') as HTMLImageElement, document.getElementById('cap-hot') as HTMLElement, w);
+				if (r.data) download(r.data, 'hammer-depth.png');
+			});
+			function download(data: string, name: string) {
+				const a = document.createElement('a');
+				a.href = data;
+				a.download = name;
+				a.click();
+			}
+
+			init();
+		</script>
+	</body>
+</html>
