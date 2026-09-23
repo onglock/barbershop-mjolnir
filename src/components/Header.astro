@@ -27,7 +27,7 @@ const links = [
 			<span class="font-display text-xl font-semibold uppercase tracking-[-0.045em] text-text transition-colors duration-200 ease-hover group-hover:text-accent">
 				Мьёльнир
 			</span>
-			<span class="hidden text-label uppercase text-text-muted sm:block">барбершоп</span>
+			<span class="hidden font-label text-label uppercase text-text-muted sm:block">барбершоп</span>
 		</a>
 
 		<!-- Навигация: только десктоп -->
@@ -36,7 +36,7 @@ const links = [
 				links.map((link) => (
 					<a
 						href={link.href}
-						class="group relative flex items-center py-4 text-label uppercase text-text-muted transition-colors duration-200 ease-hover hover:text-text"
+						class="group relative flex items-center py-4 font-label text-label uppercase text-text-muted transition-colors duration-200 ease-hover hover:text-text"
 					>
 						{link.label}
 						<span class="absolute -bottom-1 left-0 h-px w-full origin-left scale-x-0 bg-accent transition-transform duration-300 ease-hover group-hover:scale-x-100" />
@@ -49,7 +49,7 @@ const links = [
 			<!-- TODO: заменить на реальные контакты -->
 			<a
 				href="tel:+74951234567"
-				class="hidden items-center py-4 text-label uppercase text-text-muted transition-colors duration-200 ease-hover hover:text-text xl:flex"
+				class="hidden items-center py-4 font-label text-label uppercase text-text-muted transition-colors duration-200 ease-hover hover:text-text xl:flex"
 			>
 				+7 (495) 123-45-67
 			</a>

@@ -9,7 +9,7 @@ import { Slot } from "radix-ui"
  * Варианты: accent (заливка латунью), outline (волосяная линия), ghost.
  */
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-none border border-transparent text-label uppercase select-none transition-all duration-200 ease-hover outline-none disabled:pointer-events-none disabled:opacity-45 active:translate-y-px motion-reduce:hover:translate-y-0 motion-reduce:active:translate-y-0 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-none border border-transparent font-label text-label uppercase select-none transition-all duration-200 ease-hover outline-none disabled:pointer-events-none disabled:opacity-45 active:translate-y-px motion-reduce:hover:translate-y-0 motion-reduce:active:translate-y-0 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {

@@ -113,7 +113,7 @@ export default function ContactForm() {
 		<section id="contact" className="scroll-mt-24 border-b border-border px-6 py-24 lg:px-8 lg:py-32">
 			<div className="mx-auto max-w-[1400px]">
 				{/* Вариант B — с мифологическим акцентом (принят Кириллом) */}
-				<p className="text-label uppercase text-text-muted">Ритуал</p>
+				<p className="font-label text-label uppercase text-text-muted">Ритуал</p>
 				<h2 className="mt-6 max-w-[16ch] text-display uppercase text-text">Займите кресло</h2>
 				<p className="mt-6 max-w-[42ch] text-body text-text-muted">
 					Назовите имя и время — остальное сделает мастер.
@@ -128,7 +128,7 @@ export default function ContactForm() {
 						className="mt-14 max-w-[820px] border-t border-accent pt-8"
 					>
 						<p className="text-body text-text">Заявка принята, свяжемся в течение часа.</p>
-						<p className="mt-3 text-label uppercase text-text-muted">
+						<p className="mt-3 font-label text-label uppercase text-text-muted">
 							Отправка пока не подключена — это заглушка
 						</p>
 					</motion.div>
@@ -150,7 +150,7 @@ export default function ContactForm() {
 								<div key={f.name} className={cn('group', f.kind === 'textarea' && 'sm:col-span-2')}>
 									<label
 										htmlFor={id}
-										className="flex items-center gap-1.5 text-label uppercase text-text-muted transition-colors duration-200 ease-hover group-focus-within:text-accent"
+										className="flex items-center gap-1.5 font-label text-label uppercase text-text-muted transition-colors duration-200 ease-hover group-focus-within:text-accent"
 									>
 										{f.label}
 										{f.required && (
@@ -264,7 +264,7 @@ export default function ContactForm() {
 								<button ref={submitRef} type="submit" className={cn(buttonVariants({ variant: 'accent', size: 'lg' }))}>
 									Записаться на стрижку
 								</button>
-								<p className="text-label uppercase text-text-muted">* — обязательные поля</p>
+								<p className="font-label text-label uppercase text-text-muted">* — обязательные поля</p>
 							</div>
 						</div>
 					</form>

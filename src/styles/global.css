@@ -3,8 +3,6 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
 @import "@fontsource/forum/400.css";      /* Forum: у семейства только 400, 700 нет */
-@import "@fontsource/literata/400.css";
-@import "@fontsource/literata/700.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -48,10 +46,14 @@
 }
 
 @theme inline {
-  /* ── Шрифты: Forum — заголовки, Literata — Manifest, Inter — тело ── */
-  --font-sans: 'Inter Variable', sans-serif;
-  --font-display: 'Forum', serif;        /* заголовки: было Inter Tight */
-  --font-manifest: 'Literata', serif;    /* Manifest: призрачный заголовок + h2 */
+  /* ── Шрифты: решение Кирилла 2026-09-23 (из чата) — Forum везде.
+     Исключения — два места, где антиква проигрывает в мелком кегле:
+     цена услуги и лейбл поля формы, оба на Inter Variable. ── */
+  --font-sans: 'Forum', serif;                  /* тело */
+  --font-display: 'Forum', serif;               /* заголовки: было Inter Tight */
+  --font-manifest: 'Forum', serif;              /* было 'Literata' — пакет удалён */
+  --font-price: 'Inter Variable', sans-serif;   /* цена услуги в Services */
+  --font-label: 'Inter Variable', sans-serif;   /* лейбл поля в ContactForm */
 
   /* ── Смысловые токены → утилиты Tailwind ───────────────────────── */
   --color-bg: var(--bg);

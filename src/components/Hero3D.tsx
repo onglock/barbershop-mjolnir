@@ -1,11 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Environment } from '@react-three/drei';
+import { Environment, useGLTF } from '@react-three/drei';
 import { useInView, useReducedMotion } from 'framer-motion';
 import * as THREE from 'three';
 
 const ACCENT = '#7BA5C9'; // сталь — акцент палитры 1
-const WOOD = '#3A2E24'; // рукоятка
+
+/** Модель молота: glTF из public/models/hammer.glb (52 284 треугольника, PBR). */
+const MODEL_URL = '/models/hammer.glb';
+
+/**
+ * Высота модели в единицах сцены. Подобрана от прежних примитивов: при камере
+ * fov 30 на дистанции ~10.2 видимая высота ≈ 5.5 единиц, то есть 3.05 даёт
+ * молоту примерно половину кадра — те самые 400–500 px на 1280.
+ */
+const MODEL_HEIGHT = 3.05;
 
 /**
  * Проверка поддержки WebGL. Если её нет — остров отдаёт пустой контейнер,
@@ -51,14 +60,47 @@ function RenderDriver({ active }: { active: boolean }) {
 type Pointer = React.MutableRefObject<{ x: number; y: number }>;
 
 /**
- * Молот из двух примитивов: голова — параллелепипед, рукоятка — цилиндр.
- * Вращение по Y 0.3 об/сек, колебание по X ±5°, плюс параллакс по курсору
- * с lerp 0.05. Все три движения — на отдельных группах, чтобы не спорить.
+ * Молот из .glb-модели. Вращение по Y 0.3 об/сек, колебание по X ±5°, плюс
+ * параллакс по курсору с lerp 0.05 — движения те же, что были у примитивов,
+ * но объект настоящий.
+ *
+ * Подготовка модели важна: её нужно отцентровать по габаритному боксу, иначе
+ * вращение идёт вокруг чужой точки и молот описывает круг, а не вращается
+ * вокруг собственной оси.
  */
 function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 	const parallax = useRef<THREE.Group>(null);
 	const spinner = useRef<THREE.Group>(null);
 	const smooth = useRef({ x: 0, y: 0 });
+	/* Второй аргумент — draco, третий — meshopt: модель сжата EXT_meshopt_compression,
+	   drei сам подставит лёгкий декодер (~30 КБ против ~250 КБ у draco). */
+	const { scene } = useGLTF(MODEL_URL, false, true);
+
+	const prepared = useMemo(() => {
+		/* Клон обязателен: useGLTF кэширует сцену и отдаёт один объект на всех. */
+		const clone = scene.clone(true);
+
+		clone.traverse((object) => {
+			const mesh = object as THREE.Mesh;
+			if (!mesh.isMesh) return;
+			const material = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as THREE.MeshStandardMaterial;
+			if (material) {
+				/* Как у прежних примитивов: без отражений металл на тёмном фоне бурый. */
+				material.envMapIntensity = 1.8;
+				material.needsUpdate = true;
+			}
+		});
+
+		const box = new THREE.Box3().setFromObject(clone);
+		const size = box.getSize(new THREE.Vector3());
+		const center = box.getCenter(new THREE.Vector3());
+		clone.position.sub(center); // центр модели — в начало координат
+
+		const wrap = new THREE.Group();
+		wrap.add(clone);
+		wrap.scale.setScalar(MODEL_HEIGHT / Math.max(size.y, 0.0001));
+		return wrap;
+	}, [scene]);
 
 	useFrame((state, delta) => {
 		const t = state.clock.elapsedTime;
@@ -83,42 +125,8 @@ function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 		<group ref={parallax}>
 			{/* Наклон оси: молот смотрится объёмнее, чем в лоб */}
 			<group rotation={[0.12, 0, -0.22]}>
-				<group ref={spinner} position={[0, 0.55, 0]} scale={0.82}>
-					{/* Голова молота */}
-					<mesh position={[0, 0.45, 0]}>
-						<boxGeometry args={[1.5, 0.9, 0.9]} />
-						<meshStandardMaterial
-							color={ACCENT}
-							metalness={0.7}
-							roughness={0.28}
-							envMapIntensity={1.8}
-						/>
-					</mesh>
-					{/* Боёк, которым бьют — круглый, чуть вынесен вбок */}
-					<mesh position={[-0.85, 0.45, 0]} rotation={[0, 0, Math.PI / 2]}>
-						<cylinderGeometry args={[0.47, 0.47, 0.3, 32]} />
-						<meshStandardMaterial
-							color={ACCENT}
-							metalness={0.78}
-							roughness={0.2}
-							envMapIntensity={1.8}
-						/>
-					</mesh>
-					{/* Затылок с проушиной */}
-					<mesh position={[0.95, 0.42, 0]}>
-						<boxGeometry args={[0.5, 0.62, 0.62]} />
-						<meshStandardMaterial
-							color={ACCENT}
-							metalness={0.72}
-							roughness={0.32}
-							envMapIntensity={1.8}
-						/>
-					</mesh>
-					{/* Рукоятка */}
-					<mesh position={[0, -0.78, 0]}>
-						<cylinderGeometry args={[0.18, 0.22, 2.2, 32]} />
-						<meshStandardMaterial color={WOOD} metalness={0.1} roughness={0.85} />
-					</mesh>
+				<group ref={spinner}>
+					<primitive object={prepared} />
 				</group>
 			</group>
 		</group>
@@ -131,6 +139,17 @@ export default function Hero3D() {
 	const reduced = useReducedMotion() ?? false;
 	const [ready, setReady] = useState(false);
 	const pointer = useRef({ x: 0, y: 0 });
+
+	/**
+	 * Свет: усиленный набор — основной (решение Кирилла 2026-09-22).
+	 * ?light=2 — алиас, даёт то же самое; ?light=1 возвращает прежний
+	 * приглушённый вариант, чтобы можно было сравнить одной строкой адреса.
+	 */
+	const boost = useMemo(() => {
+		if (typeof window === 'undefined') return 1.5;
+		const light = new URLSearchParams(window.location.search).get('light');
+		return light === '1' ? 1 : 1.5;
+	}, []);
 
 	// Монтируем canvas только на клиенте и только с WebGL: на сервере
 	// разметка одинаковая, поэтому рассинхрона при гидратации нет.
@@ -196,14 +215,21 @@ export default function Hero3D() {
 						</mesh>
 					</Environment>
 
-					<ambientLight intensity={0.3} />
-					<directionalLight position={[-4, 6, 3]} intensity={1.6} />
-					<pointLight position={[4, 1, 2]} intensity={25} color={ACCENT} distance={14} />
-					<pointLight position={[-2.5, 3.5, 4]} intensity={18} color="#E8ECEE" distance={12} />
+					<ambientLight intensity={0.3 * boost} />
+					<directionalLight position={[-4, 6, 3]} intensity={1.6 * boost} />
+					<pointLight position={[4, 1, 2]} intensity={25 * boost} color={ACCENT} distance={14} />
+					<pointLight position={[-2.5, 3.5, 4]} intensity={18 * boost} color="#E8ECEE" distance={12} />
+					{/* Усиленный режим добавляет контровой свет справа-сзади,
+					    чтобы грани головы отделялись от тёмного фона */}
+					{boost > 1 && <pointLight position={[3, 2, -3]} intensity={22} color="#CC9C42" distance={16} />}
 
-					<Hammer pointer={pointer} reduced={reduced} />
+					<Suspense fallback={null}>
+						<Hammer pointer={pointer} reduced={reduced} />
+					</Suspense>
 				</Canvas>
 			)}
 		</div>
 	);
 }
+
+useGLTF.preload(MODEL_URL);

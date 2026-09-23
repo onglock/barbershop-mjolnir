@@ -365,7 +365,11 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 
 				if (loaded) {
 					try {
-						const gltf = await new GLTFLoader().loadAsync('/models/hammer.glb');
+						/* Модель сжата meshopt (EXT_meshopt_compression) — нужен декодер. */
+						const { MeshoptDecoder } = await import('three/examples/jsm/libs/meshopt_decoder.module.js');
+						const loader = new GLTFLoader();
+						loader.setMeshoptDecoder(MeshoptDecoder);
+						const gltf = await loader.loadAsync('/models/hammer.glb');
 						const g = gltf.scene;
 						g.traverse((o) => {
 							const mesh = o as THREE.Mesh;

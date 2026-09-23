@@ -55,7 +55,7 @@ export default function Services() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6, ease: EASE_HOVER }}
-          className="text-label uppercase text-text-muted"
+          className="font-label text-label uppercase text-text-muted"
         >
           Услуги
         </motion.p>
@@ -87,10 +87,10 @@ export default function Services() {
               whileHover={{ y: -7, transition: { duration: 0.3, ease: EASE_HOVER } }}
               className="flex flex-col border border-border p-8"
             >
-              <p className="text-label uppercase text-text-muted">{service.duration}</p>
+              <p className="font-label text-label uppercase text-text-muted">{service.duration}</p>
               <h3 className="mt-6 text-body font-medium uppercase text-text">{service.name}</h3>
               <p className="mt-4 flex-1 text-body text-text-muted">{service.text}</p>
-              <p className="mt-8 text-body font-medium whitespace-nowrap text-accent">{service.price}</p>
+              <p className="mt-8 font-price text-body font-medium whitespace-nowrap text-accent">{service.price}</p>
             </motion.article>
           ))}
         </motion.div>

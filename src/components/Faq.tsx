@@ -91,7 +91,7 @@ export default function Faq() {
 	return (
 		<section id="faq" className="scroll-mt-24 border-b border-border px-6 py-24 lg:px-8 lg:py-32">
 			<div className="mx-auto max-w-[1400px]">
-				<p className="text-label uppercase text-text-muted">Вопросы</p>
+				<p className="font-label text-label uppercase text-text-muted">Вопросы</p>
 
 				<h2 className="mt-6 max-w-[14ch] text-display uppercase text-text">Что спрашивают</h2>
 
