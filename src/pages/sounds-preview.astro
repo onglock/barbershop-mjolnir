@@ -1,0 +1,56 @@
+---
+// Страница прослушивания звуков притяжения. Только для выбора: в прод-навигации
+// её нет, ссылок с сайта не ведёт.
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Звуки притяжения — прослушивание">
+	<main class="mx-auto max-w-[820px] px-6 py-16">
+		<p class="text-label uppercase text-text-muted">Черновик</p>
+		<h1 class="mt-6 font-display text-[40px] leading-none">Звуки притяжения</h1>
+		<p class="mt-6 font-body text-body text-text-muted">
+			Кандидаты для прилёта молота. Критерии: 1,5–3 секунды, нарастание, металл и мистика,
+			пик ближе к концу, до 300 КБ.
+		</p>
+
+		<section class="mt-12 border-t border-border pt-8">
+			<h2 class="font-display text-[24px]">Кандидаты</h2>
+			<ul class="mt-6 space-y-4" id="list">
+				<li class="flex flex-wrap items-center gap-4 border border-border p-4">
+					<button class="font-label text-label uppercase text-accent" data-src="/sounds/candidates/attract-01.mp3">▶ играть</button>
+					<span class="font-display text-[18px]">attract-01 · 2,38 с · 38 КБ</span>
+					<span class="font-body text-body text-text-muted">развёрнутый раскат, подъём к концу, глухой</span>
+				</li>
+				<li class="flex flex-wrap items-center gap-4 border border-border p-4">
+					<button class="font-label text-label uppercase text-accent" data-src="/sounds/candidates/attract-03.mp3">▶ играть</button>
+					<span class="font-display text-[18px]">attract-03 · 2,40 с · 38 КБ</span>
+					<span class="font-body text-body text-text-muted">то же с фильтром по верхам, звонче</span>
+				</li>
+				<li class="flex flex-wrap items-center gap-4 border border-border p-4">
+					<button class="font-label text-label uppercase text-accent" data-src="/sounds/candidates/attract-04.mp3">▶ играть</button>
+					<span class="font-display text-[18px]">attract-04 · 1,13 с · 18 КБ</span>
+					<span class="font-body text-body text-text-muted">короткий, приглушённый низ, быстрый подъём</span>
+				</li>
+				<li class="flex flex-wrap items-center gap-4 border border-border p-4">
+					<button class="font-label text-label uppercase text-accent" data-src="/sounds/hammer-catch.mp3">▶ играть</button>
+					<span class="font-display text-[18px]">текущий · hammer-catch · 0,70 с</span>
+					<span class="font-body text-body text-text-muted">сейчас в Hero: резкий удар в середине</span>
+				</li>
+			</ul>
+		</section>
+	</main>
+</Layout>
+
+<script>
+	/* Один общий проигрыватель: новый клик останавливает предыдущий. */
+	let current: HTMLAudioElement | null = null;
+	document.querySelectorAll<HTMLButtonElement>('#list button').forEach((btn) => {
+		btn.addEventListener('click', () => {
+			const src = btn.dataset.src;
+			if (!src) return;
+			if (current) { current.pause(); current.currentTime = 0; }
+			current = new Audio(src);
+			void current.play().catch(() => {});
+		});
+	});
+</script>

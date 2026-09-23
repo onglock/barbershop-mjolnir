@@ -84,26 +84,7 @@ export default function HeroIntro() {
 						<MagneticCta />
 					</motion.div>
 				</div>
-			</div>
-
-			{/* Индикатор скролла: 40px линия + подпись, пульсация 2s.
-			     Отступ снизу = 2rem + safe area (mobile-first §10), иначе на
-			     iPhone с домашней полосой линия уезжает под системный индикатор. */}
-			<motion.div
-				className="absolute left-1/2 flex -translate-x-1/2 flex-col items-center gap-3"
-				style={{ bottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}
-				{...fade(1.5)}
-			>
-				<span className="text-label uppercase text-text-muted">Скролл</span>
-				<motion.span
-					className="block h-10 w-px bg-accent"
-					initial={{ opacity: reduced ? 1 : 0.4 }}
-					animate={reduced ? { opacity: 1 } : { opacity: [0.4, 1, 0.4] }}
-					transition={
-						reduced ? { duration: 0 } : { duration: 2, repeat: Infinity, ease: 'easeInOut' }
-					}
-				/>
-			</motion.div>
 		</div>
-	);
+	</div>
+);
 }

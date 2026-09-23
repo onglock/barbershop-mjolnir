@@ -3,14 +3,15 @@
 // client:media="(min-width: 1024px)"), и кадр держит этот слой: заранее
 // отрендеренный hammer-cold.png через astro:assets → AVIF/WebP с srcset.
 //
-// Позиция ниже — не «просто так»: это то место, где молот будет стоять
-// ПОСЛЕ прилёта. Этап 3 (анимация прилёта, стартовая точка) добавит движение
-// к этим координатам; сейчас они статичны.
+// ── Скелет прилёта (этап 2) ──────────────────────────────────────────
+// До клика молот скрыт, в hero стоит призыв. По клику играет звук притяжения,
+// молот вылетает слева и встаёт в финальную позицию ровно на пике звука.
+// Финальные координаты — те же константы, что зафиксированы раньше.
 import { Picture } from 'astro:assets';
 import hammerCold from '../assets/hammer/hammer-cold.png';
 ---
 
-<div class="hero-hammer lg:hidden" aria-hidden="true">
+<div class="hero-hammer lg:hidden" aria-hidden="true" data-state="idle">
 	<Picture
 		src={hammerCold}
 		widths={[320, 390, 480, 640]}
@@ -23,19 +24,40 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 	/>
 </div>
 
+<!-- Призыв до прилёта, меняется на «Ты достоин» в момент удара. -->
+<p class="hero-call lg:hidden" data-role="call">Нажми — узнаешь, достоин ли ты стрижки рукой мастера</p>
+
 <style>
 	.hero-hammer {
-		/* ── Финальное положение молота ────────────────────────────────
-		   Точка, в которую в будущем «прилетает» молот (этап 3). Держим
-		   координаты константами, чтобы анимация прилёта целилась сюда,
-		   а не в захардкоженные проценты внутри правила. */
-		--hammer-2d-final-x: -14%; /* сдвиг вправо: молот уходит за край кадра */
-		--hammer-2d-final-y: -12%; /* сдвиг вниз: голова ниже строки заголовка */
+		/* Финальное положение — точка прилёта. */
+		--hammer-2d-final-x: -14%;
+		--hammer-2d-final-y: -12%;
 		--hammer-2d-opacity: 0.62;
+
+		/* Старт: молот за левым краем кадра. Уход по Z убран: с perspective он
+		   тянул стартовую точку к центру, и вылет читался как «из середины». */
+		/* Старт за пределами страницы: -100vw — ровно одна ширина экрана,
+		   то есть целиком за левым краем. Проверялись -85vw и -150vw:
+		   на -85 молот виден почти сразу после старта, на -150 он не виден
+		   до 0,95 с — 0,65 с пустого кадра, две трети полёта. Остановился
+		   на -100vw: точно за краем и без долгой пустоты. */
+		--hammer-2d-start-shift: -100vw;
+		/* Старт вдесятеро меньше финала: путь читается длиннее (было 0.5). */
+		--hammer-2d-start-scale: 0.1;
+		/* Вращение «колесом» в плоскости экрана (rotateZ): почти восемь
+		   оборотов по часовой. При полёте 1,4 с это ≈2000 °/с — на 20 %
+		   быстрее прежних ≈1660 °/с. */
+		--hammer-2d-turn: -2800deg;
+
+		/* Старт полёта отложен: 0,3 с молот стоит за краем, звук уже играет. */
+		--hammer-2d-delay: 0.3s;
+
+		/* Полёт 1,4 с: старт на 0,3 с, приземление на 1,7 с — за 0,2 с до пика. */
+		--hammer-2d-flight: 1.4s;
 
 		position: absolute;
 		inset: 0;
-		z-index: 2; /* выше градиентов, ниже сцены входа (z-3) */
+		z-index: 2;
 		pointer-events: none;
 		overflow: hidden;
 	}
@@ -46,19 +68,166 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		bottom: var(--hammer-2d-final-y);
 		height: 84%;
 		width: auto;
-		opacity: var(--hammer-2d-opacity);
 		object-fit: contain;
 		margin: 0;
 		user-select: none;
 	}
 
-	/* Композиция сдвинута вниз именно из-за контраста: при -4% голова молота
-	   ложилась под строку «СТАЛЬ. ВРЕМЯ.» и худший пиксель буквы давал 2,29:1
-	   при пороге 3:1. При -12% худший пиксель 3,43:1, ниже порога 0% букв.
-	   Замер: 390×844 и 360×800, попиксельно по кадрам с заголовком и без. */
+	/* ── До прилёта: молота в кадре нет ─────────────────────────────── */
+	.hero-hammer[data-state='idle'] .hero-hammer__img {
+		opacity: 0;
+		transform: translateX(var(--hammer-2d-start-shift)) scale(var(--hammer-2d-start-scale));
+	}
+
+	/* ── В полёте: летит слева, растёт, вращается вокруг вертикали ──── */
+	/* Полёт: рост и вращение идут ЛИНЕЙНО весь путь. Вращение — rotateZ,
+	   то есть в плоскости экрана: молот летит и крутится «колесом», как
+	   метательный нож. rotateY (как дверь) и rotateX (сальто в глубину)
+	   не подошли — нужна именно третья ось. */
+	.hero-hammer[data-state='flying'] .hero-hammer__img {
+		opacity: var(--hammer-2d-opacity);
+		transform-style: preserve-3d;
+		/* fill-mode both: во время задержки молот уже стоит в стартовой позе
+		   за краем и не мелькает в финальной точке. */
+		animation: hero-fly var(--hammer-2d-flight) linear var(--hammer-2d-delay) both;
+	}
+
+	@keyframes hero-fly {
+		from {
+			transform: perspective(1100px)
+				translateX(var(--hammer-2d-start-shift))
+				rotateZ(var(--hammer-2d-turn))
+				scale(var(--hammer-2d-start-scale));
+		}
+		to {
+			transform: perspective(1100px) translateX(0) rotateZ(0deg) scale(1);
+		}
+	}
+
+	/* ── Прилетел ───────────────────────────────────────────────────── */
+	.hero-hammer[data-state='landed'] .hero-hammer__img {
+		opacity: var(--hammer-2d-opacity);
+		transform: perspective(1100px) translateX(0) rotateZ(0deg) scale(1);
+	}
+
+	.hero-call {
+		position: absolute;
+		left: 24px;
+		right: 24px;
+		bottom: 13%;
+		z-index: 3;
+		margin: 0;
+		/* Forum, как заголовки: это призыв, а не служебная подпись. */
+		font-family: var(--font-display);
+		font-size: 20px;
+		line-height: 1.25;
+		letter-spacing: 0.01em;
+		color: var(--accent-warm);
+		text-align: center;
+		/* Кликабельный триггер: раньше был pointer-events: none, и клик
+		   проваливался в секцию — отсюда «куда ни жму, ничего не летит». */
+		pointer-events: auto;
+		cursor: pointer;
+		background: none;
+		border: 0;
+		padding: 0;
+		transition: color 0.3s ease;
+	}
+	.hero-call:hover { color: var(--text); }
+	.hero-call[data-done='1'] { color: var(--text); cursor: default; }
+
+	/* Reduce-motion: полёта нет, молот встаёт на место сразу. */
+	@media (prefers-reduced-motion: reduce) {
+		.hero-hammer[data-state='flying'] .hero-hammer__img { animation: none; }
+		.hero-hammer[data-state='flying'] .hero-hammer__img,
+		.hero-hammer[data-state='landed'] .hero-hammer__img {
+			transform: perspective(1100px) translateX(0) rotateZ(0deg) scale(1);
+		}
+	}
 </style>
 
 <script>
-	/* Служебных параметров больше нет: композиция одна и зафиксирована.
-	   Скрипт оставлен точкой расширения для этапа 3 (прилёт молота). */
+	/* Пик звука hammer-catch.mp3 — 0,45 с от старта: файл 0,7 с, профиль
+	   по 100 мс окнам прыгает с −96 dB до −5,2 dB на пятом окне. Полёт
+	   длится ровно этот отрезок, поэтому удар совпадает с попаданием
+	   молота в финальную позицию. */
+	const layer = document.querySelector<HTMLElement>('.hero-hammer');
+	const call = document.querySelector<HTMLElement>('.hero-call');
+	const cta = document.querySelector<HTMLElement>('#top a[href="#contact"]');
+	/* Пик звука hammer-attract-final.mp3 (извлечён из .mov Кирилла 2026-09-23):
+	   файл 1,963 с, нарастание от −119 dB до −17 dB, пик в самом конце.
+	   Полёт начинается через 0,3 с и длится 1,4 с, поэтому молот встаёт
+	   на место на 1,7 с от клика — за 0,2 с до пика звука (пик на 1,9 с). */
+	const PEAK_MS = 1700;
+	const CALL_TEXT = 'Нажми — узнаешь, достоин ли ты стрижки рукой мастера';
+	let running = false;
+	let audio: HTMLAudioElement | null = null;
+
+	function reset() {
+		if (!layer) return;
+		layer.dataset.state = 'idle';
+		if (call) { call.textContent = CALL_TEXT; call.dataset.done = '0'; }
+		running = false;
+	}
+
+	function attract() {
+		if (!layer || running) return;
+		running = true;
+
+		/* Звук не перезапускаем: пока playing — новый запуск игнорируем. */
+		if (audio && !audio.paused) return;
+		audio = new Audio('/sounds/hammer-attract-final.mp3');
+		audio.loop = false;
+		audio.volume = 0.9;
+		try {
+			const res = audio.play();
+			if (res && typeof res.catch === 'function') res.catch(() => {});
+		} catch {
+			/* Политика автоплея может отказать — анимация всё равно идёт. */
+		}
+
+		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		if (reduced) {
+			layer.dataset.state = 'landed';
+			if (call) { call.textContent = 'Ты достоин'; call.dataset.done = '1'; }
+			running = false;
+			return;
+		}
+
+		layer.dataset.state = 'flying';
+		window.setTimeout(() => {
+			layer.dataset.state = 'landed';
+			if (call) { call.textContent = 'Ты достоин'; call.dataset.done = '1'; }
+			running = false;
+		}, PEAK_MS);
+	}
+
+	cta?.addEventListener('click', (e) => {
+		if (!layer) return;
+		if (layer.dataset.state === 'idle') { attract(); e.preventDefault(); return; }
+		if (layer.dataset.state === 'flying') e.preventDefault();
+	});
+
+	/* Призыв «Жми сюда» — тоже триггер: он и есть кнопка запуска. */
+	call?.addEventListener('click', (e) => {
+		if (!layer) return;
+		e.preventDefault();
+		if (layer.dataset.state === 'idle') attract();
+	});
+
+	/* Браузер возвращал прокрутку к якорю прошлой навигации (#contact), и
+	   страница открывалась не на Hero. Восстановление выключаем, а при
+	   ПЕРЕЗАГРУЗКЕ убираем и сам якорь из адреса: свежий вход всегда
+	   начинается сверху, осознанные переходы по ссылкам работают. */
+	if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+	const navType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type;
+	if (navType === 'reload' && location.hash) {
+		history.replaceState(null, '', location.pathname + location.search);
+	}
+	if (!location.hash) window.addEventListener('load', () => window.scrollTo(0, 0));
+
+	/* ?hero=attract — вернуть молот в исходное состояние, чтобы прогнать
+	   анимацию заново без перезагрузки страницы. */
+	if (new URLSearchParams(location.search).get('hero') === 'attract') reset();
+	window.addEventListener('hero:reset', reset);
 </script>
