@@ -181,6 +181,15 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 	}
 	.hero-call[data-done='1'] { color: var(--text); cursor: default; }
 
+	/* ── Мобильный: знак кувырка развёрнут ──────────────────────────────
+	   На десктопе кувырок идёт через scene.rotation.z, где положительный угол
+	   читается против часовой; в CSS rotateZ положительный — по часовой.
+	   Поэтому одна и та же цифра даёт на 390 обратное направление.
+	   Кирилл смотрел вживую: на мобильном нужен минус. */
+	@media (max-width: 1023px) {
+		.hero-hammer { --hammer-2d-turn: -2800deg; }
+	}
+
 	/* Reduce-motion: полёта нет, молот встаёт на место сразу. */
 	@media (prefers-reduced-motion: reduce) {
 		.hero-hammer[data-state='flying'] .hero-hammer__img { animation: none; }

@@ -30,6 +30,10 @@ import HeroIntro from './HeroIntro';
 	<!-- Слой 2: 3D-молот. client:media — на мобильных остров вообще не загружается -->
 	<Hero3D client:media="(min-width: 1024px)" />
 
+	<!-- Фон Hero: туманный северный пейзаж (вариант A, nano-banana).
+	     Только десктоп, opacity 0.5 (зафиксирована 2026-09-24). -->
+	<div class="hero-bg" aria-hidden="true"></div>
+
 	<!-- Декор фона. Варианты для выбора: ?decor=1|2|3 (0 — выключено). -->
 	<div class="hero-decor decor-1" aria-hidden="true">
 		<svg viewBox="0 0 120 640" preserveAspectRatio="none" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -72,13 +76,30 @@ import HeroIntro from './HeroIntro';
 
 	/* ── Декор фона: C2 выбран, C1 и C3 в резерве (?decor=1|3) ────────
 	   Только для 1024+: мобильный Hero остаётся как был. */
-	.hero-decor { display: none; position: absolute; pointer-events: none; }
+	/* Фон Hero: opacity задаётся переменной (по умолчанию 0.4), поверх него
+	   работают прежние градиенты — они и держат читаемость текста. */
+	.hero-bg {
+		position: absolute; inset: 0; z-index: 0;
+		background-image: url('/hero-bg/hero-bg-main.jpg');
+		background-size: cover;
+		background-position: center 45%;
+		opacity: 0.5; /* зафиксировано Кириллом 2026-09-24 */
+		pointer-events: none;
+	}
+	@media (max-width: 1023px) { .hero-bg { display: none; } }
+
+	.hero-decor {
+		display: none; position: absolute; pointer-events: none;
+		/* z-index: 2 — выше затемняющего градиента (z-1), иначе орнамент
+		   залит почти непрозрачной тёмной плашкой и не виден, хотя бокс есть. */
+		z-index: 2;
+	}
 	@media (max-width: 1023px) { .hero-decor { display: none !important; } }
 	html[data-decor='1'] .hero-decor.decor-1 {
 		display: block; inset: 0;
-		color: var(--accent-warm); opacity: 0.25;
+		color: var(--accent-warm); opacity: 0.30;
 	}
-	html[data-decor='1'] .hero-decor.decor-1 svg { display: block; position: absolute; top: 4%; bottom: 4%; left: 1.5%; width: 160px; height: auto; stroke-width: 7; }
+	html[data-decor='1'] .hero-decor.decor-1 svg { display: block; position: absolute; top: 4%; bottom: 4%; left: 0.5%; width: 170px; height: auto; stroke-width: 8; }
 	/* C2 выбран Кириллом — работает по умолчанию, без параметра.
 	   Отключить: ?decor=0. C1 и C3 остаются в резерве (?decor=1 и ?decor=3). */
 	html:not([data-decor]) .hero-decor.decor-2,
