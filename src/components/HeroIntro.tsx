@@ -46,7 +46,7 @@ export default function HeroIntro() {
 
 	return (
 		<div className="pointer-events-none absolute inset-0 z-[3]">
-			<div className="mx-auto flex h-full w-full max-w-[1400px] flex-col justify-center px-6 pt-24 lg:px-8">
+			<div className="hero-intro mx-auto flex h-full w-full max-w-[1400px] flex-col justify-center px-6 pt-24 lg:px-8">
 				<div className="pointer-events-auto max-w-[680px]">
 					<motion.p className="text-label uppercase text-text-muted" {...fade(0.1)}>
 						Барбершоп · Москва · с 2014

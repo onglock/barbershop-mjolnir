@@ -47,3 +47,41 @@ import HeroIntro from './HeroIntro';
 		}
 	</style>
 </noscript>
+
+<style is:global>
+	/* ── Скрим под строкой H1 ──────────────────────────────────────────
+	   Принят Кириллом для 360px, где молот вплотную подходил к строке и
+	   контраст упирался в порог. Живёт только на мобильном и только под
+	   текстом: псевдоэлемент самой строки, слоем ниже её глифов, поэтому
+	   он едет за заголовком и не затемняет молот целиком. */
+	@media (max-width: 1023px) {
+		#top h1 {
+			position: relative;
+		}
+		#top h1::before {
+			content: '';
+			position: absolute;
+			inset: -0.3em -0.45em;
+			background: radial-gradient(
+				62% 62% at 26% 50%,
+				color-mix(in oklab, var(--bg-deep) 62%, transparent) 0%,
+				color-mix(in oklab, var(--bg-deep) 34%, transparent) 55%,
+				transparent 78%
+			);
+			filter: blur(14px);
+			z-index: -1;
+			pointer-events: none;
+		}
+	}
+
+	/* ── Контент прижат к шапке (выбранный вариант A) ──────────────────
+	   Убирает пустое поле между шапкой и надзаголовком: отступ 88px —
+	   это высота шапки плюс дыхание. Только мобильный. */
+	@media (max-width: 1023px) {
+		#top .hero-intro {
+			justify-content: flex-start;
+			padding-top: 5.5rem;
+		}
+	}
+
+</style>
