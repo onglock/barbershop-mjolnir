@@ -1,0 +1,64 @@
+---
+// Молот в hero. На 1024 и ниже 3D-сцена не грузится (Hero3D стоит под
+// client:media="(min-width: 1024px)"), и кадр держит этот слой: заранее
+// отрендеренный hammer-cold.png через astro:assets → AVIF/WebP с srcset.
+//
+// Позиция ниже — не «просто так»: это то место, где молот будет стоять
+// ПОСЛЕ прилёта. Этап 3 (анимация прилёта, стартовая точка) добавит движение
+// к этим координатам; сейчас они статичны.
+import { Picture } from 'astro:assets';
+import hammerCold from '../assets/hammer/hammer-cold.png';
+---
+
+<div class="hero-hammer lg:hidden" aria-hidden="true">
+	<Picture
+		src={hammerCold}
+		widths={[320, 390, 480, 640]}
+		sizes="100vw"
+		formats={['avif', 'webp']}
+		alt=""
+		loading="eager"
+		decoding="async"
+		class="hero-hammer__img"
+	/>
+</div>
+
+<style>
+	.hero-hammer {
+		/* ── Финальное положение молота ────────────────────────────────
+		   Точка, в которую в будущем «прилетает» молот (этап 3). Держим
+		   координаты константами, чтобы анимация прилёта целилась сюда,
+		   а не в захардкоженные проценты внутри правила. */
+		--hammer-2d-final-x: -14%; /* сдвиг вправо: молот уходит за край кадра */
+		--hammer-2d-final-y: -12%; /* сдвиг вниз: голова ниже строки заголовка */
+		--hammer-2d-opacity: 0.62;
+
+		position: absolute;
+		inset: 0;
+		z-index: 2; /* выше градиентов, ниже сцены входа (z-3) */
+		pointer-events: none;
+		overflow: hidden;
+	}
+
+	.hero-hammer__img {
+		position: absolute;
+		right: var(--hammer-2d-final-x);
+		bottom: var(--hammer-2d-final-y);
+		height: 84%;
+		width: auto;
+		opacity: var(--hammer-2d-opacity);
+		object-fit: contain;
+		margin: 0;
+		user-select: none;
+	}
+
+	/* Композиция сдвинута вниз именно из-за контраста: при -4% голова молота
+	   ложилась под строку «СТАЛЬ. ВРЕМЯ.» и худший пиксель буквы давал 2,29:1
+	   при пороге 3:1. При -12% худший пиксель 3,43:1, ниже порога 0% букв.
+	   Замер: 390×844 и 360×800, попиксельно по кадрам с заголовком и без. */
+</style>
+
+<script>
+	/* Служебных параметров больше нет: композиция одна и зафиксирована.
+	   Скрипт оставлен точкой расширения для этапа 3 (прилёт молота). */
+</script>
