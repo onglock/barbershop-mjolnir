@@ -1,0 +1,125 @@
+---
+// Временная страница для выбора вариантов Hero: декор, направление кувырка,
+// оформление надписи-триггера. Одна страница, кнопки сверху, без перезагрузки
+// (кроме направления для 3D — там параметр читается при загрузке сцены).
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+---
+
+<Layout>
+	<Header />
+
+	<main id="main" class="relative z-10 bg-bg">
+		<Hero />
+	</main>
+
+	<div class="switch" role="group" aria-label="Переключатели вариантов Hero">
+		<div class="row">
+			<span class="cap">Декор</span>
+			<button data-decor="off" class="on">Off</button>
+			<button data-decor="1">C1 орнамент</button>
+			<button data-decor="2">C2 «МЬЁЛЬНИР»</button>
+			<button data-decor="3">C3 градиент</button>
+		</div>
+		<div class="row">
+			<span class="cap">Кувырок</span>
+			<button data-turn="cw" class="on">по часовой</button>
+			<button data-turn="ccw">против часовой</button>
+		</div>
+		<div class="row">
+			<span class="cap">Надпись</span>
+			<button data-call="a" class="on">A подложка</button>
+			<button data-call="b">B призрак</button>
+		</div>
+		<div class="row">
+			<span class="cap">C3 вид</span>
+			<button data-c3v="1">1 резкий</button>
+			<button data-c3v="2" class="on">2 с цветом</button>
+			<button data-c3v="3">3 виньетка</button>
+		</div>
+		<div class="row"><span class="cap">Сброс</span><button data-reset="1">перезапустить прилёт</button></div>
+	</div>
+
+	<style>
+		.switch {
+			position: fixed; top: 72px; left: 50%; transform: translateX(-50%);
+			z-index: 200; display: flex; flex-direction: column; gap: 6px;
+			padding: 10px 14px; border-radius: 14px;
+			background: color-mix(in srgb, var(--bg-deep) 88%, transparent);
+			border: 1px solid color-mix(in srgb, var(--accent-warm) 40%, transparent);
+			backdrop-filter: blur(8px); font-family: var(--font-label);
+		}
+		.switch .row { display: flex; gap: 6px; align-items: center; }
+		.switch .cap { width: 74px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+		.switch button {
+			font: inherit; font-size: 12px; letter-spacing: 0.04em;
+			padding: 6px 10px; border-radius: 8px; cursor: pointer;
+			color: var(--text-muted); background: transparent;
+			border: 1px solid color-mix(in srgb, var(--text-muted) 35%, transparent);
+		}
+		.switch button:hover { color: var(--text); border-color: var(--accent-warm); }
+		.switch button.on { color: var(--bg-deep); background: var(--accent-warm); border-color: var(--accent-warm); }
+	</style>
+
+	<script>
+		const html = document.documentElement;
+		const layer = document.querySelector<HTMLElement>('.hero-hammer');
+
+		function mark(rowSelector: string, active: HTMLElement) {
+			document.querySelectorAll(rowSelector + ' button').forEach((b) => b.classList.remove('on'));
+			active.classList.add('on');
+		}
+		function setParam(key: string, value: string) {
+			const p = new URLSearchParams(location.search);
+			if (value) p.set(key, value); else p.delete(key);
+			history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
+		}
+
+		document.querySelectorAll<HTMLElement>('[data-decor]').forEach((b) => {
+			b.addEventListener('click', () => {
+				const v = b.dataset.decor!;
+				html.dataset.decor = v === 'off' ? '0' : v;
+				setParam('decor', v === 'off' ? '' : v);
+				mark('[data-decor]', b);
+			});
+		});
+
+		document.querySelectorAll<HTMLElement>('[data-turn]').forEach((b) => {
+			b.addEventListener('click', () => {
+				const ccw = b.dataset.turn === 'ccw';
+				/* 2D-молот переключается сразу, 3D читает параметр при загрузке сцены. */
+				if (layer) layer.style.setProperty('--hammer-2d-turn', ccw ? '-2800deg' : '2800deg');
+				setParam('turn', ccw ? 'ccw' : '');
+				mark('[data-turn]', b);
+			});
+		});
+
+		document.querySelectorAll<HTMLElement>('[data-call]').forEach((b) => {
+			b.addEventListener('click', () => {
+				html.dataset.call = b.dataset.call!;
+				setParam('call', b.dataset.call!);
+				mark('[data-call]', b);
+			});
+		});
+
+		document.querySelectorAll<HTMLElement>('[data-c3v]').forEach((b) => {
+			b.addEventListener('click', () => {
+				html.dataset.c3v = b.dataset.c3v!;
+				mark('[data-c3v]', b);
+			});
+		});
+
+		document.querySelector('[data-reset]')?.addEventListener('click', () => {
+			window.dispatchEvent(new CustomEvent('hero:reset'));
+		});
+
+		/* Начальная подсветка кнопок по адресу страницы. */
+		const p0 = new URLSearchParams(location.search);
+		const d0 = p0.get('decor') || 'off';
+		document.querySelector(`[data-decor="${d0 === 'off' ? 'off' : d0}"]`)?.classList.add('on');
+		if (p0.get('turn') === 'ccw') { document.querySelector('[data-turn="ccw"]')?.classList.add('on'); document.querySelector('[data-turn="cw"]')?.classList.remove('on'); }
+		const c0 = p0.get('call') || 'a';
+		document.querySelector(`[data-call="${c0}"]`)?.classList.add('on');
+	</script>
+</Layout>

@@ -1,7 +1,7 @@
 ---
 // Hero: кадр на всю высоту. Слои снизу вверх:
 //   0 — затемняющие градиенты, 1 — 3D-молот (десктоп),
-//   2 — текстовая сцена входа + индикатор скролла.
+//   2 — текстовая сцена входа.
 // Градиенты не перехватывают курсор.
 // Видео-дыма больше нет (решение Кирилла 2026-09-22): убрано вместе с файлом
 // hero-bg.mp4 на 2,1 МБ, фон держат градиенты и свет из Hero3D.
@@ -30,9 +30,106 @@ import HeroIntro from './HeroIntro';
 	<!-- Слой 2: 3D-молот. client:media — на мобильных остров вообще не загружается -->
 	<Hero3D client:media="(min-width: 1024px)" />
 
+	<!-- Декор фона. Варианты для выбора: ?decor=1|2|3 (0 — выключено). -->
+	<div class="hero-decor decor-1" aria-hidden="true">
+		<svg viewBox="0 0 120 640" preserveAspectRatio="none" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+			<path d="M30 20v60M30 40l22 20M52 40L30 60M30 120v60M30 140h22M30 160h22M30 220v60M30 240l22 20v20M30 300v60M30 320l22 20M52 340H30M30 400v60M30 420h22v20H30M30 500v60M30 520l22 20M52 540l-22 20M30 600v40"/>
+			<path d="M90 60v60M90 80l-22 20M68 80l22 20M90 180v60M90 200h-22M90 220h-22M90 300v60M90 320l-22 20v20M90 420v60M90 440l-22 20M68 460h22M90 540v60"/>
+		</svg>
+	</div>
+	<div class="hero-decor decor-2" aria-hidden="true"><span>МЬЁЛЬНИР</span></div>
+	<div class="hero-decor decor-3" aria-hidden="true"></div>
+
+	<!-- Слой затемнения для варианта ?fly=dim: виден только во время полёта,
+	     лежит выше текста (z-3), но ниже молота (50 на мобильном, 60 в 3D). -->
+	<div class="hero-dim" aria-hidden="true"></div>
+
 	<!-- Слой 3: сцена входа -->
 	<HeroIntro client:load />
 </section>
+
+
+<style>
+	/* ── Композиция Hero на десктопе (A+B, 2026-09-23) ──────────────────
+	   Было: justify-center и отступы 32/32/48 — блок висел в пустоте.
+	   Стало: прижат к верху, отступы 20/20/32, типографика крупнее.
+	   :global() обязателен — элементы живут в React-острове HeroIntro. */
+	@media (min-width: 1024px) {
+		:global(.hero-intro) { justify-content: flex-start; }
+		:global(.hero-intro a[href='#contact']) {
+			font-size: 1.1875rem;    /* CTA 19px */
+			padding: 1.25rem 2.5rem;
+		}
+	}
+	@media (min-width: 1024px) {
+		/* Надзаголовок тоже крупнее, H1 не трогаем (98px). */
+		:global(.hero-intro p:first-of-type) { font-size: 0.875rem; }
+		:global(.hero-sub) {
+			font-size: 1.3125rem;    /* подзаголовок 21px */
+			line-height: 1.55;
+		}
+	}
+
+	/* ── Декор фона: C2 выбран, C1 и C3 в резерве (?decor=1|3) ────────
+	   Только для 1024+: мобильный Hero остаётся как был. */
+	.hero-decor { display: none; position: absolute; pointer-events: none; }
+	@media (max-width: 1023px) { .hero-decor { display: none !important; } }
+	html[data-decor='1'] .hero-decor.decor-1 {
+		display: block; inset: 0;
+		color: var(--accent-warm); opacity: 0.25;
+	}
+	html[data-decor='1'] .hero-decor.decor-1 svg { display: block; position: absolute; top: 4%; bottom: 4%; left: 1.5%; width: 160px; height: auto; stroke-width: 7; }
+	/* C2 выбран Кириллом — работает по умолчанию, без параметра.
+	   Отключить: ?decor=0. C1 и C3 остаются в резерве (?decor=1 и ?decor=3). */
+	html:not([data-decor]) .hero-decor.decor-2,
+	html:not([data-decor]) .hero-decor.decor-2,
+	html[data-decor='2'] .hero-decor.decor-2 { display: block; inset: auto 0 -2% 0; text-align: center; }
+	html:not([data-decor]) .hero-decor.decor-2 span,
+	html[data-decor='2'] .hero-decor.decor-2 span {
+		font-family: var(--font-display);
+		font-size: 22vw; line-height: 0.8; letter-spacing: 0.02em;
+		color: var(--text); opacity: 0.18; white-space: nowrap;
+	}
+	html[data-decor='3'] .hero-decor.decor-3 { display: block; inset: 0; }
+	/* v1 — резкий перепад: верх залит, переход на 40 % */
+	html[data-decor='3'][data-c3v='1'] .hero-decor.decor-3 {
+		background: linear-gradient(180deg, rgba(2,5,8,1) 0%, rgba(2,5,8,1) 40%, rgba(26,42,58,0.55) 100%);
+	}
+	/* v2 — с цветом палитры: сталь сверху, янтарь снизу */
+	html[data-decor='3']:not([data-c3v='1']):not([data-c3v='3']) .hero-decor.decor-3 {
+		background: linear-gradient(180deg, rgba(123,165,201,0.28) 0%, rgba(4,8,12,0.92) 48%, rgba(204,156,66,0.2) 100%);
+	}
+	/* v3 — виньетка: тёмные края, светлый центр */
+	html[data-decor='3'][data-c3v='3'] .hero-decor.decor-3 {
+		background: radial-gradient(125% 85% at 50% 46%, rgba(0,0,0,0) 28%, rgba(2,5,8,0.78) 72%, rgba(2,5,8,0.96) 100%);
+	}
+</style>
+<style>
+	.hero-dim {
+		position: absolute;
+		inset: 0;
+		z-index: 40;
+		background: rgba(4, 8, 11, 0.55);
+		opacity: 0;
+		transition: opacity 0.25s ease;
+		pointer-events: none;
+	}
+	/* Фокус на молоте: пока летит — затемняем всё остальное. Состояние берём
+	   прямо у слоя молота, поэтому JS для этого не нужен. */
+	html[data-fly='dim'] section:has(.hero-hammer[data-state='flying']) .hero-dim { opacity: 1; }
+	/* Десктоп: пока 3D-молот летит, сцена поднимается над текстом сцены входа. */
+	/* :global() обязателен: .hero-3d живёт в React-компоненте Hero3D и атрибута
+	   скоупа Astro не получает — со scoped-селектором правило не срабатывало. */
+	html[data-flying='1'] :global(.hero-3d) { z-index: 60; }
+</style>
+
+<script>
+	/* Переключатель декора: ?decor=1 (руны по краям) | 2 (водяной знак) | 3 (усиленный градиент). */
+	const params = new URLSearchParams(location.search);
+	const decor = params.get('hero') || params.get('decor') || '';
+	if (decor.indexOf('decor-c') === 0) document.documentElement.dataset.decor = decor.slice(-1);
+	else if (decor && decor.indexOf('decor') !== 0) document.documentElement.dataset.decor = decor;
+</script>
 
 <noscript>
 	<!-- Без JS сцена входа не проигрывается, а в SSR-разметке лежат её

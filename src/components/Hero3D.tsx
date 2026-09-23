@@ -14,7 +14,21 @@ const MODEL_URL = '/models/hammer.glb';
  * fov 30 на дистанции ~10.2 видимая высота ≈ 5.5 единиц, то есть 3.05 даёт
  * молоту примерно половину кадра — те самые 400–500 px на 1280.
  */
-const MODEL_HEIGHT = 3.05;
+const MODEL_HEIGHT = 3.4; /* было 3.05: +11 % к размеру молота */
+
+/* Прилёт (этап 2, десктопная ветка): те же тайминги, что у 2D-молота на мобильном.
+   Важно: canvas занимает ВСЮ ширину Hero, поэтому сцена и страница совпадают по X.
+   Видимая полуширина сцены при fov 30, z=10.2 и 1280×800 — ≈4,4, то есть левый
+   край страницы это x = -4,4. Старт посчитан из условия «вход в кадр на 0,6 с»
+   (как мобильные 0,58): -8,4 приходит к краю на 21 % пути. При -10 вход был
+   на 0,78 с — на 0,2 с позже. */
+const FLIGHT_START_X = -8.4;
+/* Молот стоит справа: при полной ширине canvas его место в сцене смещено. */
+const MODEL_BASE_X = 2.2;
+const FLIGHT_START_SCALE = 0.1;
+const FLIGHT_DELAY_MS = 300;
+const FLIGHT_MS = 1400;
+const FLIGHT_TURN_DEG = 2800;
 
 /**
  * Проверка поддержки WebGL. Если её нет — остров отдаёт пустой контейнер,
@@ -70,7 +84,18 @@ type Pointer = React.MutableRefObject<{ x: number; y: number }>;
  */
 function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 	const parallax = useRef<THREE.Group>(null);
+	const flyer = useRef<THREE.Group>(null);
+	/* До клика молота в сцене нет вовсе (visible={false}). */
+	const [started, setStarted] = useState(false);
+	/* Направление кувырка: ?turn=ccw — против часовой. По умолчанию по часовой,
+	   как просил Кирилл. Читаем в эффекте, чтобы не ломать SSR. */
+	const turn = useRef(FLIGHT_TURN_DEG);
+	useEffect(() => {
+		if (new URLSearchParams(window.location.search).get('turn') === 'ccw') turn.current = -FLIGHT_TURN_DEG;
+	}, []);
 	const spinner = useRef<THREE.Group>(null);
+	/* Момент старта полёта; null — молот на месте и не летит. */
+	const flyStart = useRef<number | null>(null);
 	const smooth = useRef({ x: 0, y: 0 });
 	/* Второй аргумент — draco, третий — meshopt: модель сжата EXT_meshopt_compression,
 	   drei сам подставит лёгкий декодер (~30 КБ против ~250 КБ у draco). */
@@ -102,6 +127,19 @@ function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 		return wrap;
 	}, [scene]);
 
+	/* Триггер тот же, что на мобильном: HeroHammer.astro шлёт hero:attract
+	   в момент клика по надписи или по CTA. */
+	useEffect(() => {
+		const start = () => {
+			flyStart.current = performance.now();
+			/* Флаг для CSS: пока молот летит, обёртка сцены поднимается над текстом. */
+			document.documentElement.dataset.flying = '1';
+			setStarted(true);
+		};
+		window.addEventListener('hero:attract', start);
+		return () => window.removeEventListener('hero:attract', start);
+	}, []);
+
 	useFrame((state, delta) => {
 		const t = state.clock.elapsedTime;
 		const p = pointer.current;
@@ -110,7 +148,7 @@ function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 			// lerp 0.05 — мягкая догоняющая реакция на курсор
 			smooth.current.x += (p.x * 0.45 - smooth.current.x) * 0.05;
 			smooth.current.y += (p.y * 0.3 - smooth.current.y) * 0.05;
-			parallax.current.position.x = smooth.current.x;
+			parallax.current.position.x = MODEL_BASE_X + smooth.current.x;
 			parallax.current.position.y = smooth.current.y * -0.5;
 			parallax.current.rotation.y = smooth.current.x * 0.25;
 		}
@@ -119,14 +157,41 @@ function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 			spinner.current.rotation.y += delta * 0.3 * Math.PI * 2; // 0.3 об/сек
 			spinner.current.rotation.x = Math.sin(t * 0.6) * THREE.MathUtils.degToRad(5);
 		}
+
+		/* Полёт: 0,3 с задержки, затем 1,4 с линейно — X к нулю, кувырок по Z
+		   (в плоскости экрана, не «дверью» и не сальто в глубину), рост 0.1 → 1. */
+		const fly = flyer.current;
+		if (fly) {
+			if (reduced || flyStart.current === null) {
+				fly.position.x = 0; fly.rotation.z = 0; fly.scale.setScalar(1);
+			} else {
+				const past = (performance.now() - flyStart.current - FLIGHT_DELAY_MS) / FLIGHT_MS;
+				if (past < 0) {
+					fly.position.x = FLIGHT_START_X;
+					fly.rotation.z = THREE.MathUtils.degToRad(turn.current);
+					fly.scale.setScalar(FLIGHT_START_SCALE);
+				} else if (past < 1) {
+					fly.position.x = FLIGHT_START_X * (1 - past);
+					fly.rotation.z = THREE.MathUtils.degToRad(turn.current) * (1 - past);
+					fly.scale.setScalar(FLIGHT_START_SCALE + (1 - FLIGHT_START_SCALE) * past);
+				} else {
+					fly.position.x = 0; fly.rotation.z = 0; fly.scale.setScalar(1);
+					flyStart.current = null;
+					delete document.documentElement.dataset.flying;
+				}
+			}
+		}
 	});
 
 	return (
 		<group ref={parallax}>
-			{/* Наклон оси: молот смотрится объёмнее, чем в лоб */}
-			<group rotation={[0.12, 0, -0.22]}>
-				<group ref={spinner}>
-					<primitive object={prepared} />
+			{/* flyer — снаружи наклона оси: кувырок идёт в плоскости экрана, как на мобильном */}
+			<group ref={flyer} visible={started}>
+				{/* Наклон оси: молот смотрится объёмнее, чем в лоб */}
+				<group rotation={[0.12, 0, -0.22]}>
+					<group ref={spinner}>
+						<primitive object={prepared} />
+					</group>
 				</group>
 			</group>
 		</group>
@@ -174,7 +239,7 @@ export default function Hero3D() {
 		<div
 			ref={wrapRef}
 			aria-hidden="true"
-			className="pointer-events-none absolute inset-y-0 right-0 z-[2] hidden w-1/2 lg:block"
+			className="hero-3d pointer-events-none absolute inset-0 z-[2] hidden lg:block"
 		>
 			{ready && (
 				<Canvas

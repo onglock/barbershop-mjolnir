@@ -30,7 +30,7 @@
    Блок намеренно не inline: утилиты ссылаются на переменную, поэтому
    размер тела можно переопределить медиазапросом ниже.               */
 @theme {
-  --text-display: clamp(2.5rem, 8vw, 5.75rem); /* 40px → 92px */
+  --text-display: clamp(2.5rem, 8vw, 6.125rem); /* 40px → 98px */
   --text-display--line-height: 0.98;
   --text-display--letter-spacing: -0.045em;
   --text-display--font-weight: 600;

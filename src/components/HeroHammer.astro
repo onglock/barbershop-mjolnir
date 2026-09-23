@@ -25,7 +25,7 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 </div>
 
 <!-- Призыв до прилёта, меняется на «Ты достоин» в момент удара. -->
-<p class="hero-call lg:hidden" data-role="call">Нажми — узнаешь, достоин ли ты стрижки рукой мастера</p>
+<p class="hero-call" data-role="call">Нажми — узнаешь, достоин ли ты стрижки рукой мастера</p>
 
 <style>
 	.hero-hammer {
@@ -47,7 +47,7 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		/* Вращение «колесом» в плоскости экрана (rotateZ): почти восемь
 		   оборотов по часовой. При полёте 1,4 с это ≈2000 °/с — на 20 %
 		   быстрее прежних ≈1660 °/с. */
-		--hammer-2d-turn: -2800deg;
+		--hammer-2d-turn: 2800deg;
 
 		/* Старт полёта отложен: 0,3 с молот стоит за краем, звук уже играет. */
 		--hammer-2d-delay: 0.3s;
@@ -115,7 +115,9 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		left: 24px;
 		right: 24px;
 		bottom: 13%;
-		z-index: 3;
+		/* z-20, а не 3: сцена входа (HeroIntro) стоит в DOM позже и при равном
+		   z-index перекрывала верх рамки — клик срабатывал только по низу. */
+		z-index: 20;
 		margin: 0;
 		/* Forum, как заголовки: это призыв, а не служебная подпись. */
 		font-family: var(--font-display);
@@ -134,6 +136,49 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		transition: color 0.3s ease;
 	}
 	.hero-call:hover { color: var(--text); }
+
+	/* ── Варианты оформления надписи-триггера (?call=a|b, по умолчанию a) ──
+	   A — текст на подложке: скруглённая рамка и полупрозрачная заливка.
+	   B — «кнопка-призрак»: без подложки, рамка проявляется на hover. */
+	html[data-call='a'] .hero-call {
+		padding: 12px 20px;
+		border: 1px solid color-mix(in srgb, var(--accent-warm) 45%, transparent);
+		border-radius: 14px;
+		background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
+		backdrop-filter: blur(6px);
+	}
+	html[data-call='a'] .hero-call:hover {
+		border-color: var(--accent-warm);
+		background: color-mix(in srgb, var(--bg-deep) 72%, transparent);
+	}
+	html[data-call='b'] .hero-call {
+		padding: 14px 22px;
+		border: 1px solid transparent;
+		border-radius: 14px;
+		background: none;
+	}
+	html[data-call='b'] .hero-call:hover { border-color: var(--accent-warm); }
+
+	/* Молот в полёте — поверх текста Hero (слой 3), после посадки возвращается. */
+	.hero-hammer[data-state='flying'] { z-index: 50; }
+
+	/* ── Десктоп: полёт рисует 2D-дублёр ────────────────────────────────
+	   Canvas R3F центрирован по своей области, поэтому координата сцены не равна
+	   координате страницы и «старт из-за левого края» в 3D не получается.
+	   Поэтому на 1024+ летит эта же картинка (HTML-слой), а 3D-молот показывается
+	   только в момент посадки — на том же месте и того же размера. */
+	@media (min-width: 1024px) {
+		.hero-hammer { display: none; }
+		.hero-call {
+			left: 50%;
+			right: auto;
+			bottom: 9%;
+			transform: translateX(-50%);
+			width: max-content;
+			max-width: 640px;
+			font-size: 26px;
+		}
+	}
 	.hero-call[data-done='1'] { color: var(--text); cursor: default; }
 
 	/* Reduce-motion: полёта нет, молот встаёт на место сразу. */
@@ -154,6 +199,13 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 	const layer = document.querySelector<HTMLElement>('.hero-hammer');
 	const call = document.querySelector<HTMLElement>('.hero-call');
 	const cta = document.querySelector<HTMLElement>('#top a[href="#contact"]');
+	/* Переключатели для показа вариантов: ?call=a|b — оформление надписи,
+	   ?fly=z|dim — молот поверх текста (z) или он же плюс затемнение (dim). */
+	const params = new URLSearchParams(location.search);
+	/* Направление кувырка для 2D-молота: ?turn=ccw — против часовой. */
+	if (params.get('turn') === 'ccw' && layer) layer.style.setProperty('--hammer-2d-turn', '-2800deg');
+	document.documentElement.dataset.call = params.get('call') || 'a';
+	document.documentElement.dataset.fly = params.get('fly') || 'z';
 	/* Пик звука hammer-attract-final.mp3 (извлечён из .mov Кирилла 2026-09-23):
 	   файл 1,963 с, нарастание от −119 dB до −17 dB, пик в самом конце.
 	   Полёт начинается через 0,3 с и длится 1,4 с, поэтому молот встаёт
@@ -195,6 +247,8 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		}
 
 		layer.dataset.state = 'flying';
+		/* Десктоп: 3D-молот в Hero3D слушает то же событие и летит по своим таймингам. */
+		window.dispatchEvent(new CustomEvent('hero:attract'));
 		window.setTimeout(() => {
 			layer.dataset.state = 'landed';
 			if (call) { call.textContent = 'Ты достоин'; call.dataset.done = '1'; }

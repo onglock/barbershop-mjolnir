@@ -25,8 +25,8 @@ function MagneticCta() {
 }
 
 /**
- * Сцена входа hero: лейбл → сплит-текст заголовка → подзаголовок → CTA →
- * индикатор скролла. При prefers-reduced-motion каскад пропускается: каждому
+ * Сцена входа hero: лейбл → сплит-текст заголовка → подзаголовок → CTA.
+ * При prefers-reduced-motion каскад пропускается: каждому
  * элементу явно задаётся конечное состояние с нулевой длительностью.
  *
  * Почему не «initial/animate = undefined»: сервер не знает про медиазапрос,
@@ -52,7 +52,7 @@ export default function HeroIntro() {
 						Барбершоп · Москва · с 2014
 					</motion.p>
 
-					<h1 className="mt-8 text-display uppercase text-text lg:max-w-[11ch]">
+					<h1 className="mt-8 text-display uppercase text-text lg:mt-5 lg:max-w-[11ch]">
 						{words.map((word, index) => (
 							<span key={word} className="inline-block overflow-hidden align-bottom">
 								<motion.span
@@ -76,11 +76,11 @@ export default function HeroIntro() {
 						))}
 					</h1>
 
-					<motion.p className="mt-8 max-w-[42ch] text-body text-text-muted" {...fade(0.9)}>
+					<motion.p className="hero-sub mt-8 max-w-[42ch] text-body text-text-muted lg:mt-5 lg:max-w-[44ch]" {...fade(0.9)}>
 						{SUBTITLE}
 					</motion.p>
 
-					<motion.div className="mt-12" {...fade(1.1)}>
+					<motion.div className="hero-cta mt-12 lg:mt-8" {...fade(1.1)}>
 						<MagneticCta />
 					</motion.div>
 				</div>
