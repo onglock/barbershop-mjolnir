@@ -85,6 +85,13 @@ type Pointer = React.MutableRefObject<{ x: number; y: number }>;
 function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 	const parallax = useRef<THREE.Group>(null);
 	const flyer = useRef<THREE.Group>(null);
+	/* Вращение и парение молота. Значения подобраны Кириллом
+	   на /hero-rotation-preview: 0.17 об/с, амплитуда 0.08, период 3,5 с. */
+	const spinSpeed = useRef(0.17);
+	const floatAmp = useRef(0.08);
+	const floatPeriod = useRef(3.5);
+	/* Плавный вход парения после посадки: 0 → 1 за ~1 с. */
+	const floatRamp = useRef(0);
 	/* До клика молота в сцене нет вовсе (visible={false}). */
 	const [started, setStarted] = useState(false);
 	/* Направление кувырка: ?turn=ccw — против часовой. По умолчанию по часовой,
@@ -127,6 +134,25 @@ function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 		return wrap;
 	}, [scene]);
 
+	/* API скорости вращения для страницы /hero-rotation-preview. */
+	useEffect(() => {
+		(window as any).__hammerSpin = {
+			set: (rev: number) => { spinSpeed.current = rev; },
+			get: () => spinSpeed.current,
+			/* Показать молот на месте, без прилёта — для страницы скорости. */
+			show: () => setStarted(true),
+			/* Текущий угол поворота (радианы) — для замера фактической скорости. */
+			angle: () => (spinner.current ? spinner.current.rotation.y : null),
+			/* Парение: настройка и текущая высота. */
+			setAmp: (v: number) => { floatAmp.current = v; },
+			getAmp: () => floatAmp.current,
+			setPeriod: (v: number) => { floatPeriod.current = v; },
+			getPeriod: () => floatPeriod.current,
+			y: () => (flyer.current ? flyer.current.position.y : null),
+		};
+		return () => { delete (window as any).__hammerSpin; };
+	}, []);
+
 	/* Триггер тот же, что на мобильном: HeroHammer.astro шлёт hero:attract
 	   в момент клика по надписи или по CTA. */
 	useEffect(() => {
@@ -154,8 +180,25 @@ function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 		}
 
 		if (spinner.current && !reduced) {
-			spinner.current.rotation.y += delta * 0.3 * Math.PI * 2; // 0.3 об/сек
+			spinner.current.rotation.y += delta * spinSpeed.current * Math.PI * 2;
 			spinner.current.rotation.x = Math.sin(t * 0.6) * THREE.MathUtils.degToRad(5);
+		}
+
+		/* Парение: только по Y, синус. Начинается после посадки — в полёте
+		   flyStart не null, поэтому молот сначала прилетает и только потом
+		   начинает парить. Вход плавный: амплитуда растёт за ~1 с.
+		   prefers-reduced-motion — парения нет. */
+		if (flyer.current) {
+			const settled = started && flyStart.current === null && !reduced;
+			floatRamp.current = THREE.MathUtils.clamp(
+				floatRamp.current + (settled ? delta : -delta), 0, 1
+			);
+			if (floatRamp.current > 0.001) {
+				const f = (Math.PI * 2) / Math.max(0.5, floatPeriod.current);
+				flyer.current.position.y = Math.sin(t * f) * floatAmp.current * floatRamp.current;
+			} else {
+				flyer.current.position.y = 0;
+			}
 		}
 
 		/* Полёт: 0,3 с задержки, затем 1,4 с линейно — X к нулю, кувырок по Z
