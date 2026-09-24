@@ -89,11 +89,11 @@ export default function Faq() {
 		: { duration: 0.2, ease: EASE_HOVER, delay: 0.02 };
 
 	return (
-		<section id="faq" className="scroll-mt-24 border-b border-border px-6 py-24 lg:px-8 lg:py-32">
+		<section id="faq" className="scroll-mt-24 border-b border-border px-6 py-8 lg:px-8 lg:py-10">
 			<div className="mx-auto max-w-[1400px]">
 				<p className="font-label text-label uppercase text-text-muted">Вопросы</p>
 
-				<h2 className="mt-6 max-w-[14ch] text-display uppercase text-text">Что спрашивают</h2>
+				<h2 className="mt-6 max-w-[14ch] text-h2 uppercase text-text">Что спрашивают</h2>
 
 				<Accordion
 					type="single"

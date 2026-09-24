@@ -48,7 +48,7 @@ export const services = [
 
 export default function Services() {
   return (
-    <section id="services" className="scroll-mt-24 border-b border-border px-6 py-24 lg:px-8 lg:py-32">
+    <section id="services" className="scroll-mt-24 border-b border-border px-6 py-8 lg:px-8 lg:py-10">
       <div className="mx-auto max-w-[1400px]">
         <motion.p
           initial={{ opacity: 0 }}
@@ -65,7 +65,7 @@ export default function Services() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6, ease: EASE_HOVER }}
-          className="mt-6 max-w-[14ch] text-display uppercase text-text"
+          className="mt-6 max-w-[14ch] text-h2 uppercase text-text"
         >
           Что делаем
         </motion.h2>

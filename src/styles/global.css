@@ -35,6 +35,14 @@
   --text-display--letter-spacing: -0.045em;
   --text-display--font-weight: 600;
 
+  /* Заголовки секций: −15 % от display (решение Кирилла 2026-09-24).
+     Отдельный токен, а не правка --text-display: на том же токене сидят H1 в
+     Hero, водяной знак и цифры Manifest — их уменьшать нельзя. */
+  --text-h2: calc(clamp(2.5rem, 8vw, 6.125rem) * 0.85); /* 34px → 83,3px */
+  --text-h2--line-height: 0.98;
+  --text-h2--letter-spacing: -0.045em;
+  --text-h2--font-weight: 600;
+
   --text-body: 1.0625rem; /* 17px */
   --text-body--line-height: 1.6;
   --text-body--letter-spacing: -0.01em;

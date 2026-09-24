@@ -4,7 +4,8 @@
 // верхнего угла — угол 25°, раскрыто 85 % кадра (решение Кирилла 2026-09-24).
 // Подпись карточки — только тип услуги; имена, роли и описательные тексты убраны
 // (решения Кирилла 2026-09-24). Выравнивания лиц нет: масштаб обрезал кадр.
-// Отступы секции — стандартные, как у соседних разделов (py-24 / lg:py-32).
+// Отступы секции — как у соседей: py-8 / lg:py-10 (32/40, решение Кирилла
+// 2026-09-24). Выравнивания лиц нет: масштаб обрезал кадр.
 // Подъём и акцентная граница на hover — как было, чистый CSS.
 import { Image } from 'astro:assets';
 import master01 from '../assets/master-01.jpg';
@@ -42,11 +43,11 @@ const masters = [
 ];
 ---
 
-<section id="transformations" class="scroll-mt-24 border-b border-border px-6 py-24 lg:px-8 lg:py-32">
+<section id="transformations" class="scroll-mt-24 border-b border-border px-6 py-8 lg:px-8 lg:py-10">
 	<div class="mx-auto max-w-[1400px]">
 		<p class="font-label text-label uppercase text-text-muted">Мастерская</p>
 
-		<h2 class="mt-6 max-w-[14ch] text-display uppercase text-text">Облик — наше ремесло</h2>
+		<h2 class="mt-6 max-w-[14ch] text-h2 uppercase text-text">Облик — наше ремесло</h2>
 
 		<div class="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
 			{

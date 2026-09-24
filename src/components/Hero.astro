@@ -5,6 +5,9 @@
 // Градиенты не перехватывают курсор.
 // Видео-дыма больше нет (решение Кирилла 2026-09-22): убрано вместе с файлом
 // hero-bg.mp4 на 2,1 МБ, фон держат градиенты и свет из Hero3D.
+// bg-bg (непрозрачный фон страницы) обязателен с 2026-09-24: под секциями
+// появился общий фон на весь экран (index.astro, .section-bg). Без него кадр
+// Hero накладывался бы на такой же кадр общего слоя и Hero стал бы светлее.
 import Hero3D from './Hero3D';
 import HeroHammer from './HeroHammer.astro';
 import HeroIntro from './HeroIntro';
@@ -12,7 +15,7 @@ import HeroIntro from './HeroIntro';
 
 <section
 	id="top"
-	class="relative h-[100svh] min-h-[560px] w-full overflow-hidden border-b border-border lg:h-[100dvh]"
+	class="relative h-[100svh] min-h-[560px] w-full overflow-hidden border-b border-border bg-bg lg:h-[100dvh]"
 >
 	<!-- Слой 0: затемнение. Вертикальный лёгкий (0.35→0.6), горизонтальный
 	     держит тёмной левую треть под заголовок и сходит в ноль правее 85%. -->

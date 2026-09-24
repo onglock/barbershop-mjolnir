@@ -16,6 +16,13 @@ import Footer from '../components/Footer.astro';
 	<Header />
 
 	<main id="main" class="relative z-10 bg-bg">
+		<!-- Общий фон всех секций: тот же кадр, что в Hero, fixed — не скроллится.
+		     Живёт внутри main, потому что у main свой непрозрачный фон и z-10:
+		     слой с z-index −1 встаёт выше фона main, но ниже всего контента.
+		     Так сохраняется и приём с футером (он sticky и снаружи main, поэтому
+		     по-прежнему открывается из-под контента). На мобильном скрыт — как в Hero. -->
+		<div class="section-bg" aria-hidden="true"></div>
+
 		<Hero />
 		<Manifest />
 		<Services client:visible />
@@ -27,3 +34,28 @@ import Footer from '../components/Footer.astro';
 
 	<Footer />
 </Layout>
+
+<style>
+	/* Общий фон секций: тот же кадр, что в Hero (/hero-bg/hero-bg-main.jpg),
+	   opacity 0.5 — решение Кирилла 2026-09-24. fixed: не скроллится с текстом.
+	   z-index −1 внутри main (у него z-10 и непрозрачный фон) — слой ложится
+	   выше фона main и ниже контента, поэтому фон виден во всех секциях, а
+	   футер по-прежнему открывается из-под контента. */
+	.section-bg {
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
+		background-image: url('/hero-bg/hero-bg-main.jpg');
+		background-size: cover;
+		background-position: center 45%;
+		background-repeat: no-repeat;
+		opacity: 0.5;
+	}
+
+	/* На мобильном фон выключен — как в Hero: при cover на узком экране кадр
+	   сильно зумится и читается как размытое пятно (решение Кирилла). */
+	@media (max-width: 1023px) {
+		.section-bg { display: none; }
+	}
+</style>

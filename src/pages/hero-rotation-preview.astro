@@ -16,7 +16,7 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 		<Hero3D client:load />
 	</main>
 
-	<div class="switch" role="group" aria-label="Скорость вращения молота">
+	<div class="switch" role="group" aria-label="Скорость вращения молота" data-pp>
 		<div class="row">
 			<span class="cap">Оборотов/с</span>
 			<button data-spin="0.10">0,10</button>

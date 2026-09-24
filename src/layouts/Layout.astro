@@ -3,6 +3,7 @@
 import '../styles/global.css';
 import 'lenis/dist/lenis.css';
 import ProgressBar from '../components/ProgressBar';
+import PreviewPanel from '../components/PreviewPanel.astro';
 
 interface Props {
 	title?: string;
@@ -38,6 +39,10 @@ const {
 		<a class="skip-link" href="#main">Перейти к содержанию</a>
 		<ProgressBar client:load />
 		<slot />
+
+		<!-- Панель превью: кнопка в углу + выезжающий дровер. Показывает себя
+		     только на страницах, где органы управления помечены data-pp. -->
+		<PreviewPanel />
 
 		<!-- Плавный скролл. Колесо и тачпад обслуживает сам браузер: при
 		     smoothWheel: false Lenis выходит из обработчика колеса до вызова
