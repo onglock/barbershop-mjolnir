@@ -39,8 +39,9 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		   до 0,95 с — 0,65 с пустого кадра, две трети полёта. Остановился
 		   на -100vw: точно за краем и без долгой пустоты. */
 		--hammer-2d-start-shift: -100vw;
-		/* Старт вдесятеро меньше финала: путь читается длиннее (было 0.5). */
-		--hammer-2d-start-scale: 0.1;
+		/* Старт в сто раз меньше финала: молот входит точкой и растёт к посадке
+		   (решение Кирилла 2026-09-24, было 0.1). */
+		--hammer-2d-start-scale: 0.01;
 		/* Вращение «колесом» в плоскости экрана (rotateZ): почти восемь
 		   оборотов по часовой. При полёте 0,9 с (решение Кирилла, вариант Б)
 		   это ≈3100 °/с против ≈2000 °/с при прежних 1,4 с. */
@@ -166,6 +167,9 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 	const CALL_TEXT = 'Нажми — узнаешь, достоин ли ты стрижки рукой мастера';
 	let running = false;
 	let audio: HTMLAudioElement | null = null;
+	/* Таймер посадки: нужен, чтобы сброс в момент полёта его гасил — иначе
+	   отложенный колбэк вернул бы слой в «landed» уже после сброса. */
+	let landTimer = 0;
 
 	/* Тайминги прилёта — один набор для 2D-слоя и 3D-сцены: задержка 300 мс плюс
 	   ход 900 мс, то есть молот встаёт на место на 1200 мс от клика.
@@ -194,14 +198,13 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 
 	function playAttractSound() {
 		const el = armAttractSound();
-		/* Звук не перезапускаем: пока playing — новый запуск игнорируем. */
-		if (!el.paused) return;
 		/* Вариант Б (решение Кирилла, 2026-09-24): звук стартует СРАЗУ в клик —
 		   вместе с укороченным до 900 мс полётом его пик (≈1210 мс с учётом
 		   латентности запуска) приходится на посадку (1200 мс). Запуск идёт
 		   прямо из обработчика жеста, поэтому автоплей разрешён гарантированно.
-		   Отложенный старт убран; чтобы вернуть, сдвинуть запуск на
-		   FLIGHT_DELAY_MS + FLIGHT_MS − 1120 − ≈90 мс. */
+		   Повторный запуск НЕ глушится: полёт можно гонять подряд, и тогда звук
+		   должен начинаться с начала, а не молчать (прежняя проверка `!paused`
+		   ломала повторные прогоны). */
 		try {
 			el.currentTime = 0;
 			const res = el.play();
@@ -219,6 +222,12 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		if (!layer) return;
 		layer.dataset.state = 'idle';
 		if (call) { call.textContent = CALL_TEXT; call.dataset.done = '0'; }
+		/* Сброс должен останавливать и звук, и метку клика, и таймер посадки:
+		   иначе после сброса остров, смонтировавшийся позже, разыграл бы полёт
+		   сам, а отложенный колбэк вернул бы слой в «landed». */
+		if (audio) { audio.pause(); audio.currentTime = 0; }
+		if (landTimer) { window.clearTimeout(landTimer); landTimer = 0; }
+		(window as any).__attractFired = false;
 		running = false;
 	}
 
@@ -244,7 +253,11 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		layer.dataset.state = 'flying';
 		/* Десктоп: 3D-молот в Hero3D слушает то же событие и летит по своим таймингам. */
 		window.dispatchEvent(new CustomEvent('hero:attract'));
-		window.setTimeout(() => {
+		landTimer = window.setTimeout(() => {
+			landTimer = 0;
+			/* Сброс во время полёта переводит слой в idle — тогда посадку не
+			   доигрываем. */
+			if (layer.dataset.state !== 'flying') return;
 			layer.dataset.state = 'landed';
 			/* Текст призыва не меняем: иначе ячейка слота сжимается и рамка прыгает. */
 			if (call) call.dataset.done = '1';
@@ -279,5 +292,11 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 	/* ?hero=attract — вернуть молот в исходное состояние, чтобы прогнать
 	   анимацию заново без перезагрузки страницы. */
 	if (new URLSearchParams(location.search).get('hero') === 'attract') reset();
+
+	/* Запуск извне (страница подбора старта, dev-кнопки): то же событие, что
+	   шлёт 3D-остров. Повторный вызов во время полёта игнорируется — гвардия
+	   `running` выше ставится синхронно, поэтому двойного запуска нет и когда
+	   клик по призыву сам рассылает это же событие. */
+	window.addEventListener('hero:attract', attract);
 	window.addEventListener('hero:reset', reset);
 </script>

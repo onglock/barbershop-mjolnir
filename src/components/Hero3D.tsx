@@ -25,7 +25,9 @@ const MODEL_HEIGHT = 3.4; /* было 3.05: +11 % к размеру молота
 const FLIGHT_START_X = -8.4;
 /* Молот стоит справа: при полной ширине canvas его место в сцене смещено. */
 const MODEL_BASE_X = 2.2;
-const FLIGHT_START_SCALE = 0.1;
+/* Стартовый масштаб: 0.01 (решение Кирилла 2026-09-24) — молот влетает
+   практически точкой и растёт до 1.0 к посадке. Было 0.1. */
+const FLIGHT_START_SCALE = 0.01;
 const FLIGHT_DELAY_MS = 300;
 /* Решение Кирилла (вариант Б, 2026-09-24): звук стартует в клик, полёт укорочен
    с 1400 до 900 мс, чтобы пик звука совпал с посадкой. Пик файла — 1120 мс от
@@ -89,7 +91,9 @@ type Pointer = React.MutableRefObject<{ x: number; y: number }>;
  * вращение идёт вокруг чужой точки и молот описывает круг, а не вращается
  * вокруг собственной оси.
  */
-function Hammer({ pointer, reduced, attract }: { pointer: Pointer; reduced: boolean; attract: boolean }) {
+function Hammer({ pointer, reduced, runId }: { pointer: Pointer; reduced: boolean; runId: number }) {
+	/* Камера и размер канвы — нужны для диагностики: где молот на экране. */
+	const { camera, size } = useThree();
 	const parallax = useRef<THREE.Group>(null);
 	const flyer = useRef<THREE.Group>(null);
 	/* Вращение и парение молота. Значения подобраны Кириллом
@@ -103,13 +107,20 @@ function Hammer({ pointer, reduced, attract }: { pointer: Pointer; reduced: bool
 	   видел вспышку на месте перед полётом. Теперь фаза известна до отрисовки:
 	   сбрасываем позу в useLayoutEffect, а не в useEffect. */
 	const phase = useRef<'idle' | 'flying' | 'landed'>('idle');
+	/* Стартовая поза — в ref: на превью /hero-hammer-start её двигают слайдером.
+	   Значения по умолчанию — константы FLIGHT_START_X / FLIGHT_START_SCALE. */
+	const startX = useRef(FLIGHT_START_X);
+	const startScale = useRef(FLIGHT_START_SCALE);
+	/* Дев-режим превью: показать молот в стартовой позе, пока подбирают X. */
+	const hold = useRef(false);
+	const [holdOn, setHoldOn] = useState(false);
 	/* Плавный вход парения после посадки: 0 → 1 за ~1 с. */
 	const floatRamp = useRef(0);
 	/* До клика молота в сцене нет вовсе (visible={false}). Два источника:
 	   attract — настоящий клик по призыву (вместе с полётом), showOnly — показ
 	   «на месте» для страницы скорости (/hero-rotation-preview). */
 	const [showOnly, setShowOnly] = useState(false);
-	const started = attract || showOnly;
+	const started = runId > 0 || showOnly || holdOn;
 	/* Направление кувырка: ?turn=ccw — против часовой. По умолчанию по часовой,
 	   как просил Кирилл. Читаем в эффекте, чтобы не ломать SSR. */
 	const turn = useRef(FLIGHT_TURN_DEG);
@@ -152,6 +163,35 @@ function Hammer({ pointer, reduced, attract }: { pointer: Pointer; reduced: bool
 
 	/* API скорости вращения для страницы /hero-rotation-preview. */
 	useEffect(() => {
+		/* Проекция габаритного бокса молота на экран, в пикселях канвы. */
+		const projectBox = () => {
+			const fly = flyer.current;
+			if (!fly) return null;
+			const box = new THREE.Box3().setFromObject(fly);
+			if (box.isEmpty()) return null;
+			let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+			for (let i = 0; i < 8; i++) {
+				const v = new THREE.Vector3(
+					i & 1 ? box.max.x : box.min.x,
+					i & 2 ? box.max.y : box.min.y,
+					i & 4 ? box.max.z : box.min.z
+				);
+				v.project(camera);
+				const px = ((v.x + 1) / 2) * size.width;
+				const py = ((1 - v.y) / 2) * size.height;
+				if (px < left) left = px;
+				if (px > right) right = px;
+				if (py < top) top = py;
+				if (py > bottom) bottom = py;
+			}
+			return {
+				left: Math.round(left), right: Math.round(right),
+				top: Math.round(top), bottom: Math.round(bottom),
+				width: Math.round(right - left), height: Math.round(bottom - top),
+				fullyOffscreen: right < 0 || left > size.width,
+			};
+		};
+
 		(window as any).__hammerSpin = {
 			set: (rev: number) => { spinSpeed.current = rev; },
 			get: () => spinSpeed.current,
@@ -170,6 +210,84 @@ function Hammer({ pointer, reduced, attract }: { pointer: Pointer; reduced: bool
 			x: () => (flyer.current ? flyer.current.position.x : null),
 			scale: () => (flyer.current ? flyer.current.scale.x : null),
 			flyStartAt: () => flyStart.current,
+			/* Диагностика (dev): где молот на экране и что видит камера.
+			   screen() — положение ЦЕНТРА модели в пикселях канвы от левого и
+			   верхнего края; worldX/worldY — координаты сцены; edge() — где
+			   проходит край кадра в сцене на глубине молота. */
+			screen: () => {
+				const fly = flyer.current;
+				if (!fly) return null;
+				const p = new THREE.Vector3();
+				fly.getWorldPosition(p);
+				const world = { x: Math.round(p.x * 100) / 100, y: Math.round(p.y * 100) / 100 };
+				p.project(camera);
+				return {
+					x: Math.round(((p.x + 1) / 2) * size.width),
+					y: Math.round(((1 - p.y) / 2) * size.height),
+					worldX: world.x,
+					worldY: world.y,
+					ndcX: Math.round(p.x * 1000) / 1000,
+					offscreen: p.x < -1,
+				};
+			},
+			camera: () => {
+				const c = camera as THREE.PerspectiveCamera;
+				return { z: c.position.z, y: c.position.y, fov: c.fov, aspect: Math.round(c.aspect * 1000) / 1000 };
+			},
+			edge: () => {
+				const c = camera as THREE.PerspectiveCamera;
+				const halfH = Math.tan(((c.fov / 2) * Math.PI) / 180) * c.position.z;
+				const halfW = halfH * c.aspect;
+				return {
+					halfW: Math.round(halfW * 100) / 100,
+					halfH: Math.round(halfH * 100) / 100,
+					leftWorldX: Math.round(-halfW * 100) / 100,
+					pxPerUnit: Math.round((size.width / (2 * halfW)) * 100) / 100,
+				};
+			},
+			/* Стартовая поза: чтение и правка (превью /hero-hammer-start). */
+			getStartX: () => startX.current,
+			setStartX: (v: number) => { startX.current = v; },
+			getStartScale: () => startScale.current,
+			setStartScale: (v: number) => { startScale.current = v; },
+			/* Дев-режим: держать молот в стартовой позе (видно, откуда вылетит). */
+			setHold: (on: boolean) => { hold.current = on; setHoldOn(on); },
+			getHold: () => hold.current,
+			/* Габаритный бокс молота на экране, в пикселях канвы: где он сейчас
+			   (в стартовой позе — где он стартует). Считается по реальной
+			   геометрии модели, а не по боксу DOM. */
+			bbox: projectBox,
+			/* Тот же бокс, но В СТАРТОВОЙ ПОЗЕ, независимо от текущей фазы:
+			   панель превью должна показывать, откуда молот стартует, а не где
+			   он сейчас. Позу применяем на миг и возвращаем — useFrame всё равно
+			   переставит её в этом же кадре. */
+			startBox: () => {
+				const fly = flyer.current;
+				if (!fly) return null;
+				const keep = { x: fly.position.x, z: fly.rotation.z, s: fly.scale.x };
+				fly.position.x = startX.current;
+				fly.rotation.z = THREE.MathUtils.degToRad(turn.current);
+				fly.scale.setScalar(startScale.current);
+				fly.updateMatrixWorld(true);
+				const res = projectBox();
+				fly.position.x = keep.x;
+				fly.rotation.z = keep.z;
+				fly.scale.setScalar(keep.s);
+				fly.updateMatrixWorld(true);
+				return res;
+			},
+			/* Управление прогоном для превью: сброс в idle и запуск полёта —
+			те же события, что у клика по призыву на главной. */
+			reset: () => window.dispatchEvent(new CustomEvent('hero:reset')),
+			replay: () => {
+				window.dispatchEvent(new CustomEvent('hero:reset'));
+				/* Запуск — следующим кадром: если отправить оба события в одной
+				   задаче, React схлопывает «0, затем +1» в один рендер, счётчик
+				   остаётся прежним и полёт не перезапускается. */
+				requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('hero:attract')));
+			},
+			/* Край кадра в пикселях: где начинается видимая часть. */
+			viewport: () => ({ width: size.width, height: size.height }),
 		};
 		return () => { delete (window as any).__hammerSpin; };
 	}, []);
@@ -177,13 +295,21 @@ function Hammer({ pointer, reduced, attract }: { pointer: Pointer; reduced: bool
 	/* Полёт стартует ЗДЕСЬ — до первой отрисовки после клика (useLayoutEffect, а
 	   не useEffect: с useEffect успевал пройти кадр, и молот мелькал на конечном
 	   месте). Слушатель живёт на верхнем уровне острова (Hero3D): клик, попавший
-	   в окно загрузки модели, не теряется, а разыгрывается, когда модель готова. */
+	   в окно загрузки модели, не теряется, а разыгрывается, когда модель готова.
+	   runId = 0 — сброс в idle (молот невидим, стартовая поза), > 0 — номер
+	   запуска: каждый запуск увеличивает счётчик, поэтому эффект срабатывает
+	   и на повторных кликах (булев флаг не менялся, и полёт «залипал»). */
 	useLayoutEffect(() => {
-		if (!attract) return;
+		if (runId === 0) {
+			phase.current = 'idle';
+			flyStart.current = null;
+			delete document.documentElement.dataset.flying;
+			return;
+		}
 		phase.current = 'flying';
 		flyStart.current = performance.now();
 		document.documentElement.dataset.flying = '1';
-	}, [attract]);
+	}, [runId]);
 
 	useLayoutEffect(() => {
 		if (showOnly) phase.current = 'landed';
@@ -226,18 +352,22 @@ function Hammer({ pointer, reduced, attract }: { pointer: Pointer; reduced: bool
 		/* Поза по фазе. Конечная поза достижима ТОЛЬКО после посадки: до клика
 		   (idle) и в задержке перед полётом молот стоит в стартовой позе — у
 		   левого края, сжатый. Полёт: 0,3 с задержки, затем 0,9 с линейно —
-		   X к нулю, кувырок по Z (в плоскости экрана), рост 0.1 → 1. */
+		   X к нулю, кувырок по Z (в плоскости экрана), рост startScale → 1.
+		   Стартовые X и масштаб берутся из ref — их двигает превью
+		   /hero-hammer-start (правило 20.6: варианты показываем живой страницей). */
 		const fly = flyer.current;
 		if (fly) {
 			const setStart = () => {
-				fly.position.x = FLIGHT_START_X;
+				fly.position.x = startX.current;
 				fly.rotation.z = THREE.MathUtils.degToRad(turn.current);
-				fly.scale.setScalar(FLIGHT_START_SCALE);
+				fly.scale.setScalar(startScale.current);
 			};
 			const setEnd = () => {
 				fly.position.x = 0; fly.rotation.z = 0; fly.scale.setScalar(1);
 			};
-			if (reduced) {
+			if (hold.current) {
+				setStart();
+			} else if (reduced) {
 				phase.current = 'landed';
 				setEnd();
 			} else if (phase.current === 'idle') {
@@ -250,9 +380,9 @@ function Hammer({ pointer, reduced, attract }: { pointer: Pointer; reduced: bool
 				if (past < 0) {
 					setStart();
 				} else if (past < 1) {
-					fly.position.x = FLIGHT_START_X * (1 - past);
+					fly.position.x = startX.current * (1 - past);
 					fly.rotation.z = THREE.MathUtils.degToRad(turn.current) * (1 - past);
-					fly.scale.setScalar(FLIGHT_START_SCALE + (1 - FLIGHT_START_SCALE) * past);
+					fly.scale.setScalar(startScale.current + (1 - startScale.current) * past);
 				} else {
 					phase.current = 'landed';
 					flyStart.current = null;
@@ -285,17 +415,27 @@ export default function Hero3D() {
 	const [ready, setReady] = useState(false);
 	/* Событие клика принимает сам остров, а не Hammer: остров смонтирован
 	   всегда, а Hammer — только после загрузки .glb. Иначе клик в окно
-	   загрузки модели пропадал (прилёт не проигрывался). */
-	const [attract, setAttract] = useState(false);
+	   загрузки модели пропадал (прилёт не проигрывался).
+	   Не булев флаг, а счётчик запусков: с флагом повторный клик не менял
+	   состояние, эффект не срабатывал и полёт не проигрывался заново — молот
+	   «залипал» на месте до перезагрузки страницы. runId = 0 — idle (сброс),
+	   каждый запуск увеличивает счётчик (событие hero:attract), hero:reset
+	   возвращает в 0. */
+	const [runId, setRunId] = useState(0);
 	const pointer = useRef({ x: 0, y: 0 });
 
 	useEffect(() => {
-		const start = () => setAttract(true);
+		const start = () => setRunId((n) => n + 1);
+		const resetRun = () => setRunId(0);
 		window.addEventListener('hero:attract', start);
+		window.addEventListener('hero:reset', resetRun);
 		/* Клик мог случиться раньше, чем остров смонтировался (модель ещё
 		   грузилась) — тогда разыгрываем полёт сразу: прилёт не должен пропадать. */
-		if ((window as any).__attractFired) setAttract(true);
-		return () => window.removeEventListener('hero:attract', start);
+		if ((window as any).__attractFired) start();
+		return () => {
+			window.removeEventListener('hero:attract', start);
+			window.removeEventListener('hero:reset', resetRun);
+		};
 	}, []);
 
 	/**
@@ -385,7 +525,7 @@ export default function Hero3D() {
 					{boost > 1 && <pointLight position={[3, 2, -3]} intensity={22} color="#CC9C42" distance={16} />}
 
 					<Suspense fallback={null}>
-						<Hammer pointer={pointer} reduced={reduced} attract={attract} />
+						<Hammer pointer={pointer} reduced={reduced} runId={runId} />
 					</Suspense>
 				</Canvas>
 			)}

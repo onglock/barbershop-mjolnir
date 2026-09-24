@@ -1,0 +1,210 @@
+---
+// Старт полёта молота: откуда он вылетает. Правило 20.6 — варианты показываем
+// живой страницей с кнопками, а не скриншотами.
+//
+// Зачем: Кирилл видит, что молот появляется в середине левой половины экрана,
+// хотя код стартует с x = -8.4 (центр модели при этом на -261 px, за кадром).
+// Пиксельный замер показал: у левого края молот появляется рано (x 0..42 px),
+// но читаемым становится только с ~1 с, когда уже в полосе x 160..430 —
+// поэтому полёт глазами начинается «из середины». Здесь стартовый X и масштаб
+// двигаются слайдерами, рядом — числа в пикселях от левого края.
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+
+/* Dev-only: в прод-сборке страница уводит на главную (правило проекта). */
+if (import.meta.env.PROD) return Astro.redirect('/');
+---
+
+<Layout title="Старт полёта молота — превью">
+	<Header />
+
+	<main>
+		<Hero />
+	</main>
+
+	<aside class="panel">
+		<div class="row">
+			<span class="cap">Старт X</span>
+			<input id="sx" type="range" min="-30" max="5" step="0.1" value="-8.4" />
+			<span class="val" id="sxv">−8,4</span>
+		</div>
+		<div class="row">
+			<span class="cap">Старт масштаб</span>
+			<input id="ss" type="range" min="0.01" max="1" step="0.01" value="0.01" />
+			<span class="val" id="ssv">0,01</span>
+		</div>
+		<div class="row nums">
+			<span class="cap">Стартовый бокс</span>
+			<span class="val" id="num">сцена грузится…</span>
+		</div>
+		<div class="row nums">
+			<span class="cap">Состояние</span>
+			<span class="val" id="state">—</span>
+		</div>
+		<div class="row">
+			<span class="cap">Прогон</span>
+			<button id="run">Запустить полёт</button>
+			<button id="reset">Сброс</button>
+			<button id="hold">Показать в стартовой позе</button>
+		</div>
+		<div class="row">
+			<span class="cap">Старт</span>
+			<button id="left">За левым краем</button>
+			<button id="defaults">X и масштаб по умолчанию</button>
+		</div>
+		<div class="hint">
+			«Стартовый бокс» — габарит молота В СТАРТОВОЙ ПОЗЕ, в пикселях канвы от
+			левого края (считается независимо от того, где молот сейчас). «Запустить
+			полёт» сам сбрасывает в idle и запускает заново — можно жать подряд.
+			«Сброс» возвращает в idle без полёта. «Показать в стартовой позе» держит
+			молот в точке старта, чтобы видеть, откуда он вылетит. Слайдеры меняют
+			старт сразу, следующий полёт идёт из новой точки. Проверять на окне 1280+
+			(ниже 1024 3D-молота нет, там 2D-слой).
+		</div>
+	</aside>
+
+	<style>
+		.panel {
+			position: fixed; top: 84px; right: 16px;
+			z-index: 200; display: flex; flex-direction: column; gap: 7px;
+			width: 340px; padding: 12px 14px; border-radius: 14px;
+			background: color-mix(in srgb, var(--bg-deep) 90%, transparent);
+			border: 1px solid color-mix(in srgb, var(--accent-warm) 40%, transparent);
+			backdrop-filter: blur(8px); font-family: var(--font-label);
+		}
+		.panel .row { display: flex; gap: 8px; align-items: center; }
+		.panel .cap { width: 88px; flex: none; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+		.panel .val { font-size: 12px; color: var(--text); }
+		.panel input[type='range'] { flex: 1; accent-color: var(--accent-warm); }
+		.panel .nums .val { font-family: var(--font-price); font-size: 12px; }
+		.panel .hint { font-size: 11px; line-height: 1.45; color: var(--text-muted); }
+		.panel button {
+			font: inherit; font-size: 12px; letter-spacing: 0.04em;
+			padding: 6px 10px; border-radius: 8px; cursor: pointer;
+			color: var(--text-muted); background: transparent;
+			border: 1px solid color-mix(in srgb, var(--text-muted) 35%, transparent);
+		}
+		.panel .row:nth-child(4) { flex-wrap: wrap; }
+		.panel button:hover { color: var(--text); border-color: var(--accent-warm); }
+		.panel button.on { color: var(--bg-deep); background: var(--accent-warm); border-color: var(--accent-warm); }
+		@media (max-width: 1023px) {
+			.panel { display: none; }
+		}
+	</style>
+
+	<script>
+		const api = () => (window as any).__hammerSpin;
+		const sx = document.getElementById('sx') as HTMLInputElement;
+		const ss = document.getElementById('ss') as HTMLInputElement;
+		const sxv = document.getElementById('sxv')!;
+		const ssv = document.getElementById('ssv')!;
+		const num = document.getElementById('num')!;
+		const stateEl = document.getElementById('state')!;
+		const holdBtn = document.getElementById('hold') as HTMLButtonElement;
+		const runBtn = document.getElementById('run') as HTMLButtonElement;
+		const resetBtn = document.getElementById('reset') as HTMLButtonElement;
+		const leftBtn = document.getElementById('left') as HTMLButtonElement;
+		const defaultsBtn = document.getElementById('defaults') as HTMLButtonElement;
+
+		const fmt = (v: number, digits = 2) => v.toFixed(digits).replace('.', ',');
+		const px = (v: number) => `${Math.round(v)} px`;
+
+		function readout() {
+			const a = api();
+			const x = Number(sx.value);
+			if (!a || !a.bbox) {
+				num.textContent = 'сцена грузится…';
+				stateEl.textContent = '—';
+				return;
+			}
+			/* Бокс считаем В СТАРТОВОЙ ПОЗЕ: панель должна показывать, откуда
+			   молот стартует, а не где он сейчас. */
+			const b = a.startBox ? a.startBox() : a.bbox();
+			const vp = a.viewport ? a.viewport() : { width: innerWidth };
+			sxv.textContent = x < 0 ? '−' + fmt(Math.abs(x), 1) : fmt(x, 1);
+			ssv.textContent = fmt(Number(ss.value));
+			if (b) {
+				const where = b.fullyOffscreen
+					? (b.right < 0 ? 'ЗА кадром слева' : 'за кадром справа')
+					: (b.left < 0 ? 'частично в кадре' : 'В КАДРЕ');
+				num.textContent = `x ${px(b.left)}…${px(b.right)} (ширина ${px(b.width)}) · окно ${Math.round(vp.width)} px · ${where}`;
+			} else {
+				num.textContent = 'молот ещё не готов';
+			}
+			const layer = document.querySelector('.hero-hammer');
+			stateEl.textContent = `молот: ${a.phase ? a.phase() : '—'}${a.getHold && a.getHold() ? ' (держим старт)' : ''} · слой: ${layer ? layer.dataset.state : '—'}`;
+		}
+
+		sx.addEventListener('input', () => {
+			const a = api();
+			if (a && a.setStartX) a.setStartX(Number(sx.value));
+			readout();
+		});
+		ss.addEventListener('input', () => {
+			const a = api();
+			if (a && a.setStartScale) a.setStartScale(Number(ss.value));
+			readout();
+		});
+
+		holdBtn.addEventListener('click', () => {
+			const a = api();
+			if (!a || !a.setHold) return;
+			const next = !a.getHold();
+			a.setHold(next);
+			holdBtn.classList.toggle('on', next);
+		});
+
+		runBtn.addEventListener('click', () => {
+			const a = api();
+			/* Полный прогон: сначала idle, потом полёт — можно жать подряд,
+			   ничего не залипает (события те же, что у клика по призыву). */
+			if (a && a.replay) { a.replay(); return; }
+			const call = document.querySelector<HTMLElement>('.hero-call');
+			if (call) call.click();
+		});
+
+		resetBtn.addEventListener('click', () => {
+			const a = api();
+			if (a && a.reset) a.reset();
+			if (a && a.setHold && a.getHold()) { a.setHold(false); holdBtn.classList.remove('on'); }
+			readout();
+		});
+
+		/* «За левым краем»: подбираем X так, чтобы бокс целиком ушёл влево.
+		   В экранных пикселях связь линейна (1 единица сцены ≈ pxPerUnit px,
+		   знак: X больше → правее). Между шагами ждём кадры: поза обновляется
+		   в useFrame, и без ожидания бокс читается старым. */
+		leftBtn.addEventListener('click', async () => {
+			const a = api();
+			if (!a || !a.bbox) return;
+			const box = () => (a.startBox ? a.startBox() : a.bbox());
+			const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+			for (let i = 0; i < 4; i++) {
+				const b = box();
+				const e = a.edge();
+				if (!b || !e) return;
+				if (b.right <= -8) break;
+				const delta = (b.right + 8) / e.pxPerUnit;
+				const next = Number(sx.value) - delta;
+				sx.value = String(Math.round(next * 10) / 10);
+				if (a.setStartX) a.setStartX(Number(sx.value));
+				readout();
+				await frame();
+			}
+			readout();
+			leftBtn.classList.add('on');
+			window.setTimeout(() => leftBtn.classList.remove('on'), 600);
+		});
+
+		defaultsBtn.addEventListener('click', () => {
+			const a = api();
+			sx.value = '-8.4';
+			ss.value = '0.01';
+			if (a && a.setStartX) { a.setStartX(-8.4); a.setStartScale(0.01); }
+			readout();
+		});
+
+		window.setInterval(readout, 120);
+	</script>
+</Layout>
