@@ -22,17 +22,20 @@ export default function HeroIntro() {
 	const reduced = useReducedMotion() ?? false;
 	const words = TITLE.split(' ');
 
-	/* Пиксельные «Авто-равные» — только там, где на <html> стоит
-	   data-hero-gaps="pixel" (сейчас — /hero-spacing-preview). Модуль берём
-	   ДИНАМИЧЕСКИМ импортом: на главной он не нужен и в её загрузку попадать
-	   не должен. На главной режим прежний — автораспределение по боксам. */
+	/* Пиксельные «Авто-равные» на главной: модуль берём ДИНАМИЧЕСКИМ импортом
+	   и считаем в requestAnimationFrame (watchHeroGaps) — в критический путь
+	   загрузки это не попадает. Отключается флагом data-hero-gaps="fixed" на
+	   <html> (страницы-отладки со своими фиксированными отступами). */
 	useEffect(() => {
-		if (document.documentElement.dataset.heroGaps !== 'pixel') return;
+		if (document.documentElement.dataset.heroGaps === 'fixed') return;
 		let stop: (() => void) | undefined;
 		let cancelled = false;
 		import('../lib/heroGaps')
 			.then((m) => {
-				if (!cancelled) stop = m.watchHeroGaps();
+				if (cancelled) return;
+				stop = m.watchHeroGaps();
+				/* Дев-API: те же замеры, что на /hero-spacing-preview. */
+				(window as any).__heroGaps = m;
 			})
 			.catch(() => {});
 		return () => {

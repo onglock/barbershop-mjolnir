@@ -41,8 +41,29 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 		</div>
 		<div class="row">
 			<span class="cap">Затухание</span>
-			<button data-fire="fade" class="on">просто гаснет</button>
-			<button data-fire="rewind">обратный ход</button>
+			<button data-fire="rewind" class="on">обратный ход</button>
+			<button data-fire="fade">просто гаснет</button>
+		</div>
+		<div class="row">
+			<span class="cap">Фокус</span>
+			<button id="foc">Эмуляция фокуса</button>
+			<span class="val" id="focv">выкл</span>
+		</div>
+		<div class="row">
+			<span class="cap">Линия огня</span>
+			<button id="line-over">поверх border (C)</button>
+			<button id="line-on" class="on">по границе (B)</button>
+		</div>
+		<div class="row">
+			<span class="cap">Border при огне</span>
+			<button id="bord-show" class="on">показывать</button>
+			<button id="bord-hide">скрывать (A)</button>
+		</div>
+		<div class="row">
+			<span class="cap">Пресеты</span>
+			<button id="pre-a">A</button>
+			<button id="pre-b" class="on">B (сейчас)</button>
+			<button id="pre-c">C</button>
 		</div>
 		<div class="row nums">
 			<span class="cap">Сейчас</span>
@@ -54,8 +75,11 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 			Длительность — время полного обхода. «Свечение»: 0 — без тени, 0,5 — 4 px,
 			1,0 — 9 px. Наведение на превью заменяет курсор: надпись меняется на
 			«Записаться» и бежит огонь; «Hover OFF» показывает выбранное затухание.
-			На мобильном (≤1023) и при prefers-reduced-motion огня нет — там тап даёт
-			вспышку рамки и скролл к форме.
+			«Эмуляция фокуса» — то же, что Tab с клавиатуры (фокус-обводки нет, её роль
+			играют огонь, синий цвет и смена надписи). Развилка по линии огня:
+			C — линия поверх border (двойной контур), B — линия ровно по border (один
+			контур), A — border гаснет, пока идёт огонь. На мобильном (≤1023) и при
+			prefers-reduced-motion огня нет — там тап даёт вспышку рамки и скролл к форме.
 		</div>
 	</aside>
 
@@ -130,11 +154,48 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 			});
 		});
 
+		/* Часть 2: эмуляция фокуса с клавиатуры (тот же CSS, что :focus-visible). */
+		let focusOn = false;
+		const focBtn = document.getElementById('foc')!;
+		const focv = document.getElementById('focv')!;
+		focBtn.addEventListener('click', () => {
+			focusOn = !focusOn;
+			focBtn.classList.toggle('on', focusOn);
+			focv.textContent = focusOn ? 'вкл' : 'выкл';
+			api()?.focusEmu?.(focusOn);
+		});
+
+		/* Часть 3: развилка «линия огня / border». */
+		const lineC = document.getElementById('line-over')!;
+		const lineO = document.getElementById('line-on')!;
+		const bordS = document.getElementById('bord-show')!;
+		const bordH = document.getElementById('bord-hide')!;
+		const setLine = (mode: 'over' | 'on') => {
+			lineC.classList.toggle('on', mode === 'over');
+			lineO.classList.toggle('on', mode === 'on');
+			api()?.fireLine?.(mode);
+		};
+		const setBorder = (mode: 'show' | 'hide') => {
+			bordS.classList.toggle('on', mode === 'show');
+			bordH.classList.toggle('on', mode === 'hide');
+			api()?.fireBorder?.(mode);
+		};
+		lineC.addEventListener('click', () => setLine('over'));
+		lineO.addEventListener('click', () => setLine('on'));
+		bordS.addEventListener('click', () => setBorder('show'));
+		bordH.addEventListener('click', () => setBorder('hide'));
+		/* Пресеты A/B/C: A — border гаснет + линия по границе, B — линия по границе,
+		   C — линия поверх border (как сейчас на главной). */
+		document.getElementById('pre-a')!.addEventListener('click', () => { setLine('on'); setBorder('hide'); });
+		document.getElementById('pre-b')!.addEventListener('click', () => { setLine('on'); setBorder('show'); });
+		document.getElementById('pre-c')!.addEventListener('click', () => { setLine('over'); setBorder('show'); });
+
 		window.setInterval(() => {
 			const s = api()?.fireState?.();
 			if (!s) { st.textContent = 'страница грузится…'; return; }
 			st.textContent = [
 				`${s.variant} · ${s.dur} · ${s.w} px · свечение ${s.glow}`,
+				`линия ${s.line} · border ${s.border} · фокус ${s.focus ? 'вкл' : 'выкл'}`,
 				`рамка ${s.box ? s.box.join('×') : '—'}`,
 				`пути ${s.len.length ? s.len.join(' / ') : '—'} px`,
 				s.firing ? (s.dying ? 'затухает' : 'огонь идёт') : 'погашен',

@@ -307,16 +307,21 @@ export function applyPixelGaps(): HeroGaps | null {
     clearPixelGaps();
     return null;
   }
-  const p = parts();
-  if (!p) return null;
-  const g = measureHero();
-  if (!g) return null;
+  if (!parts()) return null;
 
   // в фиксированных режимах отступы задаёт CSS — переменные не ставим
   if (document.documentElement.hasAttribute('data-spacing')) {
     clearPixelGaps();
-    return g;
+    return measureHero();
   }
+
+  /* Раскладка слегка зависит от поставленных отступов: высота слота кнопки при
+     включении пиксельного режима меняется (91 → 63 px), поэтому свободная
+     высота уточняется кадр за кадром. Сходимость обеспечивает watchHeroGaps —
+     он повторяет проходы, пока результат не перестанет меняться. Здесь один
+     проход: посчитали по текущей раскладке и поставили переменные. */
+  const g = measureHero();
+  if (!g) return null;
 
   const { h1BelowGlyphs: b1, subAboveGlyphs: st, subBelowGlyphs: sb, signAboveGlyphs: dt } = g.offsets;
   const gg = (g.free + st + b1 + sb + dt) / 3;
@@ -339,6 +344,7 @@ export function applyPixelGaps(): HeroGaps | null {
     }
     return g;
   }
+
   const clamp = (v: number) => Math.max(0, clampNum(v));
   const root = document.documentElement;
   root.style.setProperty('--hero-gap-a', clamp(m1) + 'px');
@@ -375,20 +381,45 @@ export function clearPixelGaps() {
  */
 export function watchHeroGaps(): () => void {
   let raf = 0;
+  let prevFree = -1;
+  let passes = 0;
+
+  const step = () => {
+    if (raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(run);
+  };
+
+  /* Внешний триггер: сбрасываем историю сходимости и считаем заново. */
+  const schedule = () => {
+    prevFree = -1;
+    passes = 0;
+    step();
+  };
+
   const run = () => {
     raf = 0;
     if (!window.matchMedia('(min-width: 1024px)').matches) {
       clearPixelGaps();
       return;
     }
-    applyPixelGaps();
-  };
-  const schedule = () => {
-    if (raf) cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(run);
+    const g = applyPixelGaps();
+    if (!g) return;
+    /* Повторяем проход, если: раскладка ещё «не сошлась» (свободная высота
+       изменилась — высота слота кнопки при включении режима меняется с 91 на
+       63 px), либо на этом проходе не хватило высоты и мы откатились на
+       боксовое распределение (в момент замера раскладка могла ещё устаиваться).
+       Проходы идут ПО КАДРАМ — замер не собирается в одну длинную задачу. */
+    const moved = prevFree < 0 || Math.abs(g.free - prevFree) > 0.5;
+    prevFree = g.free;
+    if ((moved || g.mode !== 'pixel') && passes < 5) {
+      passes += 1;
+      step();
+      return;
+    }
+    passes = 0;
   };
 
-  schedule();
+  step();
   window.addEventListener('resize', schedule, { passive: true });
   document.fonts?.ready.then(schedule).catch(() => {});
   const observer = new MutationObserver(schedule);
@@ -401,12 +432,23 @@ export function watchHeroGaps(): () => void {
      resize, а кадром позже (единицы svh/dvh досчитываются), поэтому замер по
      событию оставался на прежней высоте — зазоры показывались 57 вместо 63.
      Наблюдаем фактический размер и пересчитываем, когда он реально изменился. */
+  /* Замер по краске букв стоит 13–18 мс (с прогретым кешем — меньше миллисекунды),
+     поэтому на ресайзе не считаем каждый кадр: при перетаскивании окна высота
+     меняется кадр за кадром, и пересчёт в каждом кадре — это заметная нагрузка.
+     Ждём 120 мс тишины после последнего изменения размера. Первый расчёт, смена
+     режимов и загрузка шрифтов по-прежнему идут сразу (через rAF). */
+  let settle = 0;
+  const scheduleAfterResize = () => {
+    if (settle) window.clearTimeout(settle);
+    settle = window.setTimeout(() => { settle = 0; schedule(); }, 120);
+  };
+
   let lastHeight = -1;
   const resizeObserver = new ResizeObserver((entries) => {
     const height = Math.round(entries[0].contentRect.height);
     if (height === lastHeight) return;
     lastHeight = height;
-    schedule();
+    scheduleAfterResize();
   });
   const intro = document.querySelector<HTMLElement>('.hero-intro');
   if (intro) resizeObserver.observe(intro);
@@ -415,6 +457,7 @@ export function watchHeroGaps(): () => void {
     window.removeEventListener('resize', schedule);
     observer.disconnect();
     resizeObserver.disconnect();
+    if (settle) window.clearTimeout(settle);
     if (raf) cancelAnimationFrame(raf);
   };
 }

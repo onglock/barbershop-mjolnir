@@ -332,9 +332,15 @@ import HeroIntro from './HeroIntro';
 	   (решение Кирилла: всё в синий, монолитно с огнём). Состояние задаётся
 	   ТОЛЬКО классом .is-hover, а не :hover: рамка встаёт на место призыва, и
 	   курсор после клика оказывается на ней — на чистом :hover надпись менялась
-	   бы сама, без движения мыши (см. защиту от автозапуска в скрипте). */
-	:global(.hero-frame.is-hover) :global(.hero-frame__label--desktop) { display: none; }
-	:global(.hero-frame.is-hover) :global(.hero-frame__label--hover) { display: inline; }
+	   бы сама, без движения мыши (см. защиту от автозапуска в скрипте).
+	   Фокус с клавиатуры (:focus-visible) и его эмуляция (.is-focus) дают то же
+	   самое: надпись, синие цвета, бегущий огонь. */
+	:global(.hero-frame.is-hover) :global(.hero-frame__label--desktop),
+	:global(.hero-frame:focus-visible) :global(.hero-frame__label--desktop),
+	:global(.hero-frame.is-focus) :global(.hero-frame__label--desktop) { display: none; }
+	:global(.hero-frame.is-hover) :global(.hero-frame__label--hover),
+	:global(.hero-frame:focus-visible) :global(.hero-frame__label--hover),
+	:global(.hero-frame.is-focus) :global(.hero-frame__label--hover) { display: inline; }
 	body:has(.hero-hammer[data-state='landed']) :global(.hero-frame),
 	html[data-cta-preview='now'] :global(.hero-frame),
 	html[data-cta-preview='both'] :global(.hero-frame) { display: inline-block; }
@@ -359,7 +365,14 @@ import HeroIntro from './HeroIntro';
 		backdrop-filter: blur(6px);
 	}
 
-	:global(.hero-frame.is-hover) { border-color: var(--accent); color: var(--accent); }
+	:global(.hero-frame.is-hover),
+	:global(.hero-frame:focus-visible),
+	:global(.hero-frame.is-focus) { border-color: var(--accent); color: var(--accent); }
+	/* У рамки в фокусе роль индикатора играют огонь, синий цвет и смена надписи,
+	   поэтому системную обводку убираем. При reduced-motion огня нет — там
+	   возвращаем обычную обводку, иначе фокус не виден (см. медиазапрос ниже). */
+	:global(.hero-frame:focus-visible),
+	:global(.hero-frame.is-focus) { outline: none; }
 	:global(.hero-frame.is-pulse) { animation: cta-pulse 400ms ease; }
 	@keyframes cta-pulse {
 		0% { border-color: var(--accent); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); }
@@ -399,22 +412,32 @@ import HeroIntro from './HeroIntro';
 		transition: stroke-dashoffset 0s linear, opacity 0s linear;
 	}
 	/* Розыгрыш: огонь расползается из середины верхней границы в две стороны. */
-	:global(.hero-frame.is-firing) :global(.hero-frame__fire path) {
+	:global(.hero-frame.is-firing) :global(.hero-frame__fire path),
+	:global(.hero-frame:focus-visible) :global(.hero-frame__fire path),
+	:global(.hero-frame.is-focus) :global(.hero-frame__fire path) {
 		stroke-dashoffset: 0;
 		opacity: 1;
 		transition: stroke-dashoffset var(--fire-dur, 1200ms) linear, opacity 120ms linear;
 	}
+	/* Вариант A (развилка части 3): пока огонь идёт — border гаснет, и линия
+	   огня становится видимой границей. По умолчанию border остаётся (C/B). */
+	html[data-fire-border='hide'] :global(.hero-frame.is-firing),
+	html[data-fire-border='hide'] :global(.hero-frame.is-dying),
+	html[data-fire-border='hide'] :global(.hero-frame:focus-visible),
+	html[data-fire-border='hide'] :global(.hero-frame.is-focus) { border-color: transparent; }
 	/* Затухание «просто гаснет»: огонь остаётся на месте и теряет яркость. */
 	html[data-fire='fade'] :global(.hero-frame.is-dying) :global(.hero-frame__fire path) {
 		stroke-dashoffset: 0;
 		opacity: 0;
 		transition: opacity 300ms ease, stroke-dashoffset 0s linear;
 	}
-	/* Затухание «обратный ход»: огонь уходит назад, к середине верхней границы. */
+	/* Затухание «обратный ход»: огонь уходит назад, к середине верхней границы.
+	   Скорость — в 1.6 раза быстрее активации (решение Кирилла): при 1200 мс
+	   активации откат идёт 750 мс, поэтому длительность считается из --fire-dur. */
 	html[data-fire='rewind'] :global(.hero-frame.is-dying) :global(.hero-frame__fire path) {
 		stroke-dashoffset: 1;
 		opacity: 1;
-		transition: stroke-dashoffset var(--fire-dur, 1200ms) linear, opacity 0s linear;
+		transition: stroke-dashoffset calc(var(--fire-dur, 1200ms) / 1.6) linear, opacity 0s linear;
 	}
 	/* Наведение без курсора (превью «Hover ON») описано выше, вместе с :hover. */
 	@media (max-width: 1023px) {
@@ -427,6 +450,9 @@ import HeroIntro from './HeroIntro';
 	@media (prefers-reduced-motion: reduce) {
 		:global(.hero-frame.is-pulse) { animation: none; }
 		:global(.hero-frame__fire) { display: none; }
+		/* Огня нет — фокус с клавиатуры показываем обычной обводкой. */
+		:global(.hero-frame:focus-visible),
+		:global(.hero-frame.is-focus) { outline: 2px solid var(--accent); outline-offset: 3px; }
 	}
 
 </style>
@@ -441,8 +467,11 @@ import HeroIntro from './HeroIntro';
 	if (ctaStyle) document.documentElement.dataset.cta = ctaStyle;
 	const spacing = ctaParams.get('spacing');
 	if (spacing) document.documentElement.dataset.spacing = spacing;
-	/* Вариант затухания огня по умолчанию — «просто гаснет». */
-	if (!document.documentElement.dataset.fire) document.documentElement.dataset.fire = 'fade';
+	/* Варианты по умолчанию (решения Кирилла): затухание — обратный ход
+	   (быстрее активации в 1.6 раза, см. CSS выше), линия огня — ровно по
+	   border'у (вариант B, без «двойной рамки»). */
+	if (!document.documentElement.dataset.fire) document.documentElement.dataset.fire = 'rewind';
+	if (!document.documentElement.dataset.fireLine) document.documentElement.dataset.fireLine = 'on';
 
 	if (heroFrame) {
 		heroFrame.addEventListener('click', () => {
@@ -473,8 +502,15 @@ import HeroIntro from './HeroIntro';
 		if (!heroFrame || !fireSvg) return null;
 		const w = heroFrame.offsetWidth, h = heroFrame.offsetHeight;
 		if (!w || !h) return null;
-		const i = 0.5, r = FIRE_RADIUS;
-		const left = i, right = w - i, top = i, bottom = h - i;
+		/* d — смещение линии внутрь от padding-бокса. «over» (по умолчанию):
+		   0,5 px, линия идёт по внутреннему краю border'а (как было — видно
+		   «двойную рамку»). «on»: −0,5 px — ровно по центру border'а, визуально
+		   один контур. Радиус считаем от внешнего border-radius (14 px), вычитая
+		   толщину border'а (1 px) и смещение. */
+		const onBorder = document.documentElement.dataset.fireLine === 'on';
+		const d = onBorder ? -0.5 : 0.5;
+		const r = Math.max(2, FIRE_RADIUS - 1 - d);
+		const left = d, right = w - d, top = d, bottom = h - d;
 		const cx = w / 2;
 		const dLeft = `M ${cx} ${top} H ${left + r} A ${r} ${r} 0 0 0 ${left} ${top + r} V ${bottom - r} A ${r} ${r} 0 0 0 ${left + r} ${bottom} H ${cx}`;
 		const dRight = `M ${cx} ${top} H ${right - r} A ${r} ${r} 0 0 1 ${right} ${top + r} V ${bottom - r} A ${r} ${r} 0 0 1 ${right - r} ${bottom} H ${cx}`;
@@ -495,6 +531,10 @@ import HeroIntro from './HeroIntro';
 		if (raw.endsWith('s')) return num * 1000;
 		return num;
 	}
+
+	/* Откат идёт со скоростью в 1.6 раза быстрее активации (решение Кирилла):
+	   при 1200 мс активации — 750 мс. */
+	const REWIND_RATIO = 1.6;
 
 	let fireTimer = 0;
 
@@ -519,7 +559,7 @@ import HeroIntro from './HeroIntro';
 		window.clearTimeout(fireTimer);
 		fireTimer = window.setTimeout(
 			() => { heroFrame.classList.remove('is-firing', 'is-dying'); },
-			variant === 'rewind' ? fireDurationMs() + 40 : 340
+			variant === 'rewind' ? fireDurationMs() / REWIND_RATIO + 40 : 340
 		);
 	}
 
@@ -548,6 +588,12 @@ import HeroIntro from './HeroIntro';
 	if (heroFrame) {
 		heroFrame.addEventListener('mouseenter', () => { if (hoverAllowed()) fireStart(); });
 		heroFrame.addEventListener('mouseleave', fireStop);
+		/* Клавиатура: Tab доводит до рамки, :focus-visible даёт тот же вид, что
+		   наведение. Огонь гоняем классами, чтобы уход фокуса гасил его так же,
+		   как уход курсора. Enter/Space на <button> браузер сам превращает в
+		   click — отдельный обработчик не нужен. */
+		heroFrame.addEventListener('focus', () => { if (heroFrame.matches(':focus-visible')) fireStart(); });
+		heroFrame.addEventListener('blur', fireStop);
 		/* Рамка показывается по фазе молота (body:has(.hero-hammer[data-state=landed])).
 		   Каждая смена фазы — новый показ: наведение снова требует движения мыши. */
 		const hammerLayer = document.querySelector('.hero-hammer');
@@ -597,6 +643,22 @@ import HeroIntro from './HeroIntro';
 		/* Огонь: включить/выключить как при наведении, перезапустить, настроить. */
 		fire: (on: boolean) => { on ? fireStart() : fireStop(); },
 		fireRestart,
+		/* Эмуляция фокуса с клавиатуры: тот же CSS, что у :focus-visible. */
+		focusEmu: (on: boolean) => {
+			if (!heroFrame) return;
+			heroFrame.classList.toggle('is-focus', on);
+			if (!on && !heroFrame.classList.contains('is-hover')) fireStop();
+		},
+		/* Развилка части 3: как линия огня соотносится с border'ом. */
+		fireLine: (mode: 'over' | 'on') => {
+			document.documentElement.dataset.fireLine = mode;
+			fireGeometry();
+			return (window as any).__cta.fireState();
+		},
+		fireBorder: (mode: 'show' | 'hide') => {
+			document.documentElement.dataset.fireBorder = mode;
+			return (window as any).__cta.fireState();
+		},
 		fireParams: (o: { dur?: string; w?: string; glow?: string; variant?: string }) => {
 			const root = document.documentElement;
 			if (o.dur) root.style.setProperty('--fire-dur', o.dur);
@@ -610,6 +672,10 @@ import HeroIntro from './HeroIntro';
 			const paths = fireSvg ? Array.from(fireSvg.querySelectorAll('path')) : [];
 			return {
 				variant: root.dataset.fire || 'fade',
+				line: root.dataset.fireLine || 'over',
+				border: root.dataset.fireBorder || 'show',
+				focus: heroFrame ? heroFrame.classList.contains('is-focus') : false,
+				tabindex: heroFrame ? heroFrame.getAttribute('tabindex') : null,
 				dur: getComputedStyle(root).getPropertyValue('--fire-dur').trim() || '1200ms',
 				w: getComputedStyle(root).getPropertyValue('--fire-w').trim() || '2',
 				glow: getComputedStyle(root).getPropertyValue('--fire-glow').trim() || '4px',
