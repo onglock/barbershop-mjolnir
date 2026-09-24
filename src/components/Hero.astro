@@ -70,9 +70,13 @@ import HeroIntro from './HeroIntro';
 	   Селектор `p:first-of-type` без обёртки цеплял и подзаголовок, который после
 	   выноса прямым ребёнком .hero-intro сам стал «первым <p>» — кегль падал с 17
 	   до 14px (нашёл координатор, сверив с картой). */
-	:global(.hero-intro > div > p:first-of-type) { font-size: 0.875rem; }
+	/* Надзаголовок — только элемент с классом .text-label. Раньше здесь стоял
+	   `> div > p:first-of-type`, и он же цеплял призыв в слоте CTA (тот тоже
+	   «первый p» внутри div) — призыв молча падал с 26px до 14px, а вместе с
+	   ним и ширина кнопки (386px вместо 560px). Нашёл Hermes 2026-09-24. */
+	:global(.hero-intro p.text-label) { font-size: 0.875rem; }
 		:global(.hero-sub) {
-			font-size: 1.3125rem;    /* подзаголовок 21px */
+			font-size: 1.5rem;       /* подзаголовок 24px — выбран Кириллом 2026-09-24 */
 			line-height: 1.55;
 		}
 	}
@@ -94,7 +98,10 @@ import HeroIntro from './HeroIntro';
 	.hero-decor {
 		display: none; position: absolute; pointer-events: none;
 		/* z-index: 1 — выше затемняющего градиента (он тоже z-1, но декор идёт
-		   позже в DOM), и НИЖЕ молота (слой молота z-2, в полёте z-50). */
+		   позже в DOM). Слой молота (.hero-3d, z-4) рисуется выше — он поднят
+		   над слоем текста (z-3) намеренно: раньше знак ложился поверх металла
+		   дымкой букв (нашёл Кирилл, причина — z-index 3 у корня острова, а не
+		   auto у знака, как считали в прошлой сессии). */
 		z-index: 1;
 	}
 	/* Мобильный: декор не показываем. Селектор глобальный — знак-2 рендерит
@@ -112,7 +119,10 @@ import HeroIntro from './HeroIntro';
 	   поровну между тремя зазорами: H1 → подзаголовок → призыв → знак. */
 	html:not([data-decor]) :global(.hero-decor.decor-2),
 	html[data-decor='2'] :global(.hero-decor.decor-2) {
-		display: block; position: static; margin-top: auto; margin-bottom: -2vh;
+		display: block; position: static;
+		/* Отступ до знака: в пиксельном «Авто-равных» его считает JS по глифам
+		   (--hero-gap-c), иначе работает прежнее автораспределение по боксам. */
+		margin-top: var(--hero-gap-c, auto); margin-bottom: -2vh;
 		text-align: center;
 	}
 	/* Скрытие знака на низких окнах ОТМЕНЕНО (решение принято без согласования,
@@ -122,15 +132,25 @@ import HeroIntro from './HeroIntro';
 	html[data-decor='2'] :global(.hero-decor.decor-2 span),
 	html:not([data-decor]) :global(.hero-decor.decor-2 span) {
 		font-family: var(--font-display);
-		/* Базовый размер — 20vw, как и был. Ограничение по высоте окна
-		   включается только на невысоких окнах (ниже 820px), где знак иначе
-		   уходит выше кнопки: на 1920×800 пиксельный зазор был −3px. */
+		/* Базовый размер — 20vw. Мягкое ограничение по высоте окна включается
+		   только на невысоких окнах (ниже 820px), где знак иначе уходит выше
+		   кнопки и подрезается нижним краем: на 1920×800 пиксельный зазор
+		   был −3px. Это вариант B, выбранный Кириллом 2026-09-24. */
 		font-size: 20vw; line-height: 0.8; letter-spacing: 0.02em;
 		/* Рамка строчного бокса выше верхушек букв примерно на 0.12em (замер
 		   пиксельно). Поднимаем буквы на эту величину, чтобы зазор «кнопка →
 		   знак» считался от реальной верхней границы букв, как остальные два. */
 		position: relative; top: -0.04em;
 		color: var(--text); opacity: 0.18; white-space: nowrap;
+	}
+	/* Вариант B: мягкое ограничение знака по высоте окна. Правило стоит ПОСЛЕ
+	   базового и с тем же селектором — если поставить его выше, базовый
+	   font-size: 20vw его перекроет (на этих граблях уже стояли). */
+	@media (min-width: 1024px) and (max-height: 820px) {
+		html:not([data-decor]) :global(.hero-decor.decor-2 span),
+		html[data-decor='2'] :global(.hero-decor.decor-2 span) {
+			font-size: 30svh;
+		}
 	}
 	html[data-decor='3'] .hero-decor.decor-3 { display: block; inset: 0; }
 	/* v1 — резкий перепад: верх залит, переход на 40 % */
@@ -250,26 +270,32 @@ import HeroIntro from './HeroIntro';
 	   Вариант 1 (по умолчанию) — точное центрирование: отступ H1→подзаголовок
 	   равен отступу подзаголовок→кнопка, под кнопкой столько же до знака.
 	   Вариант 2 — минимальные равные 28px. Горизонталь не трогаем. */
-	/* Отступы: по умолчанию автополя — три зазора равны на любой ширине.
+	/* Отступы. По умолчанию — пиксельные «Авто-равные»: модуль src/lib/heroGaps.ts
+	   считает три отступа по КРАСКЕ букв (не по боксам) и кладёт их в
+	   --hero-gap-a|b|c на .hero-intro, поэтому визуальные зазоры равны, хотя
+	   боксы у всех разные. Пока переменных нет (JS не успел, узкий экран),
+	   работает прежнее автораспределение по боксам.
 	   Атрибут data-spacing='24|32|40|48|56' ставит фиксированный зазор между
 	   H1 → подзаголовком → призывом (знак остаётся прижат к низу автополем). */
-	:global(.hero-sub), :global(.hero-cta) { margin-top: auto; }
-	/* Визуальное центрирование подзаголовка: бокс <h1> кончается на 16px ниже
-	   своих глифов, а бокс подзаголовка начинается на 9px выше своих. Поэтому
-	   равные отступы по боксам выглядят неравными: сверху 87, снизу 70 (замер
-	   пиксельно). margin-bottom 17px перераспределяет зазоры, и оба становятся 78. */
-	@media (min-width: 1024px) { :global(.hero-sub) { margin-bottom: -11px; } }
+	:global(.hero-sub) { margin-top: var(--hero-gap-a, auto); }
+	:global(.hero-cta) { margin-top: var(--hero-gap-b, auto); }
+	/* Поправка центрирования подзаголовка (была margin-bottom: −11px под кегль
+	   21px) снята: в пиксельном авто её роль играет расчёт по глифам, а в
+	   фиксированных режимах она ломала их смысл — «48px» давало 48 по первому
+	   зазору и 37 по второму. Теперь фиксированный режим = ровно N px между
+	   боксами, а визуальные зазоры показывает отладка на /hero-spacing-preview. */
 	html[data-spacing='24'] :global(.hero-sub), html[data-spacing='24'] :global(.hero-cta) { margin-top: 24px; }
 	html[data-spacing='32'] :global(.hero-sub), html[data-spacing='32'] :global(.hero-cta) { margin-top: 32px; }
 	html[data-spacing='40'] :global(.hero-sub), html[data-spacing='40'] :global(.hero-cta) { margin-top: 40px; }
 	html[data-spacing='48'] :global(.hero-sub), html[data-spacing='48'] :global(.hero-cta) { margin-top: 48px; }
 	html[data-spacing='56'] :global(.hero-sub), html[data-spacing='56'] :global(.hero-cta) { margin-top: 56px; }
 	/* Размер подзаголовка — варианты кнопками на /hero-spacing-preview (правило 20.6).
-	   База не зафиксирована: Кирилл выбирает. */
-	html[data-sub='cur'] :global(.hero-sub) { font-size: 0.875rem; }
-	html[data-sub='22'] :global(.hero-sub) { font-size: 1.375rem; }
-	html[data-sub='24'] :global(.hero-sub) { font-size: 1.5rem; }
-	html[data-sub='26'] :global(.hero-sub) { font-size: 1.625rem; }
+	   База — 24px (задана выше в герой-блоке), здесь только отклонения от неё. */
+	@media (min-width: 1024px) {
+		html[data-sub='21'] :global(.hero-sub) { font-size: 1.3125rem; }
+		html[data-sub='22'] :global(.hero-sub) { font-size: 1.375rem; }
+		html[data-sub='26'] :global(.hero-sub) { font-size: 1.625rem; }
+	}
 	/* Мобильный: знака нет, автополя растянули бы два зазора на всю высоту
 	   (измерено 253px на 390×844) — там держим прежние фиксированные 48px. */
 	@media (max-width: 1023px) {

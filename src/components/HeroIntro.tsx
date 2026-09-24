@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 const EASE_SCENE: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -20,6 +21,25 @@ const SUBTITLE = 'Стрижка — не пятнадцать минут, а в
 export default function HeroIntro() {
 	const reduced = useReducedMotion() ?? false;
 	const words = TITLE.split(' ');
+
+	/* Пиксельные «Авто-равные» — только там, где на <html> стоит
+	   data-hero-gaps="pixel" (сейчас — /hero-spacing-preview). Модуль берём
+	   ДИНАМИЧЕСКИМ импортом: на главной он не нужен и в её загрузку попадать
+	   не должен. На главной режим прежний — автораспределение по боксам. */
+	useEffect(() => {
+		if (document.documentElement.dataset.heroGaps !== 'pixel') return;
+		let stop: (() => void) | undefined;
+		let cancelled = false;
+		import('../lib/heroGaps')
+			.then((m) => {
+				if (!cancelled) stop = m.watchHeroGaps();
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+			stop?.();
+		};
+	}, []);
 
 	const fade = (delay: number) => ({
 		initial: { opacity: reduced ? 1 : 0 },

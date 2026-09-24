@@ -4,6 +4,9 @@
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
+
+/* Dev-only: в прод-сборке страница уводит на главную (правило проекта). */
+if (import.meta.env.PROD) return Astro.redirect('/');
 ---
 
 <Layout>

@@ -42,15 +42,16 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		/* Старт вдесятеро меньше финала: путь читается длиннее (было 0.5). */
 		--hammer-2d-start-scale: 0.1;
 		/* Вращение «колесом» в плоскости экрана (rotateZ): почти восемь
-		   оборотов по часовой. При полёте 1,4 с это ≈2000 °/с — на 20 %
-		   быстрее прежних ≈1660 °/с. */
+		   оборотов по часовой. При полёте 0,9 с (решение Кирилла, вариант Б)
+		   это ≈3100 °/с против ≈2000 °/с при прежних 1,4 с. */
 		--hammer-2d-turn: 2800deg;
 
 		/* Старт полёта отложен: 0,3 с молот стоит за краем, звук уже играет. */
 		--hammer-2d-delay: 0.3s;
 
-		/* Полёт 1,4 с: старт на 0,3 с, приземление на 1,7 с — за 0,2 с до пика. */
-		--hammer-2d-flight: 1.4s;
+		/* Полёт 0,9 с: старт на 0,3 с, приземление на 1,2 с — совпадает с пиком
+		   звука (1120 мс от начала звучания + ≈90 мс латентности запуска). */
+		--hammer-2d-flight: 0.9s;
 
 		position: absolute;
 		inset: 0;
@@ -155,14 +156,64 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 	if (params.get('turn') === 'ccw' && layer) layer.style.setProperty('--hammer-2d-turn', '-2800deg');
 	document.documentElement.dataset.call = params.get('call') || 'a';
 	document.documentElement.dataset.fly = params.get('fly') || 'z';
-	/* Пик звука hammer-attract-final.mp3 (извлечён из .mov Кирилла 2026-09-23):
-	   файл 1,963 с, нарастание от −119 dB до −17 dB, пик в самом конце.
-	   Полёт начинается через 0,3 с и длится 1,4 с, поэтому молот встаёт
-	   на место на 1,7 с от клика — за 0,2 с до пика звука (пик на 1,9 с). */
-	const PEAK_MS = 1700;
+	/* Пик звука hammer-attract-final.mp3 (извлечён из .mov Кирилла 2026-09-23).
+	   Прежний комментарий («пик в самом конце, 1,9 с») НЕВЕРЕН: замер огибающей
+	   (Web Audio: decodeAudioData + RMS по окнам 20 мс) даёт пик на 1120 мс
+	   (−14 дБ), порог −40 дБ с 560 мс, конец файла 1963 мс. Тайминг построен по
+	   факту: задержка 0,3 с + полёт 0,9 с = посадка на 1,2 с, звук стартует в
+	   клик и его пик приходит на 1120 + ≈90 мс латентности запуска ≈ 1,21 с. */
+	const PEAK_MS = 1200;
 	const CALL_TEXT = 'Нажми — узнаешь, достоин ли ты стрижки рукой мастера';
 	let running = false;
 	let audio: HTMLAudioElement | null = null;
+
+	/* Тайминги прилёта — один набор для 2D-слоя и 3D-сцены: задержка 300 мс плюс
+	   ход 900 мс, то есть молот встаёт на место на 1200 мс от клика.
+	   Решение Кирилла (вариант Б, 2026-09-24): звук стартует в клик, а полёт
+	   укорочен с 1400 до 900 мс — так пик звука совпадает с посадкой.
+	   Почему 900, а не 820: пик файла 1120 мс отсчитывается от НАЧАЛА ЗВУЧАНИЯ,
+	   а оно запаздывает относительно play() на ≈90 мс (замерено дважды: 77 и
+	   114 мс) → пик приходит ≈ на 1210 мс. При 900 посадка 1200 (расхождение
+	   ≈10 мс), при 820 была бы 1120 — на 90 мс раньше пика. */
+	const FLIGHT_DELAY_MS = 300;
+	const FLIGHT_MS = 900;
+
+	/* Звук готовим ЗАРАНЕЕ и переиспользуем. Раньше `new Audio()` создавался в
+	   момент клика, поэтому файл начинал качаться только тогда и звук опаздывал
+	   ровно на время загрузки (в dev-режиме это ~1.4 с — читалось как «звук
+	   отстал от анимации»). Подготовка файла жест не требует, только play(). */
+	function armAttractSound(): HTMLAudioElement {
+		if (!audio) {
+			audio = new Audio('/sounds/hammer-attract-final.mp3');
+			audio.preload = 'auto';
+			audio.loop = false;
+			audio.volume = 0.9;
+		}
+		return audio;
+	}
+
+	function playAttractSound() {
+		const el = armAttractSound();
+		/* Звук не перезапускаем: пока playing — новый запуск игнорируем. */
+		if (!el.paused) return;
+		/* Вариант Б (решение Кирилла, 2026-09-24): звук стартует СРАЗУ в клик —
+		   вместе с укороченным до 900 мс полётом его пик (≈1210 мс с учётом
+		   латентности запуска) приходится на посадку (1200 мс). Запуск идёт
+		   прямо из обработчика жеста, поэтому автоплей разрешён гарантированно.
+		   Отложенный старт убран; чтобы вернуть, сдвинуть запуск на
+		   FLIGHT_DELAY_MS + FLIGHT_MS − 1120 − ≈90 мс. */
+		try {
+			el.currentTime = 0;
+			const res = el.play();
+			if (res && typeof res.catch === 'function') res.catch(() => {});
+		} catch {
+			/* Политика автоплея может отказать — анимация всё равно идёт. */
+		}
+	}
+
+	/* Прогреваем сразу и подстраховываемся первым касанием (и на мобильном). */
+	armAttractSound();
+	window.addEventListener('pointerdown', () => armAttractSound(), { once: true, passive: true });
 
 	function reset() {
 		if (!layer) return;
@@ -175,17 +226,11 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		if (!layer || running) return;
 		running = true;
 
-		/* Звук не перезапускаем: пока playing — новый запуск игнорируем. */
-		if (audio && !audio.paused) return;
-		audio = new Audio('/sounds/hammer-attract-final.mp3');
-		audio.loop = false;
-		audio.volume = 0.9;
-		try {
-			const res = audio.play();
-			if (res && typeof res.catch === 'function') res.catch(() => {});
-		} catch {
-			/* Политика автоплея может отказать — анимация всё равно идёт. */
-		}
+		playAttractSound();
+		/* Метка для 3D-острова: если он смонтируется позже клика (модель ещё
+		   грузится), он увидит метку на монтировании и разыграет полёт — иначе
+		   событие терялось бы совсем и прилёт не проигрывался. */
+		(window as any).__attractFired = true;
 
 		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		if (reduced) {

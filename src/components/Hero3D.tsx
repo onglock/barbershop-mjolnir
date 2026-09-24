@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, useGLTF } from '@react-three/drei';
 import { useInView, useReducedMotion } from 'framer-motion';
@@ -27,7 +27,14 @@ const FLIGHT_START_X = -8.4;
 const MODEL_BASE_X = 2.2;
 const FLIGHT_START_SCALE = 0.1;
 const FLIGHT_DELAY_MS = 300;
-const FLIGHT_MS = 1400;
+/* Решение Кирилла (вариант Б, 2026-09-24): звук стартует в клик, полёт укорочен
+   с 1400 до 900 мс, чтобы пик звука совпал с посадкой. Пик файла — 1120 мс от
+   начала звучания (замер огибающей) плюс ≈90 мс латентности play() → ≈1210 мс,
+   посадка = 300 + 900 = 1200 мс. Полёт 820 мс дал бы посадку 1120, то есть на
+   90 мс раньше пика — поэтому оставлено 900. */
+const FLIGHT_MS = 900;
+/* Обороты те же 2800°, поэтому при укороченном полёте вращение ускорилось:
+   ≈3100 °/с против ≈2000 °/с при 1400 мс. */
 const FLIGHT_TURN_DEG = 2800;
 
 /**
@@ -82,7 +89,7 @@ type Pointer = React.MutableRefObject<{ x: number; y: number }>;
  * вращение идёт вокруг чужой точки и молот описывает круг, а не вращается
  * вокруг собственной оси.
  */
-function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
+function Hammer({ pointer, reduced, attract }: { pointer: Pointer; reduced: boolean; attract: boolean }) {
 	const parallax = useRef<THREE.Group>(null);
 	const flyer = useRef<THREE.Group>(null);
 	/* Вращение и парение молота. Значения подобраны Кириллом
@@ -90,10 +97,19 @@ function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 	const spinSpeed = useRef(0.17);
 	const floatAmp = useRef(0.08);
 	const floatPeriod = useRef(3.5);
+	/* Фаза молота — явная: idle (до клика в кадре ничего нет), flying, landed.
+	   Раньше поза выводилась из flyStart.current, и первые кадры после клика
+	   (до срабатывания useEffect) рисовали молот на КОНЕЧНОМ месте — Кирилл
+	   видел вспышку на месте перед полётом. Теперь фаза известна до отрисовки:
+	   сбрасываем позу в useLayoutEffect, а не в useEffect. */
+	const phase = useRef<'idle' | 'flying' | 'landed'>('idle');
 	/* Плавный вход парения после посадки: 0 → 1 за ~1 с. */
 	const floatRamp = useRef(0);
-	/* До клика молота в сцене нет вовсе (visible={false}). */
-	const [started, setStarted] = useState(false);
+	/* До клика молота в сцене нет вовсе (visible={false}). Два источника:
+	   attract — настоящий клик по призыву (вместе с полётом), showOnly — показ
+	   «на месте» для страницы скорости (/hero-rotation-preview). */
+	const [showOnly, setShowOnly] = useState(false);
+	const started = attract || showOnly;
 	/* Направление кувырка: ?turn=ccw — против часовой. По умолчанию по часовой,
 	   как просил Кирилл. Читаем в эффекте, чтобы не ломать SSR. */
 	const turn = useRef(FLIGHT_TURN_DEG);
@@ -140,7 +156,7 @@ function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 			set: (rev: number) => { spinSpeed.current = rev; },
 			get: () => spinSpeed.current,
 			/* Показать молот на месте, без прилёта — для страницы скорости. */
-			show: () => setStarted(true),
+			show: () => setShowOnly(true),
 			/* Текущий угол поворота (радианы) — для замера фактической скорости. */
 			angle: () => (spinner.current ? spinner.current.rotation.y : null),
 			/* Парение: настройка и текущая высота. */
@@ -149,22 +165,29 @@ function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 			setPeriod: (v: number) => { floatPeriod.current = v; },
 			getPeriod: () => floatPeriod.current,
 			y: () => (flyer.current ? flyer.current.position.y : null),
+			/* Для замеров таймингов: фаза, X, масштаб и метка старта полёта. */
+			phase: () => phase.current,
+			x: () => (flyer.current ? flyer.current.position.x : null),
+			scale: () => (flyer.current ? flyer.current.scale.x : null),
+			flyStartAt: () => flyStart.current,
 		};
 		return () => { delete (window as any).__hammerSpin; };
 	}, []);
 
-	/* Триггер тот же, что на мобильном: HeroHammer.astro шлёт hero:attract
-	   в момент клика по надписи или по CTA. */
-	useEffect(() => {
-		const start = () => {
-			flyStart.current = performance.now();
-			/* Флаг для CSS: пока молот летит, обёртка сцены поднимается над текстом. */
-			document.documentElement.dataset.flying = '1';
-			setStarted(true);
-		};
-		window.addEventListener('hero:attract', start);
-		return () => window.removeEventListener('hero:attract', start);
-	}, []);
+	/* Полёт стартует ЗДЕСЬ — до первой отрисовки после клика (useLayoutEffect, а
+	   не useEffect: с useEffect успевал пройти кадр, и молот мелькал на конечном
+	   месте). Слушатель живёт на верхнем уровне острова (Hero3D): клик, попавший
+	   в окно загрузки модели, не теряется, а разыгрывается, когда модель готова. */
+	useLayoutEffect(() => {
+		if (!attract) return;
+		phase.current = 'flying';
+		flyStart.current = performance.now();
+		document.documentElement.dataset.flying = '1';
+	}, [attract]);
+
+	useLayoutEffect(() => {
+		if (showOnly) phase.current = 'landed';
+	}, [showOnly]);
 
 	useFrame((state, delta) => {
 		const t = state.clock.elapsedTime;
@@ -184,12 +207,11 @@ function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 			spinner.current.rotation.x = Math.sin(t * 0.6) * THREE.MathUtils.degToRad(5);
 		}
 
-		/* Парение: только по Y, синус. Начинается после посадки — в полёте
-		   flyStart не null, поэтому молот сначала прилетает и только потом
-		   начинает парить. Вход плавный: амплитуда растёт за ~1 с.
+		/* Парение: только по Y, синус. Начинается после посадки (phase='landed').
+		   Вход плавный: амплитуда растёт за ~1 с.
 		   prefers-reduced-motion — парения нет. */
 		if (flyer.current) {
-			const settled = started && flyStart.current === null && !reduced;
+			const settled = phase.current === 'landed' && !reduced;
 			floatRamp.current = THREE.MathUtils.clamp(
 				floatRamp.current + (settled ? delta : -delta), 0, 1
 			);
@@ -201,26 +223,41 @@ function Hammer({ pointer, reduced }: { pointer: Pointer; reduced: boolean }) {
 			}
 		}
 
-		/* Полёт: 0,3 с задержки, затем 1,4 с линейно — X к нулю, кувырок по Z
-		   (в плоскости экрана, не «дверью» и не сальто в глубину), рост 0.1 → 1. */
+		/* Поза по фазе. Конечная поза достижима ТОЛЬКО после посадки: до клика
+		   (idle) и в задержке перед полётом молот стоит в стартовой позе — у
+		   левого края, сжатый. Полёт: 0,3 с задержки, затем 0,9 с линейно —
+		   X к нулю, кувырок по Z (в плоскости экрана), рост 0.1 → 1. */
 		const fly = flyer.current;
 		if (fly) {
-			if (reduced || flyStart.current === null) {
+			const setStart = () => {
+				fly.position.x = FLIGHT_START_X;
+				fly.rotation.z = THREE.MathUtils.degToRad(turn.current);
+				fly.scale.setScalar(FLIGHT_START_SCALE);
+			};
+			const setEnd = () => {
 				fly.position.x = 0; fly.rotation.z = 0; fly.scale.setScalar(1);
+			};
+			if (reduced) {
+				phase.current = 'landed';
+				setEnd();
+			} else if (phase.current === 'idle') {
+				setStart();
+			} else if (phase.current === 'landed') {
+				setEnd();
 			} else {
-				const past = (performance.now() - flyStart.current - FLIGHT_DELAY_MS) / FLIGHT_MS;
+				const past =
+					(performance.now() - (flyStart.current ?? performance.now()) - FLIGHT_DELAY_MS) / FLIGHT_MS;
 				if (past < 0) {
-					fly.position.x = FLIGHT_START_X;
-					fly.rotation.z = THREE.MathUtils.degToRad(turn.current);
-					fly.scale.setScalar(FLIGHT_START_SCALE);
+					setStart();
 				} else if (past < 1) {
 					fly.position.x = FLIGHT_START_X * (1 - past);
 					fly.rotation.z = THREE.MathUtils.degToRad(turn.current) * (1 - past);
 					fly.scale.setScalar(FLIGHT_START_SCALE + (1 - FLIGHT_START_SCALE) * past);
 				} else {
-					fly.position.x = 0; fly.rotation.z = 0; fly.scale.setScalar(1);
+					phase.current = 'landed';
 					flyStart.current = null;
 					delete document.documentElement.dataset.flying;
+					setEnd();
 				}
 			}
 		}
@@ -246,7 +283,20 @@ export default function Hero3D() {
 	const inView = useInView(wrapRef, { amount: 0.05 });
 	const reduced = useReducedMotion() ?? false;
 	const [ready, setReady] = useState(false);
+	/* Событие клика принимает сам остров, а не Hammer: остров смонтирован
+	   всегда, а Hammer — только после загрузки .glb. Иначе клик в окно
+	   загрузки модели пропадал (прилёт не проигрывался). */
+	const [attract, setAttract] = useState(false);
 	const pointer = useRef({ x: 0, y: 0 });
+
+	useEffect(() => {
+		const start = () => setAttract(true);
+		window.addEventListener('hero:attract', start);
+		/* Клик мог случиться раньше, чем остров смонтировался (модель ещё
+		   грузилась) — тогда разыгрываем полёт сразу: прилёт не должен пропадать. */
+		if ((window as any).__attractFired) setAttract(true);
+		return () => window.removeEventListener('hero:attract', start);
+	}, []);
 
 	/**
 	 * Свет: усиленный набор — основной (решение Кирилла 2026-09-22).
@@ -282,7 +332,7 @@ export default function Hero3D() {
 		<div
 			ref={wrapRef}
 			aria-hidden="true"
-			className="hero-3d pointer-events-none absolute inset-0 z-[2] hidden lg:block"
+			className="hero-3d pointer-events-none absolute inset-0 z-[4] hidden lg:block"
 		>
 			{ready && (
 				<Canvas
@@ -335,7 +385,7 @@ export default function Hero3D() {
 					{boost > 1 && <pointLight position={[3, 2, -3]} intensity={22} color="#CC9C42" distance={16} />}
 
 					<Suspense fallback={null}>
-						<Hammer pointer={pointer} reduced={reduced} />
+						<Hammer pointer={pointer} reduced={reduced} attract={attract} />
 					</Suspense>
 				</Canvas>
 			)}

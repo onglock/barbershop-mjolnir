@@ -1,13 +1,24 @@
 ---
 // Подбор вертикального ритма Hero (правило 20.6: варианты — кнопками).
-// По умолчанию зазоры раздаются автополями и равны между собой на любой ширине
-// и высоте окна. Кнопки ставят фиксированный зазор вместо авто.
+//
+// Зазоры считаются ПО КРАСКЕ БУКВ, а не по боксам DOM (см. src/lib/heroGaps.ts):
+// у подзаголовка рамка строчного бокса выше глифов, у H1 точка свешивается ниже
+// базовой линии, поэтому «равные по боксам» зазоры выглядят неравными.
+// Кнопка «Показать границы» рисует линии в реальных границах глифов и числа
+// между ними: A (H1 → подзаголовок), B (подзаголовок → кнопка), C (кнопка → знак).
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
+
+/* Dev-only: в прод-сборке страница уводит на главную (правило проекта). */
+if (import.meta.env.PROD) return Astro.redirect('/');
 ---
 
 <Layout>
+	{/* Пиксельные «Авто-равные» включаются этим флагом: на главной его нет,
+	    боевой режим не меняется без подтверждения Кирилла. */}
+	<script is:inline>document.documentElement.dataset.heroGaps = 'pixel';</script>
+
 	<Header />
 
 	<main id="main" class="relative z-10 bg-bg">
@@ -24,16 +35,22 @@ import Hero from '../components/Hero.astro';
 			<button data-spacing="48">48px</button>
 			<button data-spacing="56">56px</button>
 		</div>
+		<div class="row"><span class="cap">Пояснение</span><span class="val">«Авто-равные» — равные зазоры по буквам; числа 24–56 — ровно столько между боксами</span></div>
 		<div class="row">
 			<span class="cap">Подзаголовок</span>
-			<button data-sub="cur" class="on">Текущий 14px</button>
+			<button data-sub="cur" class="on">Текущий 24px</button>
+			<button data-sub="21">21px</button>
 			<button data-sub="22">22px</button>
-			<button data-sub="24">24px</button>
 			<button data-sub="26">26px</button>
+		</div>
+		<div class="row">
+			<span class="cap">Отладка</span>
+			<button id="mark-toggle" aria-pressed="false">Показать границы</button>
+			<span class="val" id="verdict">—</span>
 		</div>
 		<div class="row"><span class="cap">Отступы</span><span class="val" id="st">—</span></div>
 		<div class="row"><span class="cap">Ориентир</span><span class="val">H1 → подзаголовок → кнопка → водяной знак</span></div>
-		<div class="row"><span class="cap">Заметка</span><span class="val">Знак — элемент потока, поэтому все три зазора равны</span></div>
+		<div class="row"><span class="cap">Как считаем</span><span class="val">по краске букв (растр canvas), не по боксам</span></div>
 	</div>
 
 	<style>
@@ -56,9 +73,28 @@ import Hero from '../components/Hero.astro';
 		}
 		.switch button:hover { color: var(--text); border-color: var(--accent-warm); }
 		.switch button.on { color: var(--bg-deep); background: var(--accent-warm); border-color: var(--accent-warm); }
+		.switch button[aria-pressed='true'] { color: var(--bg-deep); background: var(--accent); border-color: var(--accent); }
+	</style>
+
+	<style is:global>
+		/* ── Маркеры границ глифов (dev-only, цвета отладки, не палитра) ─────
+		   Стили глобальные: маркеры создаёт скрипт, у динамических элементов
+		   нет атрибута скоупа Astro, и обычный scoped-стиль их не достанет. */
+		.gapmark { position: fixed; top: 0; left: 0; right: 0; height: 0; z-index: 190; pointer-events: none; }
+		.gapmark__line { position: absolute; left: 0; right: 0; height: 1px; background: var(--mk); box-shadow: 0 0 6px var(--mk); }
+		.gapmark__x { position: absolute; left: 6px; top: -6px; font-family: var(--font-label); font-size: 10px; color: var(--mk); background: color-mix(in srgb, var(--bg-deep) 80%, transparent); padding: 1px 4px; border-radius: 4px; }
+		.gapmark__chip { position: absolute; right: 8px; top: -7px; font-family: var(--font-label); font-size: 10px; letter-spacing: 0.04em; color: var(--mk); background: color-mix(in srgb, var(--bg-deep) 85%, transparent); border: 1px solid color-mix(in srgb, var(--mk) 60%, transparent); padding: 1px 6px; border-radius: 5px; white-space: nowrap; }
+		.gapmark__badge { position: absolute; left: 50%; transform: translateX(-50%); font-family: var(--font-label); font-size: 13px; font-weight: 500; letter-spacing: 0.06em; color: var(--bg-deep); padding: 2px 10px; border-radius: 6px; background: var(--mk); }
+		.gapmark__badge.is-bad { background: #e5484d; color: #fff; }
+		.gapmark__badge.is-ok { background: #46a758; color: #04120a; }
+		.gapmark__legend { position: absolute; right: 8px; bottom: 10px; font-family: var(--font-label); font-size: 11px; color: var(--text); background: color-mix(in srgb, var(--bg-deep) 88%, transparent); border: 1px solid color-mix(in srgb, var(--text-muted) 35%, transparent); padding: 4px 8px; border-radius: 8px; line-height: 1.5; }
+		.gapmark__legend b { font-weight: 500; }
 	</style>
 
 	<script>
+		import { measureHero, applyPixelGaps, clearPixelGaps, inkBox } from '../lib/heroGaps';
+
+		/* ── Переключатели режимов ─────────────────────────────────────── */
 		const buttons = Array.from(document.querySelectorAll<HTMLElement>('[data-spacing]'));
 		buttons.forEach((b) => {
 			b.addEventListener('click', () => {
@@ -73,23 +109,147 @@ import Hero from '../components/Hero.astro';
 		subs.forEach((b) => {
 			b.addEventListener('click', () => {
 				const v = b.dataset.sub!;
-				document.documentElement.dataset.sub = v;
+				if (v === 'cur') document.documentElement.removeAttribute('data-sub');
+				else document.documentElement.dataset.sub = v;
 				subs.forEach((x) => x.classList.remove('on'));
 				b.classList.add('on');
 			});
 		});
-		const st = document.getElementById('st')!;
-		const gaps = () => {
-			const el = (s: string) => document.querySelector(s)?.getBoundingClientRect() ?? null;
-			const h1 = el('.hero-intro h1'), sub = el('.hero-sub'), slot = el('.hero-cta'), dec = el('.decor-2');
-			if (!h1 || !sub || !slot) return null;
-			const third = dec ? Math.round(dec.top - slot.bottom) : null;
-			return [Math.round(sub.top - h1.bottom), Math.round(slot.top - sub.bottom), third];
+
+		/* ── Маркеры границ ────────────────────────────────────────────── */
+		const DBG = {
+			a: '#7ba5c9', // сталь — зазор A
+			b: '#cc9c42', // янтарь — зазор B
+			c: '#b98bd9', // лиловый — зазор C (отладочный, не из палитры)
 		};
-		window.setInterval(() => {
-			const g = gaps();
-			if (!g) { st.textContent = 'страница грузится…'; return; }
-			st.textContent = g[0] + ' / ' + g[1] + ' / ' + (g[2] === null ? 'знак скрыт' : g[2]) + ' px';
-		}, 400);
+		const MARK_NAMES = [
+			['h1InkBottom', 'низ букв H1'],
+			['subInkTop', 'верх букв подзаголовка'],
+			['subInkBottom', 'низ букв подзаголовка'],
+			['ctaTop', 'верх кнопки'],
+			['ctaBottom', 'низ кнопки'],
+			['signInkTop', 'верх букв знака'],
+		] as const;
+
+		const st = document.getElementById('st')!;
+		const verdict = document.getElementById('verdict')!;
+		const toggle = document.getElementById('mark-toggle') as HTMLButtonElement;
+		let marksOn = false;
+		let layer: HTMLDivElement | null = null;
+
+		function renderMarks() {
+			const m = measureHero();
+			if (!m) {
+				/* Замер недоступен (узкий экран, знак скрыт) — старые маркеры
+				   убираем, иначе на мобильной ширине висят числа с десктопа. */
+				layer?.remove();
+				layer = null;
+				return;
+			}
+			if (!layer) {
+				layer = document.createElement('div');
+				layer.className = 'gapmark';
+				document.body.appendChild(layer);
+			}
+			layer.innerHTML = '';
+
+			const ys = MARK_NAMES.map(([key]) => m.lines[key]);
+			// линии + подпись «отступ от предыдущей линии»
+			MARK_NAMES.forEach(([key, name], i) => {
+				const y = m.lines[key];
+				const delta = i === 0 ? null : Math.round(y - ys[i - 1]);
+				const gapColor = i === 0 || i === 1 ? 'a' : i === 2 || i === 3 ? 'b' : 'c';
+				const line = document.createElement('div');
+				line.className = 'gapmark__line';
+				line.style.top = y + 'px';
+				line.style.setProperty('--mk', DBG[gapColor as 'a' | 'b' | 'c']);
+				line.innerHTML =
+					`<span class="gapmark__x">${name}</span>` +
+					`<span class="gapmark__chip">${name} · y=${Math.round(y)}` +
+					(delta === null ? '' : ` · от пред. ${delta}px`) +
+					`</span>`;
+				layer!.appendChild(line);
+			});
+
+			// значок зазора между парами линий
+			const pairs: [string, number, number, number][] = [
+				['A', ys[0], ys[1], m.a],
+				['B', ys[2], ys[3], m.b],
+				['C', ys[4], ys[5], m.c],
+			];
+			const median = [m.a, m.b, m.c].sort((x, y) => x - y)[1];
+			pairs.forEach(([name, y0, y1, value]) => {
+				const badge = document.createElement('div');
+				const bad = Math.abs(value - median) > 1;
+				badge.className = 'gapmark__badge ' + (bad ? 'is-bad' : 'is-ok');
+				badge.style.top = (y0 + y1) / 2 - 11 + 'px';
+				badge.style.setProperty('--mk', DBG[name.toLowerCase() as 'a' | 'b' | 'c']);
+				badge.textContent = `${name} = ${value}px`;
+				layer!.appendChild(badge);
+			});
+
+			// легенда
+			const legend = document.createElement('div');
+			legend.className = 'gapmark__legend';
+			legend.innerHTML =
+				`A (H1 → подзаголовок) = <b>${m.a}</b>px · B (подзаголовок → кнопка) = <b>${m.b}</b>px · C (кнопка → знак) = <b>${m.c}</b>px<br>` +
+				`боксы: H1 низ +${m.offsets.h1BelowGlyphs} · подзаголовок +${m.offsets.subAboveGlyphs}/−${m.offsets.subBelowGlyphs} · знак −${m.offsets.signAboveGlyphs}<br>` +
+				`отступы (пиксельные): ${m.applied ? `${m.applied.a} / ${m.applied.b} / ${m.applied.c}` : '—'}`;
+			layer.appendChild(legend);
+		}
+
+		toggle.addEventListener('click', () => {
+			marksOn = !marksOn;
+			toggle.setAttribute('aria-pressed', String(marksOn));
+			toggle.textContent = marksOn ? 'Скрыть границы' : 'Показать границы';
+			if (marksOn) renderMarks();
+			else layer?.remove();
+			layer = marksOn ? layer : null;
+		});
+
+		/* ── Строка состояния ──────────────────────────────────────────── */
+		function renderStatus(m: any) {
+			if (!m) {
+				st.textContent = 'замер недоступен: знак скрыт (узкий экран) или Hero ещё не готов';
+				verdict.textContent = '—';
+				return;
+			}
+			st.textContent =
+				`A ${m.a} / B ${m.b} / C ${m.c} px — ` +
+				(m.fits ? 'равны' : 'не равны') +
+				(m.applied ? ` (отступы ${m.applied.a} / ${m.applied.b} / ${m.applied.c})` : '');
+			verdict.textContent = m.blocked ? m.blocked : m.fits ? 'зазоры равны' : 'зазоры НЕ равны';
+			verdict.style.color = m.fits ? '#46a758' : '#e5484d';
+			verdict.style.fontSize = '12px';
+		}
+
+		function refresh() {
+			if (!document.documentElement.hasAttribute('data-spacing')) applyPixelGaps();
+			else clearPixelGaps();
+			const m = measureHero();
+			renderStatus(m);
+			if (marksOn) renderMarks();
+		}
+
+		/* Модуль сам пересчитывает отступы (шрифты, resize, смена режима) и
+		   сообщает результат — панель показывает ровно эти числа, без второго
+		   замера (иначе цикл). */
+		document.documentElement.addEventListener('hero:gaps', (e: Event) => {
+			renderStatus((e as CustomEvent).detail);
+			if (marksOn) renderMarks();
+		});
+
+		refresh();
+		document.fonts?.ready.then(refresh).catch(() => {});
+		window.addEventListener('resize', refresh, { passive: true });
+		const observer = new MutationObserver(refresh);
+		observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-spacing', 'data-sub'] });
+		/* Пересчёт — только по событиям (загрузка, шрифты, resize, смена режима):
+		   крутить canvas-растеризацию по таймеру на этой странице незачем. */
+		document.querySelectorAll<HTMLElement>('[data-spacing], [data-sub]').forEach((b) => b.addEventListener('click', () => requestAnimationFrame(refresh)));
+
+		/* Отладочный доступ к замеру — только на этой dev-странице:
+		   координатору и Кириллу видно, из чего сложились числа. */
+		(window as any).__heroGaps = { measureHero, inkBox, applyPixelGaps, clearPixelGaps };
 	</script>
 </Layout>
