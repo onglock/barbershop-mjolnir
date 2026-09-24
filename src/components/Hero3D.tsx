@@ -118,9 +118,6 @@ function Hammer({ pointer, reduced, runId }: { pointer: Pointer; reduced: boolea
 	   расти: 0 — растёт сразу (линейно), 0.4 — первые 40 % пути мелкий, потом
 	   растёт (выбор Кирилла). Подбор — на /hero-hammer-start. */
 	const growFrom = useRef(FLIGHT_GROW_FROM);
-	/* Дев-диагностика: заморозить молот на заданной доле пути (для точных
-	   сравнений и проверки перекрытий; -1 — не морозить). */
-	const freezeAt = useRef(-1);
 	/* Первый прогон эффекта запуска — момент, когда модель уже пришла. */
 	const mountedOnce = useRef(false);
 	/* Дев-режим превью: показать молот в стартовой позе, пока подбирают X. */
@@ -269,10 +266,6 @@ function Hammer({ pointer, reduced, runId }: { pointer: Pointer; reduced: boolea
 			/* Дев-режим: держать молот в стартовой позе (видно, откуда вылетит). */
 			setHold: (on: boolean) => { hold.current = on; setHoldOn(on); },
 			getHold: () => hold.current,
-			/* Дев-диагностика: заморозить молот на доле пути (0…1), чтобы точно
-			   сравнить страницы и проверить перекрытия. unfreeze() — снять. */
-			freeze: (p: number) => { freezeAt.current = Math.min(1, Math.max(0, p)); hold.current = true; setHoldOn(true); },
-			unfreeze: () => { freezeAt.current = -1; },
 			/* Габаритный бокс молота на экране, в пикселях канвы: где он сейчас
 			   (в стартовой позе — где он стартует). Считается по реальной
 			   геометрии модели, а не по боксу DOM. */
@@ -399,15 +392,7 @@ function Hammer({ pointer, reduced, runId }: { pointer: Pointer; reduced: boolea
 			const setEnd = () => {
 				fly.position.x = 0; fly.rotation.z = 0; fly.scale.setScalar(1);
 			};
-			if (freezeAt.current >= 0) {
-				/* Диагностика: ставим позу ровно на заданной доле пути. */
-				const p = Math.min(1, Math.max(0, freezeAt.current));
-				fly.position.x = startX.current * (1 - p);
-				fly.rotation.z = THREE.MathUtils.degToRad(turn.current) * (1 - p);
-				const gf = growFrom.current;
-				const kf = p <= gf ? 0 : (p - gf) / (1 - gf);
-				fly.scale.setScalar(startScale.current + (1 - startScale.current) * kf);
-			} else if (hold.current) {
+			if (hold.current) {
 				setStart();
 			} else if (reduced) {
 				phase.current = 'landed';

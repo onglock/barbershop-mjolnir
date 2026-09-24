@@ -1,0 +1,146 @@
+---
+// Огонь по рамке §10.3.1 (этап 2). Правило 20.6: варианты — живой страницей.
+// Рамка «Ты достоин» появляется сразу (режим preview), чтобы можно было
+// подбирать параметры до прилёта молота.
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+
+/* Dev-only: в прод-сборке страница уводит на главную (правило проекта). */
+if (import.meta.env.PROD) return Astro.redirect('/');
+---
+
+<Layout title="Огонь по рамке — превью">
+	<Header />
+
+	<main>
+		<Hero />
+	</main>
+
+	<aside class="panel">
+		<div class="row">
+			<span class="cap">Наведение</span>
+			<button id="on">Hover ON</button>
+			<button id="off">Hover OFF</button>
+			<button id="again">Перезапустить огонь</button>
+		</div>
+		<div class="row">
+			<span class="cap">Длительность</span>
+			<input id="dur" type="range" min="800" max="1600" step="400" value="1200" />
+			<span class="val" id="durv">1200 мс</span>
+		</div>
+		<div class="row">
+			<span class="cap">Толщина</span>
+			<input id="fw" type="range" min="1" max="3" step="1" value="2" />
+			<span class="val" id="fwv">2 px</span>
+		</div>
+		<div class="row">
+			<span class="cap">Свечение</span>
+			<input id="glow" type="range" min="0" max="1" step="0.5" value="0.5" />
+			<span class="val" id="glowv">0,5 (4 px)</span>
+		</div>
+		<div class="row">
+			<span class="cap">Затухание</span>
+			<button data-fire="fade" class="on">просто гаснет</button>
+			<button data-fire="rewind">обратный ход</button>
+		</div>
+		<div class="row nums">
+			<span class="cap">Сейчас</span>
+			<span class="val" id="st">страница грузится…</span>
+		</div>
+		<div class="hint">
+			Огонь идёт от середины верхней границы в две стороны, поворачивает на верхних
+			углах, идёт вниз и обе линии встречаются в середине нижней границы.
+			Длительность — время полного обхода. «Свечение»: 0 — без тени, 0,5 — 4 px,
+			1,0 — 9 px. Наведение на превью заменяет курсор: надпись меняется на
+			«Записаться» и бежит огонь; «Hover OFF» показывает выбранное затухание.
+			На мобильном (≤1023) и при prefers-reduced-motion огня нет — там тап даёт
+			вспышку рамки и скролл к форме.
+		</div>
+	</aside>
+
+	<style>
+		.panel {
+			position: fixed; top: 84px; right: 16px;
+			z-index: 200; display: flex; flex-direction: column; gap: 7px;
+			width: 380px; max-height: calc(100svh - 100px); overflow-y: auto;
+			padding: 12px 14px; border-radius: 14px;
+			background: color-mix(in srgb, var(--bg-deep) 90%, transparent);
+			border: 1px solid color-mix(in srgb, var(--accent-warm) 40%, transparent);
+			backdrop-filter: blur(8px); font-family: var(--font-label);
+		}
+		.panel .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+		.panel .cap { width: 96px; flex: none; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+		.panel .val { font-size: 12px; color: var(--text); }
+		.panel .nums .val { font-family: var(--font-price); font-size: 11px; }
+		.panel input[type='range'] { flex: 1; accent-color: var(--accent-warm); }
+		.panel .hint { font-size: 11px; line-height: 1.45; color: var(--text-muted); }
+		.panel button {
+			font: inherit; font-size: 12px; letter-spacing: 0.04em;
+			padding: 6px 10px; border-radius: 8px; cursor: pointer;
+			color: var(--text-muted); background: transparent;
+			border: 1px solid color-mix(in srgb, var(--text-muted) 35%, transparent);
+		}
+		.panel button:hover { color: var(--text); border-color: var(--accent-warm); }
+		.panel button.on { color: var(--bg-deep); background: var(--accent-warm); border-color: var(--accent-warm); }
+		@media (max-width: 1023px) {
+			.panel { display: none; }
+		}
+	</style>
+
+	<script>
+		const api = () => (window as any).__cta;
+		/* Рамка должна быть видна сразу: на главной она проявляется после прилёта. */
+		document.documentElement.dataset.ctaPreview = 'now';
+
+		const dur = document.getElementById('dur') as HTMLInputElement;
+		const fw = document.getElementById('fw') as HTMLInputElement;
+		const glow = document.getElementById('glow') as HTMLInputElement;
+		const durv = document.getElementById('durv')!;
+		const fwv = document.getElementById('fwv')!;
+		const glowv = document.getElementById('glowv')!;
+		const st = document.getElementById('st')!;
+
+		/* Свечение: 0 / 0,5 / 1,0 → 0 / 4 / 9 px drop-shadow. */
+		const glowPx = (v: number) => (v === 0 ? '0px' : v === 0.5 ? '4px' : '9px');
+		const fmt = (v: number, d = 1) => v.toFixed(d).replace('.', ',');
+
+		function apply() {
+			const a = api();
+			const g = Number(glow.value);
+			durv.textContent = `${dur.value} мс`;
+			fwv.textContent = `${fw.value} px`;
+			glowv.textContent = `${fmt(g)} (${parseInt(glowPx(g), 10)} px)`;
+			if (a?.fireParams) a.fireParams({ dur: `${dur.value}ms`, w: fw.value, glow: glowPx(g) });
+		}
+
+		dur.addEventListener('input', apply);
+		fw.addEventListener('input', apply);
+		glow.addEventListener('input', apply);
+
+		document.getElementById('on')!.addEventListener('click', () => api()?.fire?.(true));
+		document.getElementById('off')!.addEventListener('click', () => api()?.fire?.(false));
+		document.getElementById('again')!.addEventListener('click', () => api()?.fireRestart?.());
+
+		document.querySelectorAll<HTMLElement>('[data-fire]').forEach((b) => {
+			b.addEventListener('click', () => {
+				document.querySelectorAll('[data-fire]').forEach((x) => x.classList.remove('on'));
+				b.classList.add('on');
+				api()?.fireParams?.({ variant: b.dataset.fire });
+			});
+		});
+
+		window.setInterval(() => {
+			const s = api()?.fireState?.();
+			if (!s) { st.textContent = 'страница грузится…'; return; }
+			st.textContent = [
+				`${s.variant} · ${s.dur} · ${s.w} px · свечение ${s.glow}`,
+				`рамка ${s.box ? s.box.join('×') : '—'}`,
+				`пути ${s.len.length ? s.len.join(' / ') : '—'} px`,
+				s.firing ? (s.dying ? 'затухает' : 'огонь идёт') : 'погашен',
+			].join(' · ');
+		}, 150);
+
+		window.setTimeout(apply, 300);
+	</script>
+</Layout>

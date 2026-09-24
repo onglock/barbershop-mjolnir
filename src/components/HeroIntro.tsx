@@ -99,6 +99,15 @@ export default function HeroIntro() {
 							<span className="hero-frame__label hero-frame__label--desktop">Ты достоин</span>
 							<span className="hero-frame__label hero-frame__label--hover">Записаться</span>
 							<span className="hero-frame__label hero-frame__label--mobile">Ты достоин — жми чтобы записаться</span>
+							{/* Огонь по периметру (§10.3.1, этап 2): две линии от середины
+							   верхней границы — влево и вправо, встречаются в середине
+							   нижней. Геометрию путей и viewBox ставит скрипт из Hero.astro
+							   по фактическому размеру рамки; pathLength="1" нормализует
+							   длину, поэтому анимация не зависит от размера. */}
+							<svg className="hero-frame__fire" aria-hidden="true" focusable="false">
+								<path pathLength="1" data-side="left" />
+								<path pathLength="1" data-side="right" />
+							</svg>
 						</button>
 				</motion.div>
 
