@@ -26,8 +26,8 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 	<aside class="panel">
 		<div class="row">
 			<span class="cap">Старт X</span>
-			<input id="sx" type="range" min="-30" max="5" step="0.1" value="-18.8" />
-			<span class="val" id="sxv">−18,8</span>
+			<input id="sx" type="range" min="-30" max="5" step="0.1" value="-16" />
+			<span class="val" id="sxv">−16,0</span>
 		</div>
 		<div class="row">
 			<span class="cap">Старт масштаб</span>
@@ -285,9 +285,9 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 
 		defaultsBtn.addEventListener('click', () => {
 			const a = api();
-			sx.value = '-18.8';
+			sx.value = '-16';
 			ss.value = '0.05';
-			if (a && a.setStartX) { a.setStartX(-18.8); a.setStartScale(0.05); }
+			if (a && a.setStartX) { a.setStartX(-16); a.setStartScale(0.05); }
 			applyGrow(0.4);
 			readout();
 		});
