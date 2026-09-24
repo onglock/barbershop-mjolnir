@@ -19,15 +19,18 @@ const MODEL_HEIGHT = 3.4; /* было 3.05: +11 % к размеру молота
 /* Прилёт (этап 2, десктопная ветка): те же тайминги, что у 2D-молота на мобильном.
    Важно: canvas занимает ВСЮ ширину Hero, поэтому сцена и страница совпадают по X.
    Видимая полуширина сцены при fov 30, z=10.2 и 1280×800 — ≈4,4, то есть левый
-   край страницы это x = -4,4. Старт посчитан из условия «вход в кадр на 0,6 с»
-   (как мобильные 0,58): -8,4 приходит к краю на 21 % пути. При -10 вход был
-   на 0,78 с — на 0,2 с позже. */
-const FLIGHT_START_X = -8.4;
+   край страницы это x = -4,4. Старт выбран Кириллом на /hero-hammer-start:
+   −18,8 — молот идёт из далека (центр ≈ −1786 px, бокс ≈ −1804…−1767, то есть
+   ~1,4 ширины кадра за левым краем) и при масштабе 0,05 первое время читается
+   точкой. Было −8,4 («вход в кадр на 0,6 с»). */
+const FLIGHT_START_X = -18.8;
 /* Молот стоит справа: при полной ширине canvas его место в сцене смещено. */
 const MODEL_BASE_X = 2.2;
-/* Стартовый масштаб: 0.01 (решение Кирилла 2026-09-24) — молот влетает
-   практически точкой и растёт до 1.0 к посадке. Было 0.1. */
-const FLIGHT_START_SCALE = 0.01;
+/* Стартовый масштаб 0,05 и кривая роста 40 % — выбор Кирилла (2026-09-24) на
+   /hero-hammer-start: молот летит мелким первые 40 % пути (360 мс), затем растёт
+   до 1.0 за оставшиеся 60 % (540 мс). Было 0.01 с линейным ростом. */
+const FLIGHT_START_SCALE = 0.05;
+const FLIGHT_GROW_FROM = 0.4;
 const FLIGHT_DELAY_MS = 300;
 /* Решение Кирилла (вариант Б, 2026-09-24): звук стартует в клик, полёт укорочен
    с 1400 до 900 мс, чтобы пик звука совпал с посадкой. Пик файла — 1120 мс от
@@ -111,6 +114,10 @@ function Hammer({ pointer, reduced, runId }: { pointer: Pointer; reduced: boolea
 	   Значения по умолчанию — константы FLIGHT_START_X / FLIGHT_START_SCALE. */
 	const startX = useRef(FLIGHT_START_X);
 	const startScale = useRef(FLIGHT_START_SCALE);
+	/* Доля пути, которую молот летит СТАРТОВЫМ размером, прежде чем начать
+	   расти: 0 — растёт сразу (линейно), 0.4 — первые 40 % пути мелкий, потом
+	   растёт (выбор Кирилла). Подбор — на /hero-hammer-start. */
+	const growFrom = useRef(FLIGHT_GROW_FROM);
 	/* Дев-режим превью: показать молот в стартовой позе, пока подбирают X. */
 	const hold = useRef(false);
 	const [holdOn, setHoldOn] = useState(false);
@@ -250,6 +257,10 @@ function Hammer({ pointer, reduced, runId }: { pointer: Pointer; reduced: boolea
 			setStartX: (v: number) => { startX.current = v; },
 			getStartScale: () => startScale.current,
 			setStartScale: (v: number) => { startScale.current = v; },
+			/* Кривая роста: доля пути (0…0.9), которую молот летит стартовым
+			   размером, прежде чем начать расти. */
+			getGrowFrom: () => growFrom.current,
+			setGrowFrom: (v: number) => { growFrom.current = Math.min(0.9, Math.max(0, v)); },
 			/* Дев-режим: держать молот в стартовой позе (видно, откуда вылетит). */
 			setHold: (on: boolean) => { hold.current = on; setHoldOn(on); },
 			getHold: () => hold.current,
@@ -382,7 +393,12 @@ function Hammer({ pointer, reduced, runId }: { pointer: Pointer; reduced: boolea
 				} else if (past < 1) {
 					fly.position.x = startX.current * (1 - past);
 					fly.rotation.z = THREE.MathUtils.degToRad(turn.current) * (1 - past);
-					fly.scale.setScalar(startScale.current + (1 - startScale.current) * past);
+					/* Кривая роста: долю пути growFrom держим стартовый масштаб,
+					   дальше растём линейно до 1. При growFrom = 0 это прежняя
+					   линейная рампа на весь путь. */
+					const g = growFrom.current;
+					const k = past <= g ? 0 : (past - g) / (1 - g);
+					fly.scale.setScalar(startScale.current + (1 - startScale.current) * k);
 				} else {
 					phase.current = 'landed';
 					flyStart.current = null;
