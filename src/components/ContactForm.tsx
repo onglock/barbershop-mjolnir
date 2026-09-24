@@ -114,7 +114,7 @@ export default function ContactForm() {
 			<div className="mx-auto max-w-[1400px]">
 				{/* Вариант B — с мифологическим акцентом (принят Кириллом) */}
 				<p className="font-label text-label uppercase text-text-muted">Ритуал</p>
-				<h2 className="mt-6 max-w-[16ch] text-display uppercase text-text">Займите кресло</h2>
+				<h2 className="mt-6 max-w-[16ch] text-h2 uppercase text-text">Займите кресло</h2>
 				<p className="mt-6 max-w-[42ch] text-body text-text-muted">
 					Назовите имя и время — остальное сделает мастер.
 				</p>

@@ -43,6 +43,7 @@ const rows = [
 			{ value: 'off', label: 'без фона (сейчас)' },
 			{ value: '0.3', label: '0.3' },
 			{ value: '0.4', label: '0.4' },
+			{ value: '0.45', label: '0.45' },
 			{ value: '0.5', label: '0.5 — как в Hero' },
 		],
 	},
@@ -192,7 +193,9 @@ const rows = [
 		pointer-events: none;
 		background-image: url('/hero-bg/hero-bg-main.jpg');
 		background-size: cover;
-		background-position: center 45%;
+		/* 80 % — как на главной (см. index.astro): сдвиг кадра вниз, чтобы
+		   яркая точка не попадала под мелкий приглушённый текст. */
+		background-position: center 80%;
 		background-repeat: no-repeat;
 		opacity: 0;
 		transition: opacity 300ms cubic-bezier(0.33, 1, 0.68, 1);
@@ -255,12 +258,13 @@ const rows = [
 <script>
 	type Groups = { sp: string; hs: string; bg: string; bgpos: string };
 
-	const groups: Groups = { sp: 'now', hs: 'now', bg: '0.5', bgpos: 'fixed' };
+	/* Стартовое состояние — как на сайте: фон 0.3 и fixed (решение Кирилла). */
+	const groups: Groups = { sp: 'now', hs: 'now', bg: '0.3', bgpos: 'fixed' };
 
 	const LABELS: Record<string, Record<string, string>> = {
 		sp: { now: 'сейчас 96/128', a: 'A 32/40', b: 'B 48/64', c: 'C 64/80' },
 		hs: { now: 'сейчас (100 %)', a: 'A −10 %', b: 'B −15 %' },
-		bg: { off: 'без фона', '0.3': '0.3', '0.4': '0.4', '0.5': '0.5' },
+		bg: { off: 'без фона', '0.3': '0.3', '0.4': '0.4', '0.45': '0.45', '0.5': '0.5' },
 		bgpos: { fixed: 'fixed', absolute: 'absolute' },
 	};
 
@@ -270,6 +274,12 @@ const rows = [
 		root.dataset.hs = groups.hs;
 		root.dataset.bg = groups.bg;
 		root.dataset.bgpos = groups.bgpos;
+
+		/* Прозрачность ставим инлайном, а не отдельным правилом на каждое
+		   значение: ряды кнопок живут в разметке, и добавление нового варианта
+		   (0.45) не требует правки CSS. */
+		const bgLayer = document.querySelector<HTMLElement>('.glp-bg');
+		if (bgLayer) bgLayer.style.opacity = groups.bg === 'off' ? '0' : groups.bg;
 
 		document.querySelectorAll<HTMLButtonElement>('[data-glp-group]').forEach((btn) => {
 			const g = btn.dataset.glpGroup || '';
