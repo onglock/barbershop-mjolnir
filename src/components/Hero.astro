@@ -124,6 +124,13 @@ import HeroIntro from './HeroIntro';
 		   (--hero-gap-c), иначе работает прежнее автораспределение по боксам. */
 		margin-top: var(--hero-gap-c, auto); margin-bottom: -2vh;
 		text-align: center;
+		/* Знак — на всю ширину окна (решение Кирилла 2026-09-24): растягиваем по
+		   горизонтали transform'ом, а не размером шрифта. Transform не участвует
+		   в раскладке, поэтому высота знака и все три пиксельных зазора остаются
+		   ровно теми же. --sign-k и --sign-shift считает скрипт по фактической
+		   ширине краски букв (canvas + letter-spacing); без JS k = 1 — как было. */
+		transform: translateX(var(--sign-shift, 0px)) scaleX(var(--sign-k, 1));
+		transform-origin: center center;
 	}
 	/* Скрытие знака на низких окнах ОТМЕНЕНО (решение принято без согласования,
 	   Кирилл: «оптимизация, которая убирает элемент — поломка»). Знак виден всегда
@@ -611,7 +618,105 @@ import HeroIntro from './HeroIntro';
 		window.setTimeout(fireGeometry, 0);
 	}
 
+	/* ── Знак «МЬЁЛЬНИР» на всю ширину окна ─────────────────────────────
+	   Краска букв шире или уже окна — считаем коэффициент растяжения по
+	   фактической ширине краски (canvas + letter-spacing, как её рисует браузер)
+	   и сдвиг, чтобы краска встала центру. Растяжение — transform: scaleX, он не
+	   участвует в раскладке: высота знака и три пиксельных зазора не меняются. */
+	const signDecor = document.querySelector('.hero-decor.decor-2');
+	const signSpan = signDecor ? signDecor.querySelector('span') : null;
+
+	function fitSign() {
+		if (!signDecor || !signSpan) return null;
+		if (!window.matchMedia('(min-width: 1024px)').matches) {
+			/* На мобильном знака нет — переменные не нужны. */
+			document.documentElement.style.removeProperty('--sign-k');
+			document.documentElement.style.removeProperty('--sign-shift');
+			return null;
+		}
+		const cs = getComputedStyle(signSpan);
+		const text = (signSpan.textContent || '').trim();
+		if (!text) return null;
+		const ls = parseFloat(cs.letterSpacing) || 0;
+		const ctx = document.createElement('canvas').getContext('2d');
+		if (!ctx) return null;
+		ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${parseFloat(cs.fontSize)}px ${cs.fontFamily}`;
+		const m = ctx.measureText(text);
+		/* Краска в координатах строки: от −actualBoundingBoxLeft до
+		   actualBoundingBoxRight (+ межбуквенные пробелы, если canvas их не знает). */
+		const supportsLS = 'letterSpacing' in ctx;
+		if (supportsLS) (ctx as any).letterSpacing = `${ls}px`;
+		const gaps = Math.max(0, text.length - 1) * ls;
+		const inkLeft = -m.actualBoundingBoxLeft;
+		const inkRight = m.actualBoundingBoxRight + (supportsLS ? 0 : gaps);
+		const ink = inkRight - inkLeft;
+		if (!(ink > 10)) return null;
+
+		/* Геометрию меряем БЕЗ растяжения: transform искажает getBoundingClientRect.
+		   Знак может переполнять контейнер (на 1920 текст шире 1400-й колонки), и
+		   тогда `text-align: center` его не центрирует — поэтому считаем сдвиг по
+		   фактическому положению краски, а не по центру бокса. */
+		const root = document.documentElement;
+		const keepK = root.style.getPropertyValue('--sign-k');
+		const keepShift = root.style.getPropertyValue('--sign-shift');
+		if (keepK) {
+			root.style.setProperty('--sign-k', '1');
+			root.style.setProperty('--sign-shift', '0px');
+		}
+		const spanRect = signSpan.getBoundingClientRect();
+		const decorRect = signDecor.getBoundingClientRect();
+		if (keepK) {
+			root.style.setProperty('--sign-k', keepK);
+			root.style.setProperty('--sign-shift', keepShift);
+		}
+
+		const vw = window.innerWidth;
+		const k = vw / ink;
+		const inkCenter = spanRect.left + inkLeft + ink / 2;
+		const decorCenter = decorRect.left + decorRect.width / 2;
+		/* После масштабирования относительно центра бокса краска окажется тут: */
+		const scaledCenter = decorCenter + k * (inkCenter - decorCenter);
+		const shift = vw / 2 - scaledCenter;
+
+		root.style.setProperty('--sign-k', k.toFixed(5));
+		root.style.setProperty('--sign-shift', shift.toFixed(2) + 'px');
+		const state = {
+			k: Number(k.toFixed(5)), shift: Number(shift.toFixed(2)), ink: Math.round(ink), vw,
+			inkLeft: Math.round(inkLeft), inkRight: Math.round(inkRight),
+			spanLeft: Math.round(spanRect.left), decorCenter: Math.round(decorCenter),
+		};
+		root.dispatchEvent(new CustomEvent('hero:sign', { detail: state }));
+		return state;
+	}
+
+	/* Пересчёт: ресайз (с паузой, как у зазоров), загрузка шрифтов, старт. */
+	let signTimer = 0;
+	const scheduleSign = () => {
+		if (signTimer) window.clearTimeout(signTimer);
+		signTimer = window.setTimeout(() => { signTimer = 0; fitSign(); }, 120);
+	};
+	fitSign();
+	window.addEventListener('resize', scheduleSign, { passive: true });
+	document.fonts?.ready.then(scheduleSign).catch(() => {});
+	window.addEventListener('load', fitSign, { once: true });
+	window.setTimeout(fitSign, 400);
+
 	(window as any).__cta = {
+		signFit: fitSign,
+		signRect: () => {
+			if (!signDecor || !signSpan) return null;
+			const d = signDecor.getBoundingClientRect();
+			const s = signSpan.getBoundingClientRect();
+			const cs = getComputedStyle(signSpan);
+			const root = document.documentElement;
+			return {
+				k: root.style.getPropertyValue('--sign-k') || '1',
+				shift: root.style.getPropertyValue('--sign-shift') || '0px',
+				decorBox: [Math.round(d.left), Math.round(d.right), Math.round(d.width)],
+				spanBox: [Math.round(s.left), Math.round(s.right)],
+				fontSize: cs.fontSize, letterSpacing: cs.letterSpacing, vw: window.innerWidth,
+			};
+		},
 		style: (v: string) => { document.documentElement.dataset.cta = v; },
 		show: (mode: string) => {
 			if (mode === 'after') delete document.documentElement.dataset.ctaPreview;
