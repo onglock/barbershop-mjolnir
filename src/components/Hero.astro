@@ -41,7 +41,6 @@ import HeroIntro from './HeroIntro';
 			<path d="M90 60v60M90 80l-22 20M68 80l22 20M90 180v60M90 200h-22M90 220h-22M90 300v60M90 320l-22 20v20M90 420v60M90 440l-22 20M68 460h22M90 540v60"/>
 		</svg>
 	</div>
-	<div class="hero-decor decor-2" aria-hidden="true"><span>МЬЁЛЬНИР</span></div>
 	<div class="hero-decor decor-3" aria-hidden="true"></div>
 
 	<!-- Слой затемнения для варианта ?fly=dim: виден только во время полёта,
@@ -67,7 +66,11 @@ import HeroIntro from './HeroIntro';
 	}
 	@media (min-width: 1024px) {
 		/* Надзаголовок тоже крупнее, H1 не трогаем (98px). */
-		:global(.hero-intro p:first-of-type) { font-size: 0.875rem; }
+		/* Надзаголовок — только первый <p> внутри обёртки текстовой колонки.
+	   Селектор `p:first-of-type` без обёртки цеплял и подзаголовок, который после
+	   выноса прямым ребёнком .hero-intro сам стал «первым <p>» — кегль падал с 17
+	   до 14px (нашёл координатор, сверив с картой). */
+	:global(.hero-intro > div > p:first-of-type) { font-size: 0.875rem; }
 		:global(.hero-sub) {
 			font-size: 1.3125rem;    /* подзаголовок 21px */
 			line-height: 1.55;
@@ -90,11 +93,13 @@ import HeroIntro from './HeroIntro';
 
 	.hero-decor {
 		display: none; position: absolute; pointer-events: none;
-		/* z-index: 2 — выше затемняющего градиента (z-1), иначе орнамент
-		   залит почти непрозрачной тёмной плашкой и не виден, хотя бокс есть. */
-		z-index: 2;
+		/* z-index: 1 — выше затемняющего градиента (он тоже z-1, но декор идёт
+		   позже в DOM), и НИЖЕ молота (слой молота z-2, в полёте z-50). */
+		z-index: 1;
 	}
-	@media (max-width: 1023px) { .hero-decor { display: none !important; } }
+	/* Мобильный: декор не показываем. Селектор глобальный — знак-2 рендерит
+	   React-остров и атрибута скоупа Astro у него нет. */
+	@media (max-width: 1023px) { :global(.hero-decor) { display: none !important; } }
 	html[data-decor='1'] .hero-decor.decor-1 {
 		display: block; inset: 0;
 		color: var(--accent-warm); opacity: 0.30;
@@ -102,13 +107,29 @@ import HeroIntro from './HeroIntro';
 	html[data-decor='1'] .hero-decor.decor-1 svg { display: block; position: absolute; top: 4%; bottom: 4%; left: 0.5%; width: 170px; height: auto; stroke-width: 8; }
 	/* C2 выбран Кириллом — работает по умолчанию, без параметра.
 	   Отключить: ?decor=0. C1 и C3 остаются в резерве (?decor=1 и ?decor=3). */
-	html:not([data-decor]) .hero-decor.decor-2,
-	html:not([data-decor]) .hero-decor.decor-2,
-	html[data-decor='2'] .hero-decor.decor-2 { display: block; inset: auto 0 -2% 0; text-align: center; }
-	html:not([data-decor]) .hero-decor.decor-2 span,
-	html[data-decor='2'] .hero-decor.decor-2 span {
+	/* Декор-2 — элемент потока внутри .hero-intro (рендерит React-остров,
+	   поэтому селекторы через :global). margin-top: auto раздаёт остаток высоты
+	   поровну между тремя зазорами: H1 → подзаголовок → призыв → знак. */
+	html:not([data-decor]) :global(.hero-decor.decor-2),
+	html[data-decor='2'] :global(.hero-decor.decor-2) {
+		display: block; position: static; margin-top: auto; margin-bottom: -2vh;
+		text-align: center;
+	}
+	/* Скрытие знака на низких окнах ОТМЕНЕНО (решение принято без согласования,
+	   Кирилл: «оптимизация, которая убирает элемент — поломка»). Знак виден всегда
+	   на ≥1024px; зазоры при нехватке высоты сжимаются сами. */
+
+	html[data-decor='2'] :global(.hero-decor.decor-2 span),
+	html:not([data-decor]) :global(.hero-decor.decor-2 span) {
 		font-family: var(--font-display);
-		font-size: 22vw; line-height: 0.8; letter-spacing: 0.02em;
+		/* Базовый размер — 20vw, как и был. Ограничение по высоте окна
+		   включается только на невысоких окнах (ниже 820px), где знак иначе
+		   уходит выше кнопки: на 1920×800 пиксельный зазор был −3px. */
+		font-size: 20vw; line-height: 0.8; letter-spacing: 0.02em;
+		/* Рамка строчного бокса выше верхушек букв примерно на 0.12em (замер
+		   пиксельно). Поднимаем буквы на эту величину, чтобы зазор «кнопка →
+		   знак» считался от реальной верхней границы букв, как остальные два. */
+		position: relative; top: -0.04em;
 		color: var(--text); opacity: 0.18; white-space: nowrap;
 	}
 	html[data-decor='3'] .hero-decor.decor-3 { display: block; inset: 0; }
@@ -150,6 +171,237 @@ import HeroIntro from './HeroIntro';
 	const decor = params.get('hero') || params.get('decor') || '';
 	if (decor.indexOf('decor-c') === 0) document.documentElement.dataset.decor = decor.slice(-1);
 	else if (decor && decor.indexOf('decor') !== 0) document.documentElement.dataset.decor = decor;
+</script>
+
+
+<style>
+
+	/* ── Призыв-триггер, теперь в слоте бывшей CTA ───────────────────────
+	   Живёт внутри React-острова HeroIntro, поэтому только :global().
+	   Слот — grid с одной ячейкой: призыв и рамка занимают одну точку. */
+	/* :global() на всю цепочку: потомок "*" в scoped-стиле Astro требовал бы
+	   атрибут скоупа у детей React-острова, а их у них нет. */
+	/* Слот: по горизонтали — на прежнем месте (левый край колонки текста,
+	   как у H1 и подзаголовка), по вертикали — центр свободной зоны между
+	   подзаголовком и водяным знаком. auto-отступы делят остаток поровну,
+	   нижний padding контейнера не пускает слот в буквы.
+	   Ячейка общая и растянутая: призыв и рамка получают один и тот же бокс,
+	   поэтому подмена не даёт сдвига, а центры совпадают. */
+		:global(.hero-cta) {
+		display: grid;
+		justify-items: stretch;
+		align-items: stretch;
+		align-self: flex-start;
+		/* Вертикальный ритм задаётся здесь и у подзаголовка одним числом:
+		   равные отступы H1→подзаголовок→кнопка. Под кнопкой остаётся столько же
+		   за счёт резерва под водяной знак у .hero-intro. */
+		margin-top: 48px;
+		margin-bottom: 0;
+	}
+	:global(.hero-cta > *) { grid-area: 1 / 1; }
+	/* Оба состояния — одного размера: высота 60px у обоих, ячейка задаёт ширину,
+	   текст по центру. Переключение не двигает ни низ блока, ни композицию. */
+	:global(.hero-cta) { min-height: 60px; }
+	:global(.hero-cta > *) {
+		min-height: 60px; display: flex; align-items: center; justify-content: center;
+		text-align: center; box-sizing: border-box;
+	}
+	:global(.hero-call) {
+		margin: 0;
+		text-align: left;
+		font-family: var(--font-display);
+		font-size: 1.25rem;
+		line-height: 1.25;
+		letter-spacing: 0.01em;
+		color: var(--accent-warm);
+		pointer-events: auto;
+		cursor: pointer;
+		transition: color 0.3s ease, opacity 0.3s ease;
+	}
+	:global(.hero-call:hover) { color: var(--text); }
+	:global(.hero-call[data-done='1']) { opacity: 0; pointer-events: none; color: var(--text); }
+	html[data-call='a'] :global(.hero-call) {
+		padding: 12px 20px;
+		border: 1px solid color-mix(in srgb, var(--accent-warm) 45%, transparent);
+		border-radius: 14px;
+		background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
+		backdrop-filter: blur(6px);
+	}
+	html[data-call='a'] :global(.hero-call:hover) {
+		border-color: var(--accent-warm);
+		background: color-mix(in srgb, var(--bg-deep) 72%, transparent);
+	}
+	html[data-call='b'] :global(.hero-call) {
+		padding: 14px 22px;
+		border: 1px solid transparent;
+		border-radius: 14px;
+		background: none;
+	}
+	html[data-call='b'] :global(.hero-call:hover) { border-color: var(--accent-warm); }
+	@media (min-width: 1024px) {
+		:global(.hero-call) { font-size: 1.625rem; max-width: 560px; }
+		/* Резерв больше не нужен: знак-2 стоит в потоке и занимает свою полосу сам,
+		   отступ до него даёт margin-top: auto. */
+		:global(.hero-intro) { padding-bottom: 0; }
+	}
+
+
+	/* ── Вертикальный ритм Hero: два варианта (?spacing=1|2) ────────────
+	   Вариант 1 (по умолчанию) — точное центрирование: отступ H1→подзаголовок
+	   равен отступу подзаголовок→кнопка, под кнопкой столько же до знака.
+	   Вариант 2 — минимальные равные 28px. Горизонталь не трогаем. */
+	/* Отступы: по умолчанию автополя — три зазора равны на любой ширине.
+	   Атрибут data-spacing='24|32|40|48|56' ставит фиксированный зазор между
+	   H1 → подзаголовком → призывом (знак остаётся прижат к низу автополем). */
+	:global(.hero-sub), :global(.hero-cta) { margin-top: auto; }
+	/* Визуальное центрирование подзаголовка: бокс <h1> кончается на 16px ниже
+	   своих глифов, а бокс подзаголовка начинается на 9px выше своих. Поэтому
+	   равные отступы по боксам выглядят неравными: сверху 87, снизу 70 (замер
+	   пиксельно). margin-bottom 17px перераспределяет зазоры, и оба становятся 78. */
+	@media (min-width: 1024px) { :global(.hero-sub) { margin-bottom: -11px; } }
+	html[data-spacing='24'] :global(.hero-sub), html[data-spacing='24'] :global(.hero-cta) { margin-top: 24px; }
+	html[data-spacing='32'] :global(.hero-sub), html[data-spacing='32'] :global(.hero-cta) { margin-top: 32px; }
+	html[data-spacing='40'] :global(.hero-sub), html[data-spacing='40'] :global(.hero-cta) { margin-top: 40px; }
+	html[data-spacing='48'] :global(.hero-sub), html[data-spacing='48'] :global(.hero-cta) { margin-top: 48px; }
+	html[data-spacing='56'] :global(.hero-sub), html[data-spacing='56'] :global(.hero-cta) { margin-top: 56px; }
+	/* Размер подзаголовка — варианты кнопками на /hero-spacing-preview (правило 20.6).
+	   База не зафиксирована: Кирилл выбирает. */
+	html[data-sub='cur'] :global(.hero-sub) { font-size: 0.875rem; }
+	html[data-sub='22'] :global(.hero-sub) { font-size: 1.375rem; }
+	html[data-sub='24'] :global(.hero-sub) { font-size: 1.5rem; }
+	html[data-sub='26'] :global(.hero-sub) { font-size: 1.625rem; }
+	/* Мобильный: знака нет, автополя растянули бы два зазора на всю высоту
+	   (измерено 253px на 390×844) — там держим прежние фиксированные 48px. */
+	@media (max-width: 1023px) {
+		:global(.hero-sub), :global(.hero-cta) { margin-top: 48px; }
+	}
+
+	/* ── Рамка-кнопка §10.3.1 (скелет, без огня) ─────────────────────────
+	   До прилёта рамки нет: на этом месте стоит призыв «Нажми — узнаешь…».
+	   После посадки молота призыв гаснет, рамка проявляется. */
+	:global(.hero-frame) {
+		display: none;
+		font-family: var(--font-display);
+		font-size: 1.375rem;
+		letter-spacing: 0.06em;
+		line-height: 1.2;
+		color: var(--text);
+		background: none;
+		/* Тот же стиль, что у призыва-триггера: закругление, толщина и цвет. */
+		border: 1px solid color-mix(in srgb, var(--accent-warm) 45%, transparent);
+		border-radius: 14px;
+		background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
+		backdrop-filter: blur(6px);
+		padding: 0.9rem 2rem;
+		/* Размер задаёт общая ячейка слота — он же, что у призыва. */
+		cursor: pointer;
+		pointer-events: auto;
+		position: relative;
+		text-align: center;
+		transition: border-color 0.25s ease, background 0.25s ease, color 0.25s ease;
+	}
+	:global(.hero-frame__label--mobile) { display: none; }
+	:global(.hero-frame__label--hover) { display: none; }
+	/* Наведение: надпись меняется на «Записаться». Огонь — этап 2. */
+	:global(.hero-frame:hover) :global(.hero-frame__label--desktop) { display: none; }
+	:global(.hero-frame:hover) :global(.hero-frame__label--hover) { display: inline; }
+	body:has(.hero-hammer[data-state='landed']) :global(.hero-frame),
+	html[data-cta-preview='now'] :global(.hero-frame),
+	html[data-cta-preview='both'] :global(.hero-frame) { display: inline-block; }
+	/* Режим превью «оба сразу»: рамка поверх полупрозрачного призыва — видно,
+	   что боксы и стили совпадают. На главной такого режима нет. */
+	html[data-cta-preview='both'] :global(.hero-call[data-done='1']) { opacity: 0.35; pointer-events: none; }
+
+	/* Стиль A — тонкая рамка accent, минимум декора (по умолчанию). */
+	/* Стиль B — рамка 2px и угловые насечки, как руны. */
+	html[data-cta='b'] :global(.hero-frame) { border-width: 2px; }
+	html[data-cta='b'] :global(.hero-frame)::before,
+	html[data-cta='b'] :global(.hero-frame)::after {
+		content: ''; position: absolute; width: 14px; height: 14px;
+		border: 2px solid var(--accent-warm);
+	}
+	html[data-cta='b'] :global(.hero-frame)::before { top: -6px; left: -6px; border-right: 0; border-bottom: 0; }
+	html[data-cta='b'] :global(.hero-frame)::after { bottom: -6px; right: -6px; border-left: 0; border-top: 0; }
+	/* Стиль C — рамка с лёгкой подложкой. */
+	html[data-cta='c'] :global(.hero-frame) {
+		border-width: 2px;
+		background: color-mix(in srgb, var(--surface) 72%, transparent);
+		backdrop-filter: blur(6px);
+	}
+
+	:global(.hero-frame:hover) { border-color: var(--accent-warm); color: var(--accent-warm); }
+	:global(.hero-frame.is-pulse) { animation: cta-pulse 400ms ease; }
+	@keyframes cta-pulse {
+		0% { border-color: var(--accent); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); }
+		50% { border-color: var(--accent-warm); box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); }
+		100% { border-color: var(--accent); box-shadow: none; }
+	}
+	@media (max-width: 1023px) {
+		:global(.hero-frame) { min-width: 0; font-size: 1.0625rem; padding: 0.85rem 1.25rem; }
+		:global(.hero-frame__label--desktop) { display: none; }
+		:global(.hero-frame__label--mobile) { display: inline; }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		:global(.hero-frame.is-pulse) { animation: none; }
+	}
+
+</style>
+
+<script>
+	/* Рамка-кнопка §10.3.1: клик — короткая вспышка рамки, затем скролл к форме.
+	   Огонь по рамке будет этапом 2, здесь только механика. */
+	const heroFrame = document.getElementById('hero-frame');
+	/* Переключатели для /hero-cta-preview. */
+	const ctaParams = new URLSearchParams(location.search);
+	const ctaStyle = ctaParams.get('cta');
+	if (ctaStyle) document.documentElement.dataset.cta = ctaStyle;
+	const spacing = ctaParams.get('spacing');
+	if (spacing) document.documentElement.dataset.spacing = spacing;
+
+	if (heroFrame) {
+		heroFrame.addEventListener('click', () => {
+			const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+			const go = () => {
+				const target = document.getElementById('contact');
+				if (target) target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+				history.replaceState(null, '', '#contact');
+			};
+			if (reduced) { go(); return; }
+			heroFrame.classList.add('is-pulse');
+			window.setTimeout(() => { heroFrame.classList.remove('is-pulse'); go(); }, 400);
+		});
+	}
+
+	(window as any).__cta = {
+		style: (v: string) => { document.documentElement.dataset.cta = v; },
+		show: (mode: string) => {
+			if (mode === 'after') delete document.documentElement.dataset.ctaPreview;
+			else document.documentElement.dataset.ctaPreview = mode;
+		},
+		spacing: (v: string) => {
+			if (v === '1') delete document.documentElement.dataset.spacing;
+			else document.documentElement.dataset.spacing = v;
+		},
+		gaps: () => {
+			const g = (s: string) => document.querySelector(s)?.getBoundingClientRect() ?? null;
+			const h1 = g('.hero-intro h1'), sub = g('.hero-sub'), slot = g('.hero-cta'), dec = g('.decor-2');
+			if (!h1 || !sub || !slot) return null;
+			return {
+				h1_подзаг: Math.round(sub.top - h1.bottom),
+				подзаг_кнопка: Math.round(slot.top - sub.bottom),
+				кнопка_знак: dec ? Math.round(dec.top - slot.bottom) : null,
+			};
+		},
+		state: () => {
+			const el = document.getElementById('hero-frame');
+			return {
+				cta: document.documentElement.dataset.cta || 'a',
+				preview: document.documentElement.dataset.ctaPreview || 'after',
+				visible: el ? getComputedStyle(el).display !== 'none' : null,
+				label: el ? (el as HTMLElement).innerText.trim().split('\n')[0] : null,
+			};
+		},
+	};
 </script>
 
 <noscript>

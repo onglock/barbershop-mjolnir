@@ -286,6 +286,9 @@ export default function Hero3D() {
 		>
 			{ready && (
 				<Canvas
+					/* Клики должны проходить насквозь: R3F ставит канве свой inline
+					   pointer-events, поэтому обёртки одной мало. */
+					style={{ pointerEvents: 'none' }}
 					frameloop="demand"
 					dpr={[1, 1.5]}
 					gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}

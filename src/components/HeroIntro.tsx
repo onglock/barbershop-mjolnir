@@ -1,6 +1,4 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { buttonVariants } from './ui/button';
-import { useMagnetic } from '@/lib/useMagnetic';
 
 const EASE_SCENE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const EASE_HOVER: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -8,21 +6,6 @@ const EASE_HOVER: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const TITLE = 'Сталь. Время. Ремесло.';
 const SUBTITLE = 'Стрижка — не пятнадцать минут, а внимание к форме головы, росту волос и вашему утру.';
 
-/**
- * Магнитная CTA (§10.1). Механика — в lib/magnetic.ts: ленивое притяжение,
- * подхват с сотрясением 2–3 кадра и синтезированный «клац». Хук сам выключает
- * магнит при prefers-reduced-motion и на устройствах без курсора, поэтому
- * кнопка остаётся обычной ссылкой. Вход в сцену анимирует внешняя обёртка —
- * transform магнита и transform Framer Motion не пересекаются.
- */
-function MagneticCta() {
-	const ref = useMagnetic<HTMLAnchorElement>({ sound: true });
-	return (
-		<a ref={ref} href="#contact" className={buttonVariants({ variant: 'accent', size: 'lg' })}>
-			Записаться
-		</a>
-	);
-}
 
 /**
  * Сцена входа hero: лейбл → сплит-текст заголовка → подзаголовок → CTA.
@@ -76,14 +59,32 @@ export default function HeroIntro() {
 						))}
 					</h1>
 
+				</div>
+
+				{/* Подзаголовок — прямой ребёнок .hero-intro: только так его
+				    margin-top: auto участвует в раздаче зазоров. */}
 					<motion.p className="hero-sub mt-8 max-w-[42ch] text-body text-text-muted lg:mt-5 lg:max-w-[44ch]" {...fade(0.9)}>
 						{SUBTITLE}
 					</motion.p>
 
-					<motion.div className="hero-cta mt-12 lg:mt-8" {...fade(1.1)}>
-						<MagneticCta />
-					</motion.div>
-				</div>
+				{/* Слот бывшей CTA — прямой ребёнок .hero-intro, чтобы центрироваться
+				   по всей ширине Hero, а не по колонке текста. */}
+				<motion.div className="hero-cta mt-12 lg:mt-8" {...fade(1.1)}>
+						{/* Оба элемента — в одной точке: слот бывшей CTA. До клика
+						   виден призыв «Нажми — узнаешь…», после прилёта он гаснет
+						   и на его месте проявляется рамка «Ты достоин».
+						   Огонь по рамке — этап 2, здесь только механика. */}
+						<p className="hero-call" data-role="call">Нажми — узнаешь, достоин ли ты стрижки рукой мастера</p>
+						<button type="button" className="hero-frame" id="hero-frame">
+							<span className="hero-frame__label hero-frame__label--desktop">Ты достоин</span>
+							<span className="hero-frame__label hero-frame__label--hover">Записаться</span>
+							<span className="hero-frame__label hero-frame__label--mobile">Ты достоин — жми чтобы записаться</span>
+						</button>
+				</motion.div>
+
+				{/* Водяной знак C2 — элемент потока: margin-top: auto раздаёт
+				    остаток высоты поровну между тремя зазорами. */}
+				<div className="hero-decor decor-2" aria-hidden="true"><span>МЬЁЛЬНИР</span></div>
 		</div>
 	</div>
 );

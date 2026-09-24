@@ -1,0 +1,95 @@
+---
+// Подбор вертикального ритма Hero (правило 20.6: варианты — кнопками).
+// По умолчанию зазоры раздаются автополями и равны между собой на любой ширине
+// и высоте окна. Кнопки ставят фиксированный зазор вместо авто.
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+---
+
+<Layout>
+	<Header />
+
+	<main id="main" class="relative z-10 bg-bg">
+		<Hero />
+	</main>
+
+	<div class="switch" role="group" aria-label="Вертикальный ритм Hero">
+		<div class="row">
+			<span class="cap">Зазор</span>
+			<button data-spacing="auto" class="on">Авто-равные</button>
+			<button data-spacing="24">24px</button>
+			<button data-spacing="32">32px</button>
+			<button data-spacing="40">40px</button>
+			<button data-spacing="48">48px</button>
+			<button data-spacing="56">56px</button>
+		</div>
+		<div class="row">
+			<span class="cap">Подзаголовок</span>
+			<button data-sub="cur" class="on">Текущий 14px</button>
+			<button data-sub="22">22px</button>
+			<button data-sub="24">24px</button>
+			<button data-sub="26">26px</button>
+		</div>
+		<div class="row"><span class="cap">Отступы</span><span class="val" id="st">—</span></div>
+		<div class="row"><span class="cap">Ориентир</span><span class="val">H1 → подзаголовок → кнопка → водяной знак</span></div>
+		<div class="row"><span class="cap">Заметка</span><span class="val">Знак — элемент потока, поэтому все три зазора равны</span></div>
+	</div>
+
+	<style>
+		.switch {
+			position: fixed; top: 84px; left: 50%; transform: translateX(-50%);
+			z-index: 200; display: flex; flex-direction: column; gap: 6px;
+			padding: 10px 14px; border-radius: 14px;
+			background: color-mix(in srgb, var(--bg-deep) 88%, transparent);
+			border: 1px solid color-mix(in srgb, var(--accent-warm) 40%, transparent);
+			backdrop-filter: blur(8px); font-family: var(--font-label);
+		}
+		.switch .row { display: flex; gap: 6px; align-items: center; }
+		.switch .cap { width: 84px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+		.switch .val { font-size: 12px; color: var(--text); }
+		.switch button {
+			font: inherit; font-size: 12px; letter-spacing: 0.04em;
+			padding: 6px 12px; border-radius: 8px; cursor: pointer;
+			color: var(--text-muted); background: transparent;
+			border: 1px solid color-mix(in srgb, var(--text-muted) 35%, transparent);
+		}
+		.switch button:hover { color: var(--text); border-color: var(--accent-warm); }
+		.switch button.on { color: var(--bg-deep); background: var(--accent-warm); border-color: var(--accent-warm); }
+	</style>
+
+	<script>
+		const buttons = Array.from(document.querySelectorAll<HTMLElement>('[data-spacing]'));
+		buttons.forEach((b) => {
+			b.addEventListener('click', () => {
+				const v = b.dataset.spacing!;
+				if (v === 'auto') document.documentElement.removeAttribute('data-spacing');
+				else document.documentElement.dataset.spacing = v;
+				buttons.forEach((x) => x.classList.remove('on'));
+				b.classList.add('on');
+			});
+		});
+		const subs = Array.from(document.querySelectorAll<HTMLElement>('[data-sub]'));
+		subs.forEach((b) => {
+			b.addEventListener('click', () => {
+				const v = b.dataset.sub!;
+				document.documentElement.dataset.sub = v;
+				subs.forEach((x) => x.classList.remove('on'));
+				b.classList.add('on');
+			});
+		});
+		const st = document.getElementById('st')!;
+		const gaps = () => {
+			const el = (s: string) => document.querySelector(s)?.getBoundingClientRect() ?? null;
+			const h1 = el('.hero-intro h1'), sub = el('.hero-sub'), slot = el('.hero-cta'), dec = el('.decor-2');
+			if (!h1 || !sub || !slot) return null;
+			const third = dec ? Math.round(dec.top - slot.bottom) : null;
+			return [Math.round(sub.top - h1.bottom), Math.round(slot.top - sub.bottom), third];
+		};
+		window.setInterval(() => {
+			const g = gaps();
+			if (!g) { st.textContent = 'страница грузится…'; return; }
+			st.textContent = g[0] + ' / ' + g[1] + ' / ' + (g[2] === null ? 'знак скрыт' : g[2]) + ' px';
+		}, 400);
+	</script>
+</Layout>

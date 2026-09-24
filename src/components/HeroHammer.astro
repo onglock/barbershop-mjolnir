@@ -24,9 +24,6 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 	/>
 </div>
 
-<!-- Призыв до прилёта, меняется на «Ты достоин» в момент удара. -->
-<p class="hero-call" data-role="call">Нажми — узнаешь, достоин ли ты стрижки рукой мастера</p>
-
 <style>
 	.hero-hammer {
 		/* Финальное положение — точка прилёта. */
@@ -110,55 +107,6 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		transform: perspective(1100px) translateX(0) rotateZ(0deg) scale(1);
 	}
 
-	.hero-call {
-		position: absolute;
-		left: 24px;
-		right: 24px;
-		bottom: 13%;
-		/* z-20, а не 3: сцена входа (HeroIntro) стоит в DOM позже и при равном
-		   z-index перекрывала верх рамки — клик срабатывал только по низу. */
-		z-index: 20;
-		margin: 0;
-		/* Forum, как заголовки: это призыв, а не служебная подпись. */
-		font-family: var(--font-display);
-		font-size: 20px;
-		line-height: 1.25;
-		letter-spacing: 0.01em;
-		color: var(--accent-warm);
-		text-align: center;
-		/* Кликабельный триггер: раньше был pointer-events: none, и клик
-		   проваливался в секцию — отсюда «куда ни жму, ничего не летит». */
-		pointer-events: auto;
-		cursor: pointer;
-		background: none;
-		border: 0;
-		padding: 0;
-		transition: color 0.3s ease;
-	}
-	.hero-call:hover { color: var(--text); }
-
-	/* ── Варианты оформления надписи-триггера (?call=a|b, по умолчанию a) ──
-	   A — текст на подложке: скруглённая рамка и полупрозрачная заливка.
-	   B — «кнопка-призрак»: без подложки, рамка проявляется на hover. */
-	html[data-call='a'] .hero-call {
-		padding: 12px 20px;
-		border: 1px solid color-mix(in srgb, var(--accent-warm) 45%, transparent);
-		border-radius: 14px;
-		background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
-		backdrop-filter: blur(6px);
-	}
-	html[data-call='a'] .hero-call:hover {
-		border-color: var(--accent-warm);
-		background: color-mix(in srgb, var(--bg-deep) 72%, transparent);
-	}
-	html[data-call='b'] .hero-call {
-		padding: 14px 22px;
-		border: 1px solid transparent;
-		border-radius: 14px;
-		background: none;
-	}
-	html[data-call='b'] .hero-call:hover { border-color: var(--accent-warm); }
-
 	/* Молот в полёте — поверх текста Hero (слой 3), после посадки возвращается. */
 	.hero-hammer[data-state='flying'] { z-index: 50; }
 
@@ -169,17 +117,9 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 	   только в момент посадки — на том же месте и того же размера. */
 	@media (min-width: 1024px) {
 		.hero-hammer { display: none; }
-		.hero-call {
-			left: 50%;
-			right: auto;
-			bottom: 9%;
-			transform: translateX(-50%);
-			width: max-content;
-			max-width: 640px;
-			font-size: 26px;
-		}
 	}
-	.hero-call[data-done='1'] { color: var(--text); cursor: default; }
+	/* После прилёта призыв гаснет — его место занимает рамка «Ты достоин». */
+	.hero-call[data-done='1'] { opacity: 0; pointer-events: none; color: var(--text); }
 
 	/* ── Мобильный: знак кувырка развёрнут ──────────────────────────────
 	   На десктопе кувырок идёт через scene.rotation.z, где положительный угол
@@ -250,7 +190,8 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		if (reduced) {
 			layer.dataset.state = 'landed';
-			if (call) { call.textContent = 'Ты достоин'; call.dataset.done = '1'; }
+			/* Текст призыва не меняем: иначе ячейка слота сжимается и рамка прыгает. */
+		if (call) call.dataset.done = '1';
 			running = false;
 			return;
 		}
@@ -260,7 +201,8 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		window.dispatchEvent(new CustomEvent('hero:attract'));
 		window.setTimeout(() => {
 			layer.dataset.state = 'landed';
-			if (call) { call.textContent = 'Ты достоин'; call.dataset.done = '1'; }
+			/* Текст призыва не меняем: иначе ячейка слота сжимается и рамка прыгает. */
+			if (call) call.dataset.done = '1';
 			running = false;
 		}, PEAK_MS);
 	}

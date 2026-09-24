@@ -1,0 +1,107 @@
+---
+// Страница подбора оформления рамки-кнопки §10.3.1 (правило 20.6: варианты — кнопками).
+// Показывает тот же Hero, что на главной, плюс панель переключателей.
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+---
+
+<Layout>
+	<Header />
+
+	<main id="main" class="relative z-10 bg-bg">
+		<Hero />
+	</main>
+
+	<div class="switch" role="group" aria-label="Проверка рамки вместо CTA">
+		<div class="row">
+			<span class="cap">Стиль рамки</span>
+			<button data-style="a" class="on">A тонкая</button>
+			<button data-style="b">B с насечками</button>
+			<button data-style="c">C с подложкой</button>
+		</div>
+		<div class="row">
+			<span class="cap">Показ</span>
+			<button data-show="after" class="on">после прилёта</button>
+			<button data-show="now">сразу</button>
+			<button data-show="both">оба сразу</button>
+		</div>
+		<div class="row">
+			<span class="cap">Состояние</span>
+			<button data-action="reset">До клика</button>
+			<button data-action="land">После прилёта</button>
+		</div>
+		<div class="row"><span class="cap">Сейчас</span><span class="val" id="st">—</span></div>
+	</div>
+
+	<style>
+		.switch {
+			position: fixed; top: 84px; left: 50%; transform: translateX(-50%);
+			z-index: 200; display: flex; flex-direction: column; gap: 6px;
+			padding: 10px 14px; border-radius: 14px;
+			background: color-mix(in srgb, var(--bg-deep) 88%, transparent);
+			border: 1px solid color-mix(in srgb, var(--accent-warm) 40%, transparent);
+			backdrop-filter: blur(8px); font-family: var(--font-label);
+		}
+		.switch .row { display: flex; gap: 6px; align-items: center; }
+		.switch .cap { width: 96px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+		.switch .val { font-size: 12px; color: var(--text); }
+		.switch button {
+			font: inherit; font-size: 12px; letter-spacing: 0.04em;
+			padding: 6px 10px; border-radius: 8px; cursor: pointer;
+			color: var(--text-muted); background: transparent;
+			border: 1px solid color-mix(in srgb, var(--text-muted) 35%, transparent);
+		}
+		.switch button:hover { color: var(--text); border-color: var(--accent-warm); }
+		.switch button.on { color: var(--bg-deep); background: var(--accent-warm); border-color: var(--accent-warm); }
+	</style>
+
+	<script>
+		function mark(row: string, btn: HTMLElement) {
+			document.querySelectorAll(row + ' button').forEach((b) => b.classList.remove('on'));
+			btn.classList.add('on');
+		}
+		document.querySelectorAll<HTMLElement>('[data-style]').forEach((b) => {
+			b.addEventListener('click', () => {
+				(window as any).__cta?.style(b.dataset.style);
+				mark('[data-style]', b);
+			});
+		});
+		document.querySelectorAll<HTMLElement>('[data-show]').forEach((b) => {
+			b.addEventListener('click', () => {
+				(window as any).__cta?.show(b.dataset.show);
+				mark('[data-show]', b);
+			});
+		});
+		document.querySelectorAll<HTMLElement>('[data-action]').forEach((b) => {
+			b.addEventListener('click', () => {
+				const layer = document.querySelector<HTMLElement>('.hero-hammer');
+				const call = document.querySelector<HTMLElement>('.hero-call');
+				if (!layer) return;
+				if (b.dataset.action === 'land') {
+					layer.dataset.state = 'landed';
+					if (call) call.dataset.done = '1';
+				} else {
+					window.dispatchEvent(new CustomEvent('hero:reset'));
+				}
+			});
+		});
+		const st = document.getElementById('st')!;
+		window.setInterval(() => {
+			const s = (window as any).__cta?.state();
+			const call = document.querySelector<HTMLElement>('.hero-call');
+			const frame = document.getElementById('hero-frame');
+			const box = (el: HTMLElement | null) => {
+				if (!el) return '—';
+				const b = el.getBoundingClientRect();
+				const c = getComputedStyle(el);
+				const vis = b.width > 0 && c.opacity !== '0';
+				if (!vis) return 'скрыт';
+				return `${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}×${Math.round(b.height)} r${c.borderTopLeftRadius} ${c.borderTopWidth}`;
+			};
+			st.textContent = s
+				? `стиль ${s.cta.toUpperCase()} · призыв: ${box(call)} · рамка: ${box(frame)}`
+				: 'страница грузится…';
+		}, 250);
+	</script>
+</Layout>
