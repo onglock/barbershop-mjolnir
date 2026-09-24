@@ -1,10 +1,10 @@
 ---
-// Мастера: три карточки с двумя фото. Кадр каждого мастера разрезан по белой
-// линии: слева «до», справа «после». Второй слой открывается clip-path-клином
-// от верхнего правого угла (решение Кирилла 2026-09-24).
-// Лица «до» и «после» выровнены сдвигом второго слоя: shift — сдвиг в процентах
-// карточки, найденный корреляцией по голове (Δ = «после» − «до», в CSS знак
-// обратный); scale закрывает края, которые иначе обнажил бы сдвиг.
+// Мастерская: три карточки с двумя фото. Кадр каждого разрезан по белой линии:
+// слева «до», справа «после». Второй слой открывается clip-path-веером из левого
+// верхнего угла — угол 25°, раскрыто 85 % кадра (решение Кирилла 2026-09-24).
+// Подпись карточки — только тип услуги; имена, роли и описательные тексты убраны
+// (решения Кирилла 2026-09-24). Выравнивания лиц нет: масштаб обрезал кадр.
+// Отступы секции — стандартные, как у соседних разделов (py-24 / lg:py-32).
 // Подъём и акцентная граница на hover — как было, чистый CSS.
 import { Image } from 'astro:assets';
 import master01 from '../assets/master-01.jpg';
@@ -18,46 +18,40 @@ const masters = [
 	{
 		photo: master01,
 		photoAfter: master01After,
-		name: 'Артём Соколов',
-		role: 'старший мастер',
-		alt: 'Артём Соколов — «до»: длинные волосы и борода',
-		altAfter: 'Артём Соколов — «после»: короткая стрижка и борода',
+		service: 'Королевское бритьё',
+		alt: '«До»: длинные волосы и борода',
+		altAfter: '«После»: короткая стрижка и борода',
 		shift: { x: 0, y: 0 },
-		text: 'Двенадцать лет в профессии, начинал в Петербурге. Классические мужские формы и тонкие волосы — его тема. Ведёт молодых мастеров цеха.',
 	},
 	{
 		photo: master02,
 		photoAfter: master02After,
-		name: 'Данил Ковалёв',
-		role: 'барбер',
-		alt: 'Данил Ковалёв — «до»: отросшая форма',
-		altAfter: 'Данил Ковалёв — «после»: короткая стрижка',
+		service: 'Мужская стрижка',
+		alt: '«До»: отросшая форма',
+		altAfter: '«После»: короткая стрижка',
 		shift: { x: 0, y: 0 },
-		text: 'Шесть лет за креслом. Быстро и точно работает машинкой, любит фейды и короткие формы. Подбирает укладку под тип волос за пару минут.',
 	},
 	{
 		photo: master03,
 		photoAfter: master03After,
-		name: 'Максим Лебедев',
-		role: 'мастер бритья',
-		alt: 'Максим Лебедев — «до»: длинные волосы и борода',
-		altAfter: 'Максим Лебедев — «после»: короткая стрижка и чистое лицо',
+		service: 'Стрижка с машинкой',
+		alt: '«До»: длинные волосы и борода',
+		altAfter: '«После»: короткая стрижка и чистое лицо',
 		shift: { x: 0, y: 0 },
-		text: 'Девять лет, из них пять — только бритьё. Держит опасную бритву так, что клиенты засыпают в кресле. Делает королевское бритьё и камуфляж седины.',
 	},
 ];
 ---
 
-<section id="masters" class="scroll-mt-24 border-b border-border px-6 py-24 lg:px-8 lg:py-32">
+<section id="transformations" class="scroll-mt-24 border-b border-border px-6 py-24 lg:px-8 lg:py-32">
 	<div class="mx-auto max-w-[1400px]">
-		<p class="font-label text-label uppercase text-text-muted">Мастера</p>
+		<p class="font-label text-label uppercase text-text-muted">Мастерская</p>
 
-		<h2 class="mt-6 max-w-[14ch] text-display uppercase text-text">Кто стрижёт</h2>
+		<h2 class="mt-6 max-w-[14ch] text-display uppercase text-text">Облик — наше ремесло</h2>
 
-		<div class="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+		<div class="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
 			{
 				masters.map((master) => (
-					<article class="border border-border transition-all duration-300 ease-hover hover:-translate-y-1 hover:border-accent">
+					<article class="flex flex-col border border-border transition-all duration-300 ease-hover hover:-translate-y-1 hover:border-accent">
 						<div class="masters-media">
 							<Image
 								src={master.photo}
@@ -91,10 +85,8 @@ const masters = [
 							</div>
 						</div>
 
-						<div class="p-6">
-							<h3 class="text-body font-medium uppercase text-text">{master.name}</h3>
-							<p class="mt-2 font-label text-label uppercase text-text-muted">{master.role}</p>
-							<p class="mt-4 text-body text-text-muted">{master.text}</p>
+						<div class="flex flex-1 flex-col items-center justify-center p-6 text-center">
+							<h3 class="text-body font-medium uppercase text-text">{master.service}</h3>
 						</div>
 					</article>
 				))
@@ -153,7 +145,7 @@ const masters = [
 </style>
 
 <script>
-	/* Клин курсор не двигает — старт всегда в верхнем правом углу, поэтому из JS
+	/* Клип курсор не двигает — вершина всегда в верхнем углу, поэтому из JS
 	   осталось только тач-переключение: на устройстве без наведения тап
 	   открывает и закрывает «после» (решение Кирилла — мгновенно). */
 	document.querySelectorAll<HTMLElement>('.masters-media').forEach((media) => {
