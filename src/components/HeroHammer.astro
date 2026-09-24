@@ -144,10 +144,10 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 </style>
 
 <script>
-	/* Пик звука hammer-catch.mp3 — 0,45 с от старта: файл 0,7 с, профиль
-	   по 100 мс окнам прыгает с −96 dB до −5,2 dB на пятом окне. Полёт
-	   длится ровно этот отрезок, поэтому удар совпадает с попаданием
-	   молота в финальную позицию. */
+	/* Полёт длится 900 мс и совпадает с пиком звука прилёта — разбор
+	   огибающей hammer-attract-final.mp3 ниже. Прежний ориентир —
+	   hammer-catch.mp3 — удалён 2026-09-24 вместе с ритуалом на кнопке
+	   в шапке: к кнопке звук больше не подключён, файла нет. */
 	const layer = document.querySelector<HTMLElement>('.hero-hammer');
 	const call = document.querySelector<HTMLElement>('.hero-call');
 	const cta = document.querySelector<HTMLElement>('#top a[href="#contact"]');

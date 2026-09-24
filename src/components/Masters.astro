@@ -1,30 +1,43 @@
 ---
-// Мастера: три карточки с фото. Подъём и акцентная граница на hover — чистый CSS.
+// Мастера: три карточки с двумя фото. Второе фото — «после» (подстриженный,
+// ухоженный), открывается через clip-path при наведении, центр круга следует за
+// курсором. Источники вторых фото — Pexels (Pexels License, бесплатно, в том
+// числе коммерчески): 7781848, 7518736, 897262.
+// Подъём и акцентная граница на hover — как было, чистый CSS.
 import { Image } from 'astro:assets';
 import master01 from '../assets/master-01.jpg';
 import master02 from '../assets/master-02.jpg';
 import master03 from '../assets/master-03.jpg';
+import master01After from '../assets/master-01-after.jpg';
+import master02After from '../assets/master-02-after.jpg';
+import master03After from '../assets/master-03-after.jpg';
 
 const masters = [
 	{
 		photo: master01,
+		photoAfter: master01After,
 		name: 'Артём Соколов',
 		role: 'старший мастер',
 		alt: 'Артём Соколов стрижёт клиента в кресле',
+		altAfter: 'Клиент с аккуратной стрижкой и бородой в кресле барбершопа',
 		text: 'Двенадцать лет в профессии, начинал в Петербурге. Классические мужские формы и тонкие волосы — его тема. Ведёт молодых мастеров цеха.',
 	},
 	{
 		photo: master02,
+		photoAfter: master02After,
 		name: 'Данил Ковалёв',
 		role: 'барбер',
 		alt: 'Данил Ковалёв стрижёт мальчика машинкой',
+		altAfter: 'Барбер за работой в интерьере цеха',
 		text: 'Шесть лет за креслом. Быстро и точно работает машинкой, любит фейды и короткие формы. Подбирает укладку под тип волос за пару минут.',
 	},
 	{
 		photo: master03,
+		photoAfter: master03After,
 		name: 'Максим Лебедев',
 		role: 'мастер бритья',
 		alt: 'Максим Лебедев работает машинкой над формой клиента',
+		altAfter: 'Бритьё бороды опасной бритвой в барбершопе',
 		text: 'Девять лет, из них пять — только бритьё. Держит опасную бритву так, что клиенты засыпают в кресле. Делает королевское бритьё и камуфляж седины.',
 	},
 ];
@@ -40,17 +53,30 @@ const masters = [
 			{
 				masters.map((master) => (
 					<article class="border border-border transition-all duration-300 ease-hover hover:-translate-y-1 hover:border-accent">
-						<Image
-							src={master.photo}
-							alt={master.alt}
-							widths={[400, 600, 800]}
-							sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
-							format="webp"
-							quality={80}
-							loading="lazy"
-							decoding="async"
-							class="aspect-[2/3] w-full border-b border-border object-cover"
-						/>
+						<div class="masters-media">
+							<Image
+								src={master.photo}
+								alt={master.alt}
+								widths={[345, 420]}
+								sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
+								format="webp"
+								quality={80}
+								loading="lazy"
+								decoding="async"
+								class="masters-img"
+							/>
+							<Image
+								src={master.photoAfter}
+								alt={master.altAfter}
+								widths={[345, 420]}
+								sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
+								format="webp"
+								quality={80}
+								loading="lazy"
+								decoding="async"
+								class="masters-img masters-img--top"
+							/>
+						</div>
 
 						<div class="p-6">
 							<h3 class="text-body font-medium uppercase text-text">{master.name}</h3>
@@ -63,3 +89,56 @@ const masters = [
 		</div>
 	</div>
 </section>
+
+<style>
+	/* Первое фото — в потоке, второе («после») лежит поверх и открывается
+	   clip-path: круг 150 px, центр следует за курсором (--mb-x/--mb-y),
+	   500 мс ease-out-cubic — те же значения, что по умолчанию в превью. */
+	.masters-media {
+		position: relative;
+		overflow: hidden;
+	}
+	.masters-img {
+		display: block;
+		width: 100%;
+		aspect-ratio: 2 / 3;
+		object-fit: cover;
+		border-bottom: 1px solid var(--border);
+	}
+	.masters-img--top {
+		position: absolute;
+		inset: 0;
+		border-bottom: 0;
+		clip-path: circle(0px at 50% 50%);
+		transition: clip-path 500ms cubic-bezier(0.33, 1, 0.68, 1);
+		will-change: clip-path;
+	}
+	.masters-media:hover .masters-img--top,
+	.masters-media.is-on .masters-img--top {
+		clip-path: circle(150px at var(--mb-x, 50%) var(--mb-y, 50%));
+	}
+	/* Кирилл: при reduced-motion «после» показывается мгновенно, без анимации. */
+	@media (prefers-reduced-motion: reduce) {
+		.masters-img--top { transition: none; }
+		.masters-media:hover .masters-img--top,
+		.masters-media.is-on .masters-img--top { clip-path: circle(150% at 50% 50%); }
+	}
+</style>
+
+<script>
+	/* Круг-проявитель: позиция клипа в долях карточки. На тач-устройстве наведения
+	   нет, поэтому тап переключает состояние (решение Кирилла — «мгновенное
+	   переключение», без прокрутки по времени). */
+	document.querySelectorAll<HTMLElement>('.masters-media').forEach((media) => {
+		media.addEventListener('mousemove', (e) => {
+			const r = media.getBoundingClientRect();
+			media.style.setProperty('--mb-x', (((e.clientX - r.left) / r.width) * 100).toFixed(1) + '%');
+			media.style.setProperty('--mb-y', (((e.clientY - r.top) / r.height) * 100).toFixed(1) + '%');
+		});
+		media.addEventListener('click', () => {
+			if (window.matchMedia('(hover: none)').matches || window.innerWidth < 1024) {
+				media.classList.toggle('is-on');
+			}
+		});
+	});
+</script>

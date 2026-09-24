@@ -54,14 +54,18 @@ const links = [
 				+7 (495) 123-45-67
 			</a>
 
-			<!-- Кнопка-молот: до ритуала тусклая, первый клик запускает ритуал,
-			     после — обычная кнопка со скроллом к форме (§10.2). Вариант
-			     оформления — проп variant, ждёт выбора Кирилла. -->
-			<div class="hidden sm:block">
-				<HammerButton variant="v1" />
-			</div>
-			<div class="sm:hidden">
-				<HammerButton variant="v2" compact />
+			<!-- Кнопка «Записаться»: в Hero её нет, появляется на первой секции
+			     после Hero (§10.2, логика — lib/headerCta.ts). Эффектов нет:
+			     обычный CTA-стиль и скролл к форме. Слот общий для двух
+			     вариантов оформления — на широком экране подпись, на узком
+			     только молот. -->
+			<div data-header-cta class="cta-slot">
+				<div class="hidden sm:block">
+					<HammerButton variant="v1" />
+				</div>
+				<div class="sm:hidden">
+					<HammerButton variant="v2" compact />
+				</div>
 			</div>
 
 			<!-- Бургер + полноэкранное меню: остров, грузится по idle -->
@@ -71,10 +75,12 @@ const links = [
 </header>
 
 <script>
-	import { initRitual } from '../lib/ritualInit';
+	import { initHeaderCta } from '../lib/headerCta';
 
-	/* Ритуал: клик по кнопке-молоту. Полёт молота — задача B, здесь тема и звук. */
-	initRitual();
+	/* Кнопка «Записаться»: в Hero её нет, появляется на секции после Hero
+	   (Manifest) и снова прячется при возврате к Hero. Ни магнита, ни звука,
+	   ни ритуала у кнопки больше нет (§10.2, правка 2026-09-24). */
+	initHeaderCta();
 
 	const header = document.querySelector('[data-header]');
 	if (header) {

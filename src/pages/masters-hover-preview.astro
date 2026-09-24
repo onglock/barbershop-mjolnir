@@ -1,0 +1,371 @@
+---
+// Мастера, эффект «двойное изображение» (clip-path) — превью по правилу 20.6.
+// Второго фото у мастеров НЕТ, поэтому второй слой — то же фото с фильтром
+// (вариант B): ч/б, сепия, контраст+ или зум. Форму, радиус, скорость, easing,
+// содержимое второго слоя, поведение тапа и режим reduced-motion Кирилл выбирает
+// кнопками на этой странице.
+import { Image } from 'astro:assets';
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import master01 from '../assets/master-01.jpg';
+import master01After from '../assets/master-01-after.jpg';
+
+/* Dev-only: в прод-сборке уводим на главную (правило проекта). */
+if (import.meta.env.PROD) return Astro.redirect('/');
+---
+
+<Layout title="Masters: двойное изображение — превью">
+	<Header />
+
+	<main class="px-6 py-24 lg:px-8">
+		<div class="mx-auto max-w-[1400px]">
+			<p class="font-label text-label uppercase text-text-muted">Превью · правило 20.6</p>
+			<h1 class="mt-4 text-display uppercase text-text">Двойное изображение</h1>
+			<p class="mt-3 max-w-[70ch] text-body text-text-muted">
+				Второе фото найдено на Pexels (Pexels License): для Артёма — клиент с аккуратной
+				стрижкой и бородой, для Данила — барбер за работой в интерьере цеха, для Максима —
+				бритьё бороды опасной бритвой. Ниже одна карточка: наведение открывает второе фото
+				через clip-path; при формах «круг» и «эллипс» центр следует за курсором
+				(курсор-проявитель), «диагональ» и «полосы» — общий разворот.
+			</p>
+
+			<div class="mh-layout mt-12">
+				<!-- Карточка мастера: разметка повторяет Masters.astro -->
+				<div>
+					<article
+						id="mh-card"
+						class="border border-border transition-all duration-300 ease-hover hover:-translate-y-1 hover:border-accent"
+					>
+						<div class="mh-media" id="mh-media">
+							<Image
+								src={master01}
+								alt="Артём Соколов стрижёт клиента в кресле"
+								widths={[345, 420]}
+								sizes="(min-width: 1024px) 420px, 100vw"
+								format="webp"
+								quality={80}
+								loading="eager"
+								decoding="sync"
+								class="mh-img"
+							/>
+							<Image
+								src={master01After}
+								alt="Второе состояние: клиент с аккуратной стрижкой и бородой"
+								widths={[345, 420]}
+								sizes="(min-width: 1024px) 420px, 100vw"
+								format="webp"
+								quality={80}
+								loading="eager"
+								decoding="sync"
+								class="mh-img mh-img--top"
+							/>
+						</div>
+						<div class="p-6">
+							<h3 class="text-body font-medium uppercase text-text">Артём Соколов</h3>
+							<p class="mt-2 font-label text-label uppercase text-text-muted">старший мастер</p>
+							<p class="mt-4 text-body text-text-muted">
+								Двенадцать лет в профессии, начинал в Петербурге. Классические мужские формы и
+								тонкие волосы — его тема.
+							</p>
+						</div>
+					</article>
+					<p class="mt-3 font-label text-label uppercase text-text-muted">
+						Наведите курсор на фото · на тач-устройстве — тап
+					</p>
+				</div>
+
+				<!-- Панель параметров -->
+				<aside class="mh-panel" id="mh-panel">
+					<div class="row">
+						<span class="cap">Форма</span>
+						<button data-shape="circle" class="on">круг</button>
+						<button data-shape="ellipse">эллипс</button>
+						<button data-shape="diagonal">диагональ</button>
+						<button data-shape="stripes">полосы</button>
+					</div>
+					<div class="row">
+						<span class="cap">Радиус</span>
+						<button data-r="100">100 px</button>
+						<button data-r="150" class="on">150 px</button>
+						<button data-r="200">200 px</button>
+					</div>
+					<div class="row">
+						<span class="cap">Скорость</span>
+						<button data-dur="300">300 мс</button>
+						<button data-dur="500" class="on">500 мс</button>
+						<button data-dur="800">800 мс</button>
+					</div>
+					<div class="row">
+						<span class="cap">Easing</span>
+						<button data-ease="out" class="on">ease-out-cubic</button>
+						<button data-ease="inout">ease-in-out</button>
+					</div>
+					<div class="row">
+						<span class="cap">Второй слой</span>
+						<button data-filter="none" class="on">реальное фото</button>
+						<button data-filter="gray">+ ч/б</button>
+						<button data-filter="sepia">+ сепия</button>
+						<button data-filter="contrast">+ контраст</button>
+						<button data-filter="zoom">+ зум</button>
+					</div>
+					<div class="row">
+						<span class="cap">Тап на 390</span>
+						<button data-tap="toggle" class="on">мгновенно</button>
+						<button data-tap="sequence">последовательно</button>
+						<button data-tap="none">ничего</button>
+					</div>
+					<div class="row">
+						<span class="cap">Reduced motion</span>
+						<button data-rm="instant" class="on">показать мгновенно</button>
+						<button data-rm="none">не показывать</button>
+						<button id="rm-sim">эмулировать на странице</button>
+					</div>
+					<div class="row">
+						<span class="cap">Показать</span>
+						<button id="force-on">второй слой (без курсора)</button>
+						<button id="force-off">вернуть</button>
+					</div>
+					<div class="row state">
+						<span class="cap">Сейчас</span>
+						<span class="val" id="st">—</span>
+					</div>
+					<div class="hint">
+						Строка «Сейчас» показывает форму, радиус, скорость, easing, содержимое второго слоя,
+						поведение тапа и координаты курсора в долях карточки. «Эмулировать на странице»
+						включает те же правила, что даёт `matchMedia(prefers-reduced-motion)` — чтобы
+						проверить вид без переключения системной настройки. «Второй слой (без курсора)»
+						показывает результат наведения без мыши — для скриншотов.
+					</div>
+				</aside>
+			</div>
+		</div>
+	</main>
+
+	<style>
+		/* Раскладка превью: карточка фиксированной ширины, панель — рядом. */
+		.mh-layout { display: grid; gap: 40px; }
+		@media (min-width: 1024px) {
+			.mh-layout { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); }
+		}
+
+		/* ── Эффект: два слоя одного фото, верхний открывается clip-path ───── */
+		.mh-media {
+			position: relative;
+			overflow: hidden;
+			touch-action: manipulation;
+		}
+		.mh-img {
+			display: block;
+			width: 100%;
+			aspect-ratio: 2 / 3;
+			object-fit: cover;
+			border-bottom: 1px solid var(--color-border, #33333a);
+		}
+		.mh-img--top {
+			position: absolute;
+			inset: 0;
+			border-bottom: 0;
+			filter: var(--mh-filter, none);
+			clip-path: var(--mh-clip, circle(0px at 50% 50%));
+			transition:
+				clip-path var(--mh-dur, 500ms) var(--mh-ease, cubic-bezier(0.33, 1, 0.68, 1)),
+				filter var(--mh-dur, 500ms) linear;
+			will-change: clip-path;
+		}
+		/* Верхний слой виден только в пределах клипа; фильтр — «второе состояние». */
+		[data-mh-shape='circle'] .mh-img--top { --mh-clip-on: circle(var(--mh-r, 150px) at var(--mh-x, 50%) var(--mh-y, 50%)); }
+		[data-mh-shape='ellipse'] .mh-img--top { --mh-clip-on: ellipse(calc(var(--mh-r, 150px) * 1.35) var(--mh-r, 150px) at var(--mh-x, 50%) var(--mh-y, 50%)); }
+		[data-mh-shape='diagonal'] .mh-img--top {
+			--mh-clip: polygon(0 0, 0% 0%, 0% 100%, 0 100%);
+			--mh-clip-on: polygon(0 0, 130% 0%, 30% 100%, 0 100%);
+		}
+		[data-mh-shape='stripes'] .mh-img--top { --mh-clip: var(--mh-stripes-off, circle(0px at 50% 50%)); --mh-clip-on: var(--mh-stripes-on, circle(150px at 50% 50%)); }
+
+		.mh-media:hover .mh-img--top,
+		.mh-media.is-on .mh-img--top { clip-path: var(--mh-clip-on, circle(var(--mh-r, 150px) at 50% 50%)); }
+
+		/* Фоновых фильтров теперь необязательный слой: по умолчанию второй слой —
+		   реальное второе фото, фильтр можно добавить поверх. */
+		[data-mh-filter='none'] .mh-img--top { --mh-filter: none; }
+		[data-mh-filter='gray'] .mh-img--top { --mh-filter: grayscale(1) contrast(1.05); }
+		[data-mh-filter='sepia'] .mh-img--top { --mh-filter: sepia(0.65) contrast(1.05); }
+		[data-mh-filter='contrast'] .mh-img--top { --mh-filter: contrast(1.45) saturate(1.15); }
+		[data-mh-filter='zoom'] .mh-img--top { --mh-filter: none; transform: scale(1.18); }
+
+		/* Reduced motion: без анимации. «Показать мгновенно» — второй слой
+		   появляется сразу (у круга радиус = 150 % кадра, чтобы он был виден без
+		   привязки к курсору), «не показывать» — эффекта нет вовсе. */
+		html[data-mh-rm='instant'] .mh-img--top { transition: none; }
+		html[data-mh-rm='instant'] .mh-media:hover .mh-img--top,
+		html[data-mh-rm='instant'] .mh-media.is-on .mh-img--top { clip-path: circle(150% at 50% 50%); }
+		html[data-mh-rm='none'] .mh-media:hover .mh-img--top,
+		html[data-mh-rm='none'] .mh-media.is-on .mh-img--top { clip-path: var(--mh-clip); }
+		/* Системная настройка — тот же результат, даже если скрипт не выполнился
+		   (если скрипт выбрал «не показывать», его правило специфичнее и победит). */
+		@media (prefers-reduced-motion: reduce) {
+			.mh-img--top { transition: none; }
+			.mh-media:hover .mh-img--top,
+			.mh-media.is-on .mh-img--top { clip-path: circle(150% at 50% 50%); }
+		}
+
+		/* Панель */
+		.mh-panel {
+			display: flex; flex-direction: column; gap: 10px; align-self: start;
+			padding: 16px 18px; border-radius: 14px;
+			background: color-mix(in srgb, var(--bg-deep, #0e0f0f) 82%, transparent);
+			border: 1px solid color-mix(in srgb, var(--accent, #7BA5C9) 40%, transparent);
+			font-family: var(--font-label, monospace);
+		}
+		.mh-panel .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+		.mh-panel .cap { width: 118px; flex: none; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted, #8a8a90); }
+		.mh-panel .val { font-size: 12px; color: var(--text, #e8e6e0); }
+		.mh-panel .state { align-items: flex-start; }
+		.mh-panel .hint { font-size: 11px; line-height: 1.5; color: var(--text-muted, #8a8a90); }
+		.mh-panel button {
+			font: inherit; font-size: 12px; letter-spacing: 0.03em;
+			padding: 7px 11px; border-radius: 8px; cursor: pointer;
+			color: var(--text-muted, #8a8a90); background: transparent;
+			border: 1px solid color-mix(in srgb, var(--text-muted, #8a8a90) 35%, transparent);
+		}
+		.mh-panel button:hover { color: var(--text, #e8e6e0); border-color: var(--accent, #7BA5C9); }
+		.mh-panel button.on { color: var(--bg-deep, #0e0f0f); background: var(--accent, #7BA5C9); border-color: var(--accent, #7BA5C9); }
+		@media (max-width: 1023px) {
+			.mh-panel { max-height: 46svh; overflow-y: auto; }
+		}
+	</style>
+
+	<script>
+		const card = document.getElementById('mh-card') as HTMLElement;
+		const media = document.getElementById('mh-media') as HTMLElement;
+		const panel = document.getElementById('mh-panel') as HTMLElement;
+		const st = document.getElementById('st') as HTMLElement;
+		const root = document.documentElement;
+
+		const state: { shape: string; r: number; dur: number; ease: string; filter: string; tap: string; rm: string; x?: string; y?: string } = {
+			shape: 'circle',
+			r: 150,
+			dur: 500,
+			ease: 'out',
+			filter: 'none',
+			tap: 'toggle',
+			rm: 'instant',
+		};
+
+		const EASES: Record<string, string> = {
+			out: 'cubic-bezier(0.33, 1, 0.68, 1)',
+			inout: 'cubic-bezier(0.65, 0, 0.35, 1)',
+		};
+
+		/* Полосы: клип-полигон из 7 горизонтальных полос. Высоту полос даёт
+		   переменная --mh-band: 0 — закрыто, 50% — полосы во всю высоту. */
+		const BANDS = 7;
+		const bandPoly = (p: number) =>
+			Array.from({ length: BANDS }, (_, i) => {
+				const top = (100 / BANDS) * i;
+				const mid = top + 100 / BANDS / 2;
+				const h = (100 / BANDS / 2) * p;
+				return `0 ${mid - h}%, 100% ${mid - h}%, 100% ${mid + h}%, 0 ${mid + h}%`;
+			}).join(', ');
+
+		function apply() {
+			card.setAttribute('data-mh-shape', state.shape);
+			card.setAttribute('data-mh-filter', state.filter);
+			/* Атрибут reduced-motion ставим ТОЛЬКО когда покой действительно
+			   запрошен (система или эмуляция); иначе он бы выключал анимацию всем. */
+			root.setAttribute('data-mh-rm', effectiveRM() ? state.rm : 'off');
+			media.style.setProperty('--mh-r', state.r + 'px');
+			media.style.setProperty('--mh-dur', state.dur + 'ms');
+			media.style.setProperty('--mh-ease', EASES[state.ease]);
+			if (state.shape === 'stripes') {
+				media.style.setProperty('--mh-stripes-off', `polygon(${bandPoly(0)})`);
+				media.style.setProperty('--mh-stripes-on', `polygon(${bandPoly(1)})`);
+			}
+			panel.querySelectorAll('[data-shape]').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.shape === state.shape));
+			panel.querySelectorAll('[data-r]').forEach((b) => b.classList.toggle('on', Number((b as HTMLElement).dataset.r) === state.r));
+			panel.querySelectorAll('[data-dur]').forEach((b) => b.classList.toggle('on', Number((b as HTMLElement).dataset.dur) === state.dur));
+			panel.querySelectorAll('[data-ease]').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.ease === state.ease));
+			panel.querySelectorAll('[data-filter]').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.filter === state.filter));
+			panel.querySelectorAll('[data-tap]').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.tap === state.tap));
+			panel.querySelectorAll('[data-rm]').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.rm === state.rm));
+			panel.querySelector('#rm-sim')?.classList.toggle('on', emulateRM);
+			(document.getElementById('st') as HTMLElement).textContent = [
+				`форма ${state.shape} · радиус ${state.r} px · ${state.dur} мс · ${state.ease === 'out' ? 'ease-out-cubic' : 'ease-in-out'}`,
+				`второй слой: ${state.filter} · тап: ${state.tap} · reduced-motion: ${emulateRM ? 'эмуляция' : 'система'}`,
+				`курсор ${state.x ?? '—'} / ${state.y ?? '—'}`,
+			].join(' · ');
+		}
+
+		let emulateRM = false;
+
+		panel.addEventListener('click', (e) => {
+			const b = (e.target as HTMLElement).closest('button') as HTMLElement | null;
+			if (!b) return;
+			const d = b.dataset;
+			if (d.shape) state.shape = d.shape;
+			else if (d.r) state.r = Number(d.r);
+			else if (d.dur) state.dur = Number(d.dur);
+			else if (d.ease) state.ease = d.ease;
+			else if (d.filter) state.filter = d.filter;
+			else if (d.tap) state.tap = d.tap;
+			else if (d.rm) state.rm = d.rm;
+			else if (b.id === 'rm-sim') emulateRM = !emulateRM;
+			else if (b.id === 'force-on') media.classList.add('is-on');
+			else if (b.id === 'force-off') media.classList.remove('is-on');
+			apply();
+		});
+
+		/* Курсор-проявитель: позиция клипа в долях карточки. */
+		media.addEventListener('mousemove', (e) => {
+			const r = media.getBoundingClientRect();
+			state.x = Math.round(((e.clientX - r.left) / r.width) * 100) + '%';
+			state.y = Math.round(((e.clientY - r.top) / r.height) * 100) + '%';
+			media.style.setProperty('--mh-x', state.x);
+			media.style.setProperty('--mh-y', state.y);
+		});
+
+		/* Reduced motion: системная настройка или её эмуляция кнопкой. */
+		const rmQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+		let systemRM = rmQuery.matches;
+		function effectiveRM() {
+			return emulateRM || systemRM || root.getAttribute('data-mh-rm') === 'none';
+		}
+
+		/* Тап на тач-устройстве: три поведения (выбор Кирилла). */
+		media.addEventListener('click', () => {
+			const touch = window.matchMedia('(hover: none)').matches || window.innerWidth < 1024;
+			if (!touch) return;
+			if (emulateRM && state.rm === 'none') return;
+			if (state.tap === 'toggle') media.classList.toggle('is-on');
+			else if (state.tap === 'sequence') {
+				media.classList.add('is-on');
+				window.setTimeout(() => media.classList.remove('is-on'), state.dur + 700);
+			}
+		});
+
+		rmQuery.addEventListener('change', (e) => { systemRM = e.matches; apply(); });
+
+		(window as any).__mh = {
+			state,
+			apply,
+			media,
+			card,
+			emulateRM: (v: boolean) => { emulateRM = v; apply(); },
+			measured: () => {
+				const top = media.querySelector('.mh-img--top') as HTMLElement;
+				const cs = getComputedStyle(top);
+				return {
+					shape: card.getAttribute('data-mh-shape'),
+					clip: cs.clipPath,
+					filter: cs.filter,
+					dur: cs.transitionDuration,
+					ease: getComputedStyle(top).transitionTimingFunction,
+					isOn: media.classList.contains('is-on'),
+					hoverNone: window.matchMedia('(hover: none)').matches,
+					reduced: effectiveRM(),
+				};
+			},
+		};
+
+		apply();
+	</script>
+</Layout>

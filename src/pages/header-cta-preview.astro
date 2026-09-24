@@ -1,0 +1,261 @@
+---
+// Превью (правило 20.6): кнопка «Записаться» в шапке — появление при прокрутке.
+// Параметры переключаются кнопками, страница прокручивается как настоящая:
+// сверху макет шапки с той же разметкой слота, ниже блок Hero и блок Manifest.
+import Layout from '../layouts/Layout.astro';
+import HammerButton from '../components/HammerButton.astro';
+import { CTA_THRESHOLDS, CTA_DURS } from '../lib/headerCta';
+---
+
+<Layout
+	title="Превью: кнопка в шапке"
+	description="Появление кнопки «Записаться» при прокрутке: порог, длительность, кривая."
+>
+	<!-- Макет шапки: разметка слота та же, что на главной -->
+	<header class="fixed inset-x-0 top-0 z-50 border-b border-border bg-bg-deep/95 backdrop-blur-sm">
+		<div class="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-6 px-6 lg:h-[72px] lg:px-8">
+			<a href="/" class="font-display text-xl font-semibold uppercase tracking-[-0.045em] text-text">Мьёльнир</a>
+			<div class="flex items-center gap-4">
+				<span class="hidden font-label text-label uppercase text-text-muted md:block">макет шапки</span>
+				<div data-header-cta class="cta-slot">
+					<div class="hidden sm:block">
+						<HammerButton variant="v1" />
+					</div>
+					<div class="sm:hidden">
+						<HammerButton variant="v2" compact />
+					</div>
+				</div>
+			</div>
+		</div>
+	</header>
+
+	<!-- Панель параметров -->
+	<aside class="fixed bottom-4 left-1/2 z-[60] w-[min(94vw,1000px)] -translate-x-1/2 border border-border bg-bg-deep/95 px-5 py-4 backdrop-blur-md">
+		<div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+			<div class="flex flex-wrap items-center gap-2">
+				<span class="font-label text-label uppercase text-text-muted">Порог</span>
+				{
+					CTA_THRESHOLDS.map((t) => (
+						<button data-threshold={String(t)} class="mh-btn">
+							{Math.round(t * 100)} %
+						</button>
+					))
+				}
+			</div>
+			<div class="flex flex-wrap items-center gap-2">
+				<span class="font-label text-label uppercase text-text-muted">Fade</span>
+				{
+					CTA_DURS.map((d) => (
+						<button data-dur={String(d)} class="mh-btn">
+							{d} мс
+						</button>
+					))
+				}
+			</div>
+			<div class="flex flex-wrap items-center gap-2">
+				<span class="font-label text-label uppercase text-text-muted">Easing</span>
+				<button data-ease="ease-out-cubic" class="mh-btn">ease-out-cubic</button>
+				<button data-ease="ease-in-out" class="mh-btn">ease-in-out</button>
+			</div>
+			<div class="flex flex-wrap items-center gap-2">
+				<span class="font-label text-label uppercase text-text-muted">Прокрутка</span>
+				<button data-scroll="hero" class="mh-btn">в Hero</button>
+				<button data-scroll="manifest" class="mh-btn">к Manifest</button>
+				<button data-scroll="below" class="mh-btn">ниже Manifest</button>
+			</div>
+		</div>
+		<p id="cta-status" class="mt-3 font-mono text-[11px] leading-relaxed text-text-muted">…</p>
+	</aside>
+
+	<!-- Полотно для прокрутки -->
+	<main class="pt-16 lg:pt-[72px]">
+		<section class="flex h-[100svh] flex-col items-center justify-center gap-4 border-b border-border px-6 text-center">
+			<p class="font-label text-label uppercase text-text-muted">Блок 1</p>
+			<h1 class="font-display text-display uppercase text-text">Hero</h1>
+			<p class="max-w-[40ch] text-body text-text-muted">
+				Кнопки в шапке здесь нет — она спрятана, пока секция Manifest не войдёт в кадр.
+			</p>
+		</section>
+
+		<section id="manifest" class="min-h-[1205px] border-b border-border px-6 py-24 lg:px-8 lg:py-32">
+			<p class="font-label text-label uppercase text-accent">Блок 2 · начало Manifest</p>
+			<h2 class="mt-4 font-display text-display uppercase text-text">Манифест</h2>
+			<div class="mt-10 grid gap-6 lg:grid-cols-3">
+				{
+					[0, 1, 2].map(() => (
+						<div class="border border-border p-6">
+							<p class="text-body text-text-muted">
+								Заглушка секции: высота 1205 px, как у настоящего Manifest на главной. Верхняя
+								кромка этой секции — точка появления кнопки.
+							</p>
+						</div>
+					))
+				}
+			</div>
+			<p class="mt-10 max-w-[70ch] text-body text-text-muted">
+				Секция выше окна, поэтому «50 % секции в кадре» недостижимо геометрически: максимум
+				равен высоте окна, делённой на высоту секции. Чтобы выбранный порог не молчал, кнопка
+				появляется и когда секция занимает кадр целиком — верх ушёл выше кромки, низ ещё ниже.
+			</p>
+		</section>
+
+		<section class="flex h-[90vh] flex-col items-center justify-center gap-4 border-b border-border px-6 text-center">
+			<p class="font-label text-label uppercase text-text-muted">Блок 3</p>
+			<h2 class="font-display text-display uppercase text-text">Услуги</h2>
+			<p class="max-w-[40ch] text-body text-text-muted">
+				Кнопка остаётся видимой: она появилась один раз при входе Manifest и живёт до возврата
+				в Hero.
+			</p>
+		</section>
+
+		<section class="flex h-[70vh] flex-col items-center justify-center gap-4 border-b border-border px-6 text-center">
+			<p class="font-label text-label uppercase text-text-muted">Блок 4</p>
+			<h2 class="font-display text-display uppercase text-text">Мастера</h2>
+			<p class="max-w-[40ch] text-body text-text-muted">Вернитесь наверх — кнопка уйдёт вместе с блоком Hero.</p>
+		</section>
+
+		<section class="flex h-[40vh] flex-col items-center justify-center gap-4 px-6 text-center">
+			<p class="font-label text-label uppercase text-text-muted">Блок 5</p>
+			<h2 class="font-display text-display uppercase text-text">Подвал</h2>
+		</section>
+	</main>
+
+	<script>
+		import { initHeaderCta, CTA_THRESHOLDS, CTA_DURS, CTA_EASES, CTA_DEFAULT } from '../lib/headerCta';
+
+		type State = { threshold: number; dur: number; ease: string };
+		const state: State = { ...CTA_DEFAULT };
+		const log: string[] = [];
+		let dispose = () => undefined;
+
+		const slot = document.querySelector<HTMLElement>('[data-header-cta]');
+		const status = document.getElementById('cta-status');
+		const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-threshold], [data-dur], [data-ease]'));
+
+		const paintButtons = () => {
+			for (const b of buttons) {
+				const on =
+					(b.dataset.threshold && Number(b.dataset.threshold) === state.threshold) ||
+					(b.dataset.dur && Number(b.dataset.dur) === state.dur) ||
+					(b.dataset.ease && b.dataset.ease === state.ease);
+				b.classList.toggle('is-on', Boolean(on));
+			}
+			if (slot) {
+				slot.style.setProperty('--cta-fade-dur', `${state.dur}ms`);
+				slot.style.setProperty('--cta-fade-ease', CTA_EASES[state.ease] ?? state.ease);
+			}
+		};
+
+		const paintStatus = () => {
+			if (!status) return;
+			const m = measure();
+			status.textContent = [
+				`кнопка: ${m.visible ? 'видна' : 'скрыта'}`,
+				`порог ${Math.round(state.threshold * 100)} % → секция в кадре ${(m.ratio * 100).toFixed(1)} %`,
+				`fade ${state.dur} мс · ${state.ease}`,
+				`scrollY ${Math.round(window.scrollY)} · верх секции ${Math.round(m.top)} px от кромки`,
+				m.fills ? 'секция занимает кадр целиком' : '',
+				log.length ? `журнал: ${log.slice(-3).join(' → ')}` : ''
+			]
+				.filter(Boolean)
+				.join('  ·  ');
+		};
+
+		const measure = () => {
+			const manifest = document.getElementById('manifest')!;
+			const rect = manifest.getBoundingClientRect();
+			const vh = window.innerHeight;
+			const visible = Math.min(rect.height, Math.max(0, Math.min(vh, rect.bottom) - Math.max(0, rect.top)));
+			const cap = Math.min(rect.height, vh);
+			const fills = rect.top <= 0 && rect.bottom > 0;
+			return {
+				ratio: cap > 0 ? visible / cap : 0,
+				fills,
+				top: rect.top,
+				visible: Boolean(slot?.hasAttribute('data-cta-visible'))
+			};
+		};
+
+		const boot = () => {
+			dispose();
+			dispose = initHeaderCta({ threshold: state.threshold, dur: state.dur, ease: state.ease });
+			paintButtons();
+			paintStatus();
+		};
+
+		for (const b of buttons) {
+			b.addEventListener('click', () => {
+				if (b.dataset.threshold) state.threshold = Number(b.dataset.threshold);
+				if (b.dataset.dur) state.dur = Number(b.dataset.dur);
+				if (b.dataset.ease) state.ease = b.dataset.ease;
+				log.length = 0;
+				boot();
+			});
+		}
+
+		const scrollToY = (y: number) => {
+			const lenis = (window as unknown as { __lenis?: { scrollTo: (t: number, o?: object) => void } }).__lenis;
+			if (lenis) lenis.scrollTo(y, { immediate: true });
+			else window.scrollTo({ top: y, behavior: 'auto' });
+		};
+
+		for (const b of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-scroll]'))) {
+			b.addEventListener('click', () => {
+				const manifest = document.getElementById('manifest')!;
+				const mode = b.dataset.scroll;
+				if (mode === 'hero') scrollToY(0);
+				else if (mode === 'manifest') scrollToY(manifest.offsetTop - 120);
+				else scrollToY(manifest.offsetTop + manifest.offsetHeight + 400);
+			});
+		}
+
+		window.addEventListener('cta:change', (event) => {
+			const detail = (event as CustomEvent).detail as { visible: boolean; ratio: number };
+			log.push(`${detail.visible ? 'появилась' : 'скрылась'} @ ${(detail.ratio * 100).toFixed(1)} %`);
+			paintStatus();
+		});
+		window.addEventListener('cta:measure', paintStatus);
+		window.addEventListener('scroll', paintStatus, { passive: true });
+		window.addEventListener('resize', paintStatus);
+
+		boot();
+
+		/* Тестовый доступ из консоли и из замеров: состояние и переключение. */
+		(window as unknown as { __cta: unknown }).__cta = {
+			state,
+			measure,
+			log,
+			options: { thresholds: CTA_THRESHOLDS, durs: CTA_DURS, eases: Object.keys(CTA_EASES) },
+			set(patch: Partial<State>) {
+				Object.assign(state, patch);
+				log.length = 0;
+				boot();
+			},
+			scrollTo: scrollToY
+		};
+	</script>
+
+	<style>
+		.mh-btn {
+			min-height: 44px;
+			border: 1px solid var(--border);
+			padding: 0 14px;
+			font-family: var(--font-label);
+			font-size: 12px;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+			color: var(--text-muted);
+			transition:
+				color 200ms var(--ease-hover),
+				border-color 200ms var(--ease-hover);
+		}
+		.mh-btn:hover {
+			color: var(--text);
+			border-color: color-mix(in oklab, var(--text) 40%, transparent);
+		}
+		.mh-btn.is-on {
+			color: var(--accent);
+			border-color: var(--accent);
+		}
+	</style>
+</Layout>

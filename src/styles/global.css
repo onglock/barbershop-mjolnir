@@ -225,3 +225,29 @@
     color: var(--bg);
   }
 }
+
+/* Кнопка «Записаться» в шапке: в Hero её нет, появляется на первой секции
+   после него (§10.2). Скрываем только при живом скрипте — без JS кнопка
+   остаётся видимой, иначе пропала бы навигация к форме. Длительность и кривую
+   ставит lib/headerCta.ts, значения выбираются на /header-cta-preview. */
+[data-cta-js] [data-header-cta] {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--cta-fade-dur, 300ms) var(--cta-fade-ease, cubic-bezier(0.33, 1, 0.68, 1)),
+    visibility 0s linear var(--cta-fade-dur, 300ms);
+}
+
+[data-cta-js] [data-header-cta][data-cta-visible] {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--cta-fade-dur, 300ms) var(--cta-fade-ease, cubic-bezier(0.33, 1, 0.68, 1)),
+    visibility 0s linear 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-cta-js] [data-header-cta] {
+    transition: none;
+  }
+}
