@@ -1,0 +1,144 @@
+---
+// Превью (правило 20.6): верхний отступ секции записи — сколько оставить между
+// шапкой и надзаголовком «Ритуал». Варианты 0 / 16 / 32 px переключаются
+// кнопками. Секция настоящая (тот же компонент, что на главной), отступ
+// переопределяется переменной --contact-pt: если вариант выберется, правило
+// уедет прямо в ContactForm.
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import ContactForm from '../components/ContactForm';
+
+const OPTIONS = [0, 16, 32];
+
+/* Dev-only: в прод-сборке уводим на главную (правило проекта). */
+if (import.meta.env.PROD) return Astro.redirect('/');
+---
+
+<Layout title="Превью: отступ формы записи">
+	<Header />
+
+	<aside class="fixed bottom-4 left-1/2 z-[60] w-[min(94vw,900px)] -translate-x-1/2 border border-border bg-bg-deep/95 px-5 py-4 backdrop-blur-md">
+		<div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+			<span class="font-label text-label uppercase text-text-muted">Отступ сверху</span>
+			{
+				OPTIONS.map((px) => (
+					<button data-pt={String(px)} class="pt-btn">
+						{px} px
+					</button>
+				))
+			}
+			<button id="scroll-to" class="pt-btn">прокрутить к форме</button>
+		</div>
+		<p id="pt-status" class="mt-3 font-mono text-[11px] leading-relaxed text-text-muted">…</p>
+	</aside>
+
+	<main>
+		<section class="flex h-[80svh] flex-col items-center justify-center gap-4 border-b border-border px-6 text-center">
+			<p class="font-label text-label uppercase text-text-muted">Блок 1</p>
+			<h1 class="font-display text-display uppercase text-text">Здесь на главной Hero</h1>
+			<p class="max-w-[42ch] text-body text-text-muted">
+				Нажмите «прокрутить к форме» — она встанет так же, как после клика по кнопке
+				«ЗАПИСАТЬСЯ» в шапке.
+			</p>
+		</section>
+
+		<ContactForm client:idle />
+
+		<section class="flex h-[40vh] flex-col items-center justify-center gap-4 px-6 text-center">
+			<p class="font-label text-label uppercase text-text-muted">Блок 3</p>
+			<h2 class="font-display text-display uppercase text-text">Дальше по странице</h2>
+		</section>
+	</main>
+
+	<style>
+		/* Секция — island на React, поэтому правило обязательно через :global,
+		   иначе скоуп Astro добавит атрибут, которого у элемента нет. */
+		:global(#contact) {
+			padding-top: var(--contact-pt, 16px);
+		}
+		.pt-btn {
+			min-height: 44px;
+			border: 1px solid var(--border);
+			padding: 0 14px;
+			font-family: var(--font-label);
+			font-size: 12px;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+			color: var(--text-muted);
+			transition: color 200ms var(--ease-hover), border-color 200ms var(--ease-hover);
+		}
+		.pt-btn:hover { color: var(--text); border-color: color-mix(in oklab, var(--text) 40%, transparent); }
+		.pt-btn.is-on { color: var(--accent); border-color: var(--accent); }
+	</style>
+
+	<script>
+		const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-pt]'));
+		const status = document.getElementById('pt-status');
+		const root = document.documentElement;
+		let current = 16;
+
+		function apply() {
+			root.style.setProperty('--contact-pt', current + 'px');
+			for (const b of buttons) b.classList.toggle('is-on', Number(b.dataset.pt) === current);
+			paint();
+		}
+
+		function paint() {
+			if (!status) return;
+			const section = document.getElementById('contact');
+			if (!section) return;
+			const eyebrow = section.querySelector('p');
+			const rect = section.getBoundingClientRect();
+			const eRect = eyebrow?.getBoundingClientRect();
+			const header = document.querySelector('header')?.getBoundingClientRect();
+			status.textContent = [
+				`отступ ${current} px`,
+				`шапка снизу ${header ? Math.round(header.bottom) : '—'} px`,
+				`верх секции ${Math.round(rect.top)} px от кромки окна`,
+				`надзаголовок «Ритуал» ${eRect ? Math.round(eRect.top) : '—'} px`,
+				`scrollY ${Math.round(window.scrollY)}`,
+			].join(' · ');
+		}
+
+		for (const b of buttons) {
+			b.addEventListener('click', () => {
+				current = Number(b.dataset.pt);
+				apply();
+			});
+		}
+
+		document.getElementById('scroll-to')?.addEventListener('click', () => {
+			const section = document.getElementById('contact');
+			if (!section) return;
+			const y = section.getBoundingClientRect().top + window.scrollY - (window.innerWidth >= 1024 ? 72 : 64);
+			const lenis = (window as unknown as { __lenis?: { scrollTo: (t: number, o?: object) => void } }).__lenis;
+			if (lenis) lenis.scrollTo(y, { immediate: true });
+			else window.scrollTo({ top: y, behavior: 'auto' });
+			window.setTimeout(paint, 60);
+		});
+
+		window.addEventListener('scroll', paint, { passive: true });
+		window.addEventListener('resize', paint);
+
+		/* Тестовый доступ: состояние и переключение из консоли/замеров. */
+		(window as unknown as { __pt: unknown }).__pt = {
+			options: [0, 16, 32],
+			get value() { return current; },
+			set(px: number) { current = px; apply(); },
+			measure: () => {
+				const section = document.getElementById('contact')!;
+				const eyebrow = section.querySelector('p')!;
+				const header = document.querySelector('header')!;
+				return {
+					value: current,
+					headerBottom: Math.round(header.getBoundingClientRect().bottom),
+					sectionTop: Math.round(section.getBoundingClientRect().top),
+					eyebrowTop: Math.round(eyebrow.getBoundingClientRect().top),
+					sectionPadTop: getComputedStyle(section).paddingTop,
+				};
+			},
+		};
+
+		apply();
+	</script>
+</Layout>

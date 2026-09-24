@@ -1,8 +1,10 @@
 ---
-// Мастера: три карточки с двумя фото. Второе фото — «после» (подстриженный,
-// ухоженный), открывается через clip-path при наведении, центр круга следует за
-// курсором. Источники вторых фото — Pexels (Pexels License, бесплатно, в том
-// числе коммерчески): 7781848, 7518736, 897262.
+// Мастера: три карточки с двумя фото. Кадр каждого мастера разрезан по белой
+// линии: слева «до», справа «после». Второй слой открывается clip-path-клином
+// от верхнего правого угла (решение Кирилла 2026-09-24).
+// Лица «до» и «после» выровнены сдвигом второго слоя: shift — сдвиг в процентах
+// карточки, найденный корреляцией по голове (Δ = «после» − «до», в CSS знак
+// обратный); scale закрывает края, которые иначе обнажил бы сдвиг.
 // Подъём и акцентная граница на hover — как было, чистый CSS.
 import { Image } from 'astro:assets';
 import master01 from '../assets/master-01.jpg';
@@ -18,8 +20,9 @@ const masters = [
 		photoAfter: master01After,
 		name: 'Артём Соколов',
 		role: 'старший мастер',
-		alt: 'Артём Соколов стрижёт клиента в кресле',
-		altAfter: 'Клиент с аккуратной стрижкой и бородой в кресле барбершопа',
+		alt: 'Артём Соколов — «до»: длинные волосы и борода',
+		altAfter: 'Артём Соколов — «после»: короткая стрижка и борода',
+		shift: { x: 0, y: 0 },
 		text: 'Двенадцать лет в профессии, начинал в Петербурге. Классические мужские формы и тонкие волосы — его тема. Ведёт молодых мастеров цеха.',
 	},
 	{
@@ -27,8 +30,9 @@ const masters = [
 		photoAfter: master02After,
 		name: 'Данил Ковалёв',
 		role: 'барбер',
-		alt: 'Данил Ковалёв стрижёт мальчика машинкой',
-		altAfter: 'Барбер за работой в интерьере цеха',
+		alt: 'Данил Ковалёв — «до»: отросшая форма',
+		altAfter: 'Данил Ковалёв — «после»: короткая стрижка',
+		shift: { x: 0, y: 0 },
 		text: 'Шесть лет за креслом. Быстро и точно работает машинкой, любит фейды и короткие формы. Подбирает укладку под тип волос за пару минут.',
 	},
 	{
@@ -36,8 +40,9 @@ const masters = [
 		photoAfter: master03After,
 		name: 'Максим Лебедев',
 		role: 'мастер бритья',
-		alt: 'Максим Лебедев работает машинкой над формой клиента',
-		altAfter: 'Бритьё бороды опасной бритвой в барбершопе',
+		alt: 'Максим Лебедев — «до»: длинные волосы и борода',
+		altAfter: 'Максим Лебедев — «после»: короткая стрижка и чистое лицо',
+		shift: { x: 0, y: 0 },
 		text: 'Девять лет, из них пять — только бритьё. Держит опасную бритву так, что клиенты засыпают в кресле. Делает королевское бритьё и камуфляж седины.',
 	},
 ];
@@ -65,17 +70,25 @@ const masters = [
 								decoding="async"
 								class="masters-img"
 							/>
-							<Image
-								src={master.photoAfter}
-								alt={master.altAfter}
-								widths={[345, 420]}
-								sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
-								format="webp"
-								quality={80}
-								loading="lazy"
-								decoding="async"
+							<!-- Второй слой: клип живёт на обёртке, сдвиг выравнивания — на
+							     самом фото, иначе сдвиг утащил бы за собой клип. Масштаба
+							     нет: он обрезал кадр. -->
+							<div
 								class="masters-img masters-img--top"
-							/>
+								style={`--mb-shift-x: ${master.shift.x}%; --mb-shift-y: ${master.shift.y}%;`}
+							>
+								<Image
+									src={master.photoAfter}
+									alt={master.altAfter}
+									widths={[345, 420]}
+									sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
+									format="webp"
+									quality={80}
+									loading="lazy"
+									decoding="async"
+									class="masters-img masters-img--inner"
+								/>
+							</div>
 						</div>
 
 						<div class="p-6">
@@ -92,8 +105,10 @@ const masters = [
 
 <style>
 	/* Первое фото — в потоке, второе («после») лежит поверх и открывается
-	   clip-path: круг 150 px, центр следует за курсором (--mb-x/--mb-y),
-	   500 мс ease-out-cubic — те же значения, что по умолчанию в превью. */
+	   clip-path-веером из верхнего угла (решение Кирилла 2026-09-24: веер
+	   вместо клина). --mb-fan-x = 70 % — точка выхода кромки на нижней стороне,
+	   это угол 25° и 85 % раскрытого кадра. Углы и вершина подбираются кнопками
+	   на превью /masters-hover-preview (20/22/25/28/30°). */
 	.masters-media {
 		position: relative;
 		overflow: hidden;
@@ -105,36 +120,43 @@ const masters = [
 		object-fit: cover;
 		border-bottom: 1px solid var(--border);
 	}
+	/* Обёртка второго слоя: клип и переход живут здесь. */
 	.masters-img--top {
 		position: absolute;
 		inset: 0;
 		border-bottom: 0;
-		clip-path: circle(0px at 50% 50%);
+		/* закрытое состояние: веер вырожден в верхний левый угол */
+		clip-path: polygon(0 0, 0% 0%, 0% 100%, 0 100%);
 		transition: clip-path 500ms cubic-bezier(0.33, 1, 0.68, 1);
 		will-change: clip-path;
 	}
+	/* Фото внутри обёртки: сдвиг выравнивания лиц. Масштаба нет — масштаб
+	   обрезал кадр, из-за него у «после» срезало нос (Кирилл, 2026-09-24). */
+	.masters-img--inner {
+		position: absolute;
+		inset: 0;
+		height: 100%;
+		transform: translate(var(--mb-shift-x, 0), var(--mb-shift-y, 0));
+	}
 	.masters-media:hover .masters-img--top,
 	.masters-media.is-on .masters-img--top {
-		clip-path: circle(150px at var(--mb-x, 50%) var(--mb-y, 50%));
+		clip-path: polygon(0 0, 130% 0%, var(--mb-fan-x, 70%) 100%, 0 100%);
 	}
 	/* Кирилл: при reduced-motion «после» показывается мгновенно, без анимации. */
 	@media (prefers-reduced-motion: reduce) {
 		.masters-img--top { transition: none; }
 		.masters-media:hover .masters-img--top,
-		.masters-media.is-on .masters-img--top { clip-path: circle(150% at 50% 50%); }
+		.masters-media.is-on .masters-img--top {
+			clip-path: polygon(0 0, 130% 0%, var(--mb-fan-x, 70%) 100%, 0 100%);
+		}
 	}
 </style>
 
 <script>
-	/* Круг-проявитель: позиция клипа в долях карточки. На тач-устройстве наведения
-	   нет, поэтому тап переключает состояние (решение Кирилла — «мгновенное
-	   переключение», без прокрутки по времени). */
+	/* Клин курсор не двигает — старт всегда в верхнем правом углу, поэтому из JS
+	   осталось только тач-переключение: на устройстве без наведения тап
+	   открывает и закрывает «после» (решение Кирилла — мгновенно). */
 	document.querySelectorAll<HTMLElement>('.masters-media').forEach((media) => {
-		media.addEventListener('mousemove', (e) => {
-			const r = media.getBoundingClientRect();
-			media.style.setProperty('--mb-x', (((e.clientX - r.left) / r.width) * 100).toFixed(1) + '%');
-			media.style.setProperty('--mb-y', (((e.clientY - r.top) / r.height) * 100).toFixed(1) + '%');
-		});
 		media.addEventListener('click', () => {
 			if (window.matchMedia('(hover: none)').matches || window.innerWidth < 1024) {
 				media.classList.toggle('is-on');

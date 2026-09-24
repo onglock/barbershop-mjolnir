@@ -1,14 +1,26 @@
 ---
 // Мастера, эффект «двойное изображение» (clip-path) — превью по правилу 20.6.
-// Второго фото у мастеров НЕТ, поэтому второй слой — то же фото с фильтром
-// (вариант B): ч/б, сепия, контраст+ или зум. Форму, радиус, скорость, easing,
-// содержимое второго слоя, поведение тапа и режим reduced-motion Кирилл выбирает
-// кнопками на этой странице.
+// Второй слой — реальное второе фото (левая/правая половина кадра Кирилла).
+// Форма клипа, угол веера, вершина веера, выравнивание лиц, скорость, easing,
+// фильтр второго слоя, поведение тапа и режим reduced-motion выбираются кнопками.
 import { Image } from 'astro:assets';
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import master01 from '../assets/master-01.jpg';
 import master01After from '../assets/master-01-after.jpg';
+
+/* Веер: сектор из верхнего угла карточки 2:3 (420×630). Угол — отклонение кромки
+   от вертикали, точка выхода на нижней стороне X = 100·tg(угол)·h/w, раскрытая
+   доля кадра = (100 + min(X, 100)) / 2 по площади трапеции.
+   20° → 55 % (77 % кадра), 22° → 61 (80 %), 25° → 70 (85 %), 28° → 80 (90 %),
+   30° → 87 (93 %). 25° стоит по умолчанию — середина между 20 и 30. */
+const FAN_VARIANTS = [
+	{ key: '20', angle: 20, x: 54.6 },
+	{ key: '22', angle: 22, x: 60.6 },
+	{ key: '25', angle: 25, x: 69.9 },
+	{ key: '28', angle: 28, x: 79.8 },
+	{ key: '30', angle: 30, x: 86.6 },
+].map((v) => ({ key: v.key, angle: v.angle, x: Math.round(v.x), share: Math.round((100 + Math.min(v.x, 100)) / 2) }));
 
 /* Dev-only: в прод-сборке уводим на главную (правило проекта). */
 if (import.meta.env.PROD) return Astro.redirect('/');
@@ -22,11 +34,9 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 			<p class="font-label text-label uppercase text-text-muted">Превью · правило 20.6</p>
 			<h1 class="mt-4 text-display uppercase text-text">Двойное изображение</h1>
 			<p class="mt-3 max-w-[70ch] text-body text-text-muted">
-				Второе фото найдено на Pexels (Pexels License): для Артёма — клиент с аккуратной
-				стрижкой и бородой, для Данила — барбер за работой в интерьере цеха, для Максима —
-				бритьё бороды опасной бритвой. Ниже одна карточка: наведение открывает второе фото
-				через clip-path; при формах «круг» и «эллипс» центр следует за курсором
-				(курсор-проявитель), «диагональ» и «полосы» — общий разворот.
+				Наведение раскрывает «после» веером из верхнего угла. Угол выбирается кнопками
+				(20 / 22 / 25 / 28 / 30°, сейчас 25° — 85 % кадра), вершина переключается между левым
+				и правым верхним углом. Выравнивание лиц проверяется отдельным рядом.
 			</p>
 
 			<div class="mh-layout mt-12">
@@ -39,7 +49,7 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 						<div class="mh-media" id="mh-media">
 							<Image
 								src={master01}
-								alt="Артём Соколов стрижёт клиента в кресле"
+								alt="Артём Соколов — «до»"
 								widths={[345, 420]}
 								sizes="(min-width: 1024px) 420px, 100vw"
 								format="webp"
@@ -48,17 +58,21 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 								decoding="sync"
 								class="mh-img"
 							/>
-							<Image
-								src={master01After}
-								alt="Второе состояние: клиент с аккуратной стрижкой и бородой"
-								widths={[345, 420]}
-								sizes="(min-width: 1024px) 420px, 100vw"
-								format="webp"
-								quality={80}
-								loading="eager"
-								decoding="sync"
-								class="mh-img mh-img--top"
-							/>
+							<!-- Второй слой: клип живёт на обёртке, сдвиг выравнивания — на
+							     самом фото, иначе сдвиг утащил бы за собой клип. -->
+							<div class="mh-img mh-img--top">
+								<Image
+									src={master01After}
+									alt="Артём Соколов — «после»"
+									widths={[345, 420]}
+									sizes="(min-width: 1024px) 420px, 100vw"
+									format="webp"
+									quality={80}
+									loading="eager"
+									decoding="sync"
+									class="mh-img mh-img--inner"
+								/>
+							</div>
 						</div>
 						<div class="p-6">
 							<h3 class="text-body font-medium uppercase text-text">Артём Соколов</h3>
@@ -78,10 +92,30 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 				<aside class="mh-panel" id="mh-panel">
 					<div class="row">
 						<span class="cap">Форма</span>
-						<button data-shape="circle" class="on">круг</button>
+						<button data-shape="circle">круг</button>
 						<button data-shape="ellipse">эллипс</button>
-						<button data-shape="diagonal">диагональ</button>
+						<button data-shape="fan" class="on">веер</button>
 						<button data-shape="stripes">полосы</button>
+					</div>
+					<div class="row">
+						<span class="cap">Угол веера</span>
+						{
+							FAN_VARIANTS.map((v) => (
+								<button data-fan={v.key} class={v.key === '25' ? 'on' : undefined}>
+									{v.angle}° · {v.share} %
+								</button>
+							))
+						}
+					</div>
+					<div class="row">
+						<span class="cap">Вершина</span>
+						<button data-apex="left" class="on">слева</button>
+						<button data-apex="right">справа</button>
+					</div>
+					<div class="row">
+						<span class="cap">Выравнивание</span>
+						<button data-align="none" class="on">A: нет</button>
+						<button data-align="x">B: только сдвиг X</button>
 					</div>
 					<div class="row">
 						<span class="cap">Радиус</span>
@@ -130,11 +164,13 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 						<span class="val" id="st">—</span>
 					</div>
 					<div class="hint">
-						Строка «Сейчас» показывает форму, радиус, скорость, easing, содержимое второго слоя,
-						поведение тапа и координаты курсора в долях карточки. «Эмулировать на странице»
-						включает те же правила, что даёт `matchMedia(prefers-reduced-motion)` — чтобы
-						проверить вид без переключения системной настройки. «Второй слой (без курсора)»
-						показывает результат наведения без мыши — для скриншотов.
+						Веер — сектор из верхнего угла карточки: одна кромка идёт по верхней стороне,
+						вторая уходит вниз; угол задаёт её отклонение от вертикали, а вершина — из какого
+						угла веер раскрывается. Раскрытая доля кадра: 20° — 77 %, 22° — 80 %, 25° — 85 %,
+						28° — 90 %, 30° — 93 %. Дальше рост упирается в геометрию: при 40° веер накрывает
+						карточку целиком и «до» уже не видно. Выравнивание: A — фото как есть (ничего не
+						обрезано), B — сдвиг по X без масштаба (по краю проступает полоса «до»).
+						«Эмулировать на странице» включает правила `prefers-reduced-motion`.
 					</div>
 				</aside>
 			</div>
@@ -148,7 +184,7 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 			.mh-layout { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); }
 		}
 
-		/* ── Эффект: два слоя одного фото, верхний открывается clip-path ───── */
+		/* ── Эффект: два слоя, верхний («после») открывается clip-path ─────── */
 		.mh-media {
 			position: relative;
 			overflow: hidden;
@@ -172,29 +208,39 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 				filter var(--mh-dur, 500ms) linear;
 			will-change: clip-path;
 		}
+		/* Фото внутри обёртки второго слоя: сдвиг выравнивания лиц. Масштаба нет —
+		   масштаб 1.18 обрезал кадр, из-за него у «после» срезало нос. */
+		.mh-img--inner {
+			position: absolute;
+			inset: 0;
+			height: 100%;
+			transform: translate(var(--mh-shift-x, 0), var(--mh-shift-y, 0));
+		}
 		/* Верхний слой виден только в пределах клипа; фильтр — «второе состояние». */
 		[data-mh-shape='circle'] .mh-img--top { --mh-clip-on: circle(var(--mh-r, 150px) at var(--mh-x, 50%) var(--mh-y, 50%)); }
 		[data-mh-shape='ellipse'] .mh-img--top { --mh-clip-on: ellipse(calc(var(--mh-r, 150px) * 1.35) var(--mh-r, 150px) at var(--mh-x, 50%) var(--mh-y, 50%)); }
-		[data-mh-shape='diagonal'] .mh-img--top {
-			--mh-clip: polygon(0 0, 0% 0%, 0% 100%, 0 100%);
-			--mh-clip-on: polygon(0 0, 130% 0%, 30% 100%, 0 100%);
+		/* Веер: параметры задаёт скрипт — --mh-apex-x (вершина: 0 % слева, 100 %
+		   справа), --mh-far-x (дальний конец кромки по верхней стороне) и
+		   --mh-fan-x (точка выхода кромки на нижней стороне). */
+		[data-mh-shape='fan'] .mh-img--top {
+			--mh-clip: polygon(var(--mh-apex-x, 0%) 0, var(--mh-apex-x, 0%) 0, var(--mh-apex-x, 0%) 100%, var(--mh-apex-x, 0%) 100%);
+			--mh-clip-on: polygon(var(--mh-apex-x, 0%) 0, var(--mh-far-x, 130%) 0, var(--mh-fan-x, 70%) 100%, var(--mh-apex-x, 0%) 100%);
 		}
 		[data-mh-shape='stripes'] .mh-img--top { --mh-clip: var(--mh-stripes-off, circle(0px at 50% 50%)); --mh-clip-on: var(--mh-stripes-on, circle(150px at 50% 50%)); }
 
 		.mh-media:hover .mh-img--top,
 		.mh-media.is-on .mh-img--top { clip-path: var(--mh-clip-on, circle(var(--mh-r, 150px) at 50% 50%)); }
 
-		/* Фоновых фильтров теперь необязательный слой: по умолчанию второй слой —
-		   реальное второе фото, фильтр можно добавить поверх. */
+		/* Фильтр второго слоя — необязательная надстройка поверх реального фото. */
 		[data-mh-filter='none'] .mh-img--top { --mh-filter: none; }
 		[data-mh-filter='gray'] .mh-img--top { --mh-filter: grayscale(1) contrast(1.05); }
 		[data-mh-filter='sepia'] .mh-img--top { --mh-filter: sepia(0.65) contrast(1.05); }
 		[data-mh-filter='contrast'] .mh-img--top { --mh-filter: contrast(1.45) saturate(1.15); }
-		[data-mh-filter='zoom'] .mh-img--top { --mh-filter: none; transform: scale(1.18); }
+		[data-mh-filter='zoom'] .mh-img--top { --mh-filter: none; }
+		[data-mh-filter='zoom'] .mh-img--inner { transform: translate(var(--mh-shift-x, 0), var(--mh-shift-y, 0)) scale(1.18); }
 
 		/* Reduced motion: без анимации. «Показать мгновенно» — второй слой
-		   появляется сразу (у круга радиус = 150 % кадра, чтобы он был виден без
-		   привязки к курсору), «не показывать» — эффекта нет вовсе. */
+		   появляется сразу и целиком, «не показывать» — эффекта нет вовсе. */
 		html[data-mh-rm='instant'] .mh-img--top { transition: none; }
 		html[data-mh-rm='instant'] .mh-media:hover .mh-img--top,
 		html[data-mh-rm='instant'] .mh-media.is-on .mh-img--top { clip-path: circle(150% at 50% 50%); }
@@ -241,8 +287,33 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 		const st = document.getElementById('st') as HTMLElement;
 		const root = document.documentElement;
 
-		const state: { shape: string; r: number; dur: number; ease: string; filter: string; tap: string; rm: string; x?: string; y?: string } = {
-			shape: 'circle',
+		/* Углы веера: x — точка выхода кромки на нижней стороне (в % ширины),
+		   share — раскрытая доля кадра. */
+		const FAN: Record<string, { angle: number; x: number; share: number }> = {
+			'20': { angle: 20, x: 55, share: 77 },
+			'22': { angle: 22, x: 61, share: 80 },
+			'25': { angle: 25, x: 70, share: 85 },
+			'28': { angle: 28, x: 80, share: 90 },
+			'30': { angle: 30, x: 87, share: 93 },
+		};
+		/* Вершина веера: слева — угол в 0 % и дальний конец кромки за правой
+		   кромкой (130 %); справа — зеркало, точка выхода тоже зеркалится. */
+		const APEX: Record<string, { apexX: string; farX: string; mirror: boolean; title: string }> = {
+			left: { apexX: '0%', farX: '130%', mirror: false, title: 'слева' },
+			right: { apexX: '100%', farX: '-30%', mirror: true, title: 'справа' },
+		};
+		/* Сдвиг по X без масштаба: у Артёма лицо «после» смещено вправо (корелляция
+		   по голове), поэтому значение отрицательное. Масштаба нет — он резал кадр. */
+		const ALIGN_X: Record<string, string> = { none: '0%', x: '-8.7%' };
+
+		const state: {
+			shape: string; fan: string; apex: string; align: string; r: number; dur: number;
+			ease: string; filter: string; tap: string; rm: string; x?: string; y?: string;
+		} = {
+			shape: 'fan',
+			fan: '25',
+			apex: 'left',
+			align: 'none',
 			r: 150,
 			dur: 500,
 			ease: 'out',
@@ -268,6 +339,8 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 			}).join(', ');
 
 		function apply() {
+			const apex = APEX[state.apex];
+			const fan = FAN[state.fan];
 			card.setAttribute('data-mh-shape', state.shape);
 			card.setAttribute('data-mh-filter', state.filter);
 			/* Атрибут reduced-motion ставим ТОЛЬКО когда покой действительно
@@ -276,11 +349,19 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 			media.style.setProperty('--mh-r', state.r + 'px');
 			media.style.setProperty('--mh-dur', state.dur + 'ms');
 			media.style.setProperty('--mh-ease', EASES[state.ease]);
+			media.style.setProperty('--mh-apex-x', apex.apexX);
+			media.style.setProperty('--mh-far-x', apex.farX);
+			media.style.setProperty('--mh-fan-x', (apex.mirror ? 100 - fan.x : fan.x) + '%');
+			media.style.setProperty('--mh-shift-x', ALIGN_X[state.align]);
+			media.style.setProperty('--mh-shift-y', '0%');
 			if (state.shape === 'stripes') {
 				media.style.setProperty('--mh-stripes-off', `polygon(${bandPoly(0)})`);
 				media.style.setProperty('--mh-stripes-on', `polygon(${bandPoly(1)})`);
 			}
 			panel.querySelectorAll('[data-shape]').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.shape === state.shape));
+			panel.querySelectorAll('[data-fan]').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.fan === state.fan));
+			panel.querySelectorAll('[data-apex]').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.apex === state.apex));
+			panel.querySelectorAll('[data-align]').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.align === state.align));
 			panel.querySelectorAll('[data-r]').forEach((b) => b.classList.toggle('on', Number((b as HTMLElement).dataset.r) === state.r));
 			panel.querySelectorAll('[data-dur]').forEach((b) => b.classList.toggle('on', Number((b as HTMLElement).dataset.dur) === state.dur));
 			panel.querySelectorAll('[data-ease]').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.ease === state.ease));
@@ -288,8 +369,13 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 			panel.querySelectorAll('[data-tap]').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.tap === state.tap));
 			panel.querySelectorAll('[data-rm]').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.rm === state.rm));
 			panel.querySelector('#rm-sim')?.classList.toggle('on', emulateRM);
-			(document.getElementById('st') as HTMLElement).textContent = [
-				`форма ${state.shape} · радиус ${state.r} px · ${state.dur} мс · ${state.ease === 'out' ? 'ease-out-cubic' : 'ease-in-out'}`,
+			st.textContent = [
+				state.shape === 'fan'
+					? `форма веер · угол ${fan.angle}°: раскрыто ${fan.share} % кадра · вершина ${apex.title}`
+					: `форма ${state.shape} · радиус ${state.r} px`,
+				`кромка внизу на ${apex.mirror ? 100 - fan.x : fan.x} % ширины`,
+				`выравнивание: ${state.align === 'none' ? 'нет (A)' : `сдвиг X (B), ${ALIGN_X[state.align]}`}`,
+				`${state.dur} мс · ${state.ease === 'out' ? 'ease-out-cubic' : 'ease-in-out'}`,
 				`второй слой: ${state.filter} · тап: ${state.tap} · reduced-motion: ${emulateRM ? 'эмуляция' : 'система'}`,
 				`курсор ${state.x ?? '—'} / ${state.y ?? '—'}`,
 			].join(' · ');
@@ -302,6 +388,9 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 			if (!b) return;
 			const d = b.dataset;
 			if (d.shape) state.shape = d.shape;
+			else if (d.fan) state.fan = d.fan;
+			else if (d.apex) state.apex = d.apex;
+			else if (d.align) state.align = d.align;
 			else if (d.r) state.r = Number(d.r);
 			else if (d.dur) state.dur = Number(d.dur);
 			else if (d.ease) state.ease = d.ease;
@@ -314,7 +403,7 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 			apply();
 		});
 
-		/* Курсор-проявитель: позиция клипа в долях карточки. */
+		/* Курсор-проявитель: позиция клипа в долях карточки (для круга и эллипса). */
 		media.addEventListener('mousemove', (e) => {
 			const r = media.getBoundingClientRect();
 			state.x = Math.round(((e.clientX - r.left) / r.width) * 100) + '%';
@@ -349,16 +438,29 @@ if (import.meta.env.PROD) return Astro.redirect('/');
 			apply,
 			media,
 			card,
+			fan: FAN,
+			apex: APEX,
+			alignX: ALIGN_X,
 			emulateRM: (v: boolean) => { emulateRM = v; apply(); },
 			measured: () => {
 				const top = media.querySelector('.mh-img--top') as HTMLElement;
+				const inner = media.querySelector('.mh-img--inner') as HTMLElement;
 				const cs = getComputedStyle(top);
+				const ms = getComputedStyle(media);
 				return {
 					shape: card.getAttribute('data-mh-shape'),
 					clip: cs.clipPath,
 					filter: cs.filter,
 					dur: cs.transitionDuration,
-					ease: getComputedStyle(top).transitionTimingFunction,
+					ease: cs.transitionTimingFunction,
+					apex: state.apex,
+					apexX: ms.getPropertyValue('--mh-apex-x').trim(),
+					farX: ms.getPropertyValue('--mh-far-x').trim(),
+					fanX: ms.getPropertyValue('--mh-fan-x').trim(),
+					fanAngle: FAN[state.fan]?.angle ?? null,
+					share: FAN[state.fan]?.share ?? null,
+					align: state.align,
+					shift: getComputedStyle(inner).transform,
 					isOn: media.classList.contains('is-on'),
 					hoverNone: window.matchMedia('(hover: none)').matches,
 					reduced: effectiveRM(),

@@ -110,7 +110,7 @@ export default function ContactForm() {
 	};
 
 	return (
-		<section id="contact" className="scroll-mt-24 border-b border-border px-6 py-24 lg:px-8 lg:py-32">
+		<section id="contact" className="scroll-mt-16 border-b border-border px-6 pb-24 pt-4 lg:scroll-mt-[72px] lg:px-8 lg:pb-32 lg:pt-4">
 			<div className="mx-auto max-w-[1400px]">
 				{/* Вариант B — с мифологическим акцентом (принят Кириллом) */}
 				<p className="font-label text-label uppercase text-text-muted">Ритуал</p>
