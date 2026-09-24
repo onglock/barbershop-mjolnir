@@ -199,6 +199,10 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 
 	function playAttractSound() {
 		const el = armAttractSound();
+		/* Метка времени запуска звука: по ней 3D-слой понимает, что клик был
+		   раньше, чем догрузилась модель (холодный кэш, медленная сеть), и
+		   прилёт нужно переиграть целиком — вместе со звуком и 2D-слоем. */
+		(window as any).__attractPlayedAt = performance.now();
 		/* Вариант Б (решение Кирилла, 2026-09-24): звук стартует СРАЗУ в клик —
 		   вместе с укороченным до 900 мс полётом его пик (≈1210 мс с учётом
 		   латентности запуска) приходится на посадку (1200 мс). Запуск идёт
@@ -229,6 +233,7 @@ import hammerCold from '../assets/hammer/hammer-cold.png';
 		if (audio) { audio.pause(); audio.currentTime = 0; }
 		if (landTimer) { window.clearTimeout(landTimer); landTimer = 0; }
 		(window as any).__attractFired = false;
+		(window as any).__attractPlayedAt = 0;
 		running = false;
 	}
 
