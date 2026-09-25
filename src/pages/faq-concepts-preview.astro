@@ -1,0 +1,304 @@
+---
+/* ══ /faq-concepts-preview ═════════════════════════════════════════════
+   Пять концепций секции «Вопросы» на одном месте + «До» — боевая секция
+   (тот же React-остров Faq, что на главной). Кнопки 0–5, описание активной
+   концепции в панели, отдельные кнопки прогона вниз/вверх.
+   В прод не попадает. */
+if (import.meta.env.PROD) return Astro.redirect('/');
+
+import Layout from '../layouts/Layout.astro';
+import Faq from '../components/Faq';
+import FaqConcepts from '../components/preview/FaqConcepts.astro';
+
+const concepts = [
+	{
+		key: '0',
+		button: '0 · До',
+		title: 'Текущая секция',
+		note: 'Аккордеон F2 «Рунические строки»: семь строк, руна поворачивается, ответ разворачивается по высоте. Radix даёт семантику и клавиатуру.',
+		type: 'аккордеон (раскрытие по клику)',
+		content: 'не нужен',
+		test: '—',
+	},
+	{
+		key: 'f1',
+		button: '1 · Свиток рун',
+		title: 'F1 «Свиток рун» — руна как указатель',
+		note: 'Руны вынесены в отдельный вертикальный индекс слева, справа разворачивается ответ — как свиток: сверху и снизу линейки, текст выезжает из-под среза. Наведение и клик, стрелки с клавиатуры. Ссылка на тип: «Simple Stack Effects» и руническая лента.',
+		type: 'индекс + разворот панели',
+		content: 'не нужен',
+		test: 'стрелки ↑↓, Home/End, наведение',
+	},
+	{
+		key: 'f2',
+		button: '2 · Разговор',
+		title: 'F2 «Разговор» — вопрос и ответ как переписка',
+		note: 'Вопрос гостя справа, ответ мастера слева, между ними «печатает…». Пары идут по одной: клик по полю, Enter или пробел. Тип: чтение по шагам вместо одновременного списка.',
+		type: 'пошаговый диалог',
+		content: 'не нужен (роли подписаны «Гость» и «Мастер»)',
+		test: 'клик или Enter — следующая пара',
+	},
+	{
+		key: 'f3',
+		button: '3 · 3D-стопка',
+		title: 'F3 «3D-стопка» — карточки в глубине',
+		note: 'Семь карточек стоят стопкой в перспективе: верхняя читается, остальные уходят назад со сдвигом и наклоном. Клик переворачивает карточку (rotateY), второй клик уносит её вниз — следующая поднимается. Ссылка на тип: Eduard Bodak, «flipping 3D cards on scroll».',
+		type: 'стопка + переворот карточки',
+		content: 'не нужен',
+		test: '«Перевернуть» и «Убрать карточку»',
+	},
+	{
+		key: 'f4',
+		button: '4 · Лента',
+		title: 'F4 «Лента вопросов» — скролл ведёт карточки',
+		note: 'Вертикальный скролл гонит семь карточек вбок; карточка у центра крупнее и ярче, крайние приглушены — глубина как в 3D-карусели Codrops.',
+		type: 'scroll-linked горизонт + глубина',
+		content: 'не нужен',
+		test: 'прогон вниз/вверх: лента едет обратно',
+	},
+	{
+		key: 'f5',
+		button: '5 · Стена рун',
+		title: 'F5 «Стена рун» — свечение от курсора',
+		note: 'Семь рун стоят в поле и реагируют на близость курсора: ближние поднимаются, светятся и получают ореол. Клик — и ответ печатается по символам, как будто мастер отвечает при вас. Ссылка на тип: «Interactive Image Grid» (карточки по расстоянию до курсора).',
+		type: 'курсор как источник + печать текста',
+		content: 'не нужен',
+		test: 'ведите курсор по стене, кликните руну',
+	},
+];
+---
+
+<Layout title="Вопросы — концепции (превью)">
+	<main id="main" class="relative z-10 bg-bg">
+		<div class="section-bg" aria-hidden="true"></div>
+
+		<section class="fq-head">
+			<p class="fq-label">Превью · Вопросы</p>
+			<h1 class="fq-title">Концепции подачи</h1>
+			<p class="fq-lead">
+				Пять разных типов взаимодействия на одних и тех же семи вопросах с рунами. Переключение — панель
+				«Параметры превью» в правом нижнем углу или хоткеи <b>0–5</b>. «До» — боевой аккордеон без
+				изменений, для сравнения.
+			</p>
+		</section>
+
+		<div class="fq-stage">
+			<div id="fq-classic"><Faq client:load /></div>
+			<FaqConcepts />
+		</div>
+	</main>
+
+	<aside class="fq-panel" data-pp>
+		<p class="fq-panel-title">Вопросы · концепции</p>
+
+		<div class="fq-row">
+			<span class="fq-row-label">Концепция</span>
+			<span class="fq-row-btns">
+				{
+					concepts.map((concept) => (
+						<button type="button" data-fq-key={concept.key} aria-pressed={concept.key === '0'}>
+							{concept.button}
+						</button>
+					))
+				}
+			</span>
+		</div>
+
+		<div class="fq-row">
+			<span class="fq-row-label">Прогон по секции</span>
+			<span class="fq-row-btns">
+				<button type="button" data-fq-scroll="down">Вниз →</button>
+				<button type="button" data-fq-scroll="up">← Вверх</button>
+			</span>
+		</div>
+
+		<div class="fq-notes">
+			{
+				concepts.map((concept) => (
+					<div class="fq-note" data-fq-note={concept.key} hidden={concept.key !== '0'}>
+						<p class="fq-note-title">{concept.title}</p>
+						<p class="fq-note-text">{concept.note}</p>
+						<dl class="fq-facts">
+							<dt>Тип взаимодействия</dt>
+							<dd>{concept.type}</dd>
+							<dt>Новый контент</dt>
+							<dd>{concept.content}</dd>
+							<dt>Как проверить</dt>
+							<dd>{concept.test}</dd>
+						</dl>
+					</div>
+				))
+			}
+		</div>
+
+		<p class="fq-state" id="fq-state">—</p>
+	</aside>
+
+	<p class="fq-devnote">Dev-only. Удалить перед деплоем.</p>
+</Layout>
+
+<style is:global>
+	.fq-stage > * { display: none; }
+	html[data-fc='0'] .fq-stage > #fq-classic { display: block; }
+	html[data-fc='f1'] .fq-stage > #fc-f1 { display: block; }
+	html[data-fc='f2'] .fq-stage > #fc-f2 { display: block; }
+	html[data-fc='f3'] .fq-stage > #fc-f3 { display: block; }
+	html[data-fc='f4'] .fq-stage > #fc-f4 { display: block; }
+	html[data-fc='f5'] .fq-stage > #fc-f5 { display: block; }
+	html:not([data-fc]) .fq-stage > #fq-classic { display: block; }
+</style>
+
+<style>
+	.fq-head { margin: 0 auto; max-width: 1400px; padding: 40px 24px 8px; }
+	@media (min-width: 1024px) {
+		.fq-head { padding: 56px 32px 8px; }
+	}
+	.fq-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.fq-title {
+		margin-top: 24px;
+		font-family: var(--font-manifest);
+		font-size: var(--text-h2);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.fq-lead {
+		margin-top: 24px;
+		max-width: 78ch;
+		font-size: var(--text-body);
+		line-height: 1.6;
+		color: var(--text-muted);
+	}
+	.fq-lead b { color: var(--text); font-weight: 500; }
+	.fq-devnote {
+		padding: 24px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.fq-panel-title {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.fq-row { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+	.fq-row-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.fq-row-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+	.fq-row-btns button {
+		min-height: 44px;
+		padding: 10px 12px;
+		border: 1px solid var(--border);
+		background: transparent;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		cursor: pointer;
+		transition: border-color 200ms cubic-bezier(0.33, 1, 0.68, 1), color 200ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.fq-row-btns button:hover { border-color: var(--accent); color: var(--text); }
+	.fq-row-btns button[aria-pressed='true'] {
+		border-color: var(--accent);
+		color: var(--text);
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+	}
+	.fq-note { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 16px; }
+	.fq-note-title { font-family: var(--font-display); font-size: 1.2rem; line-height: 1.2; color: var(--text); }
+	.fq-note-text { margin-top: 12px; font-size: var(--text-body); line-height: 1.55; color: var(--text-muted); }
+	.fq-facts { margin-top: 16px; display: grid; gap: 4px; }
+	.fq-facts dt {
+		margin-top: 10px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.fq-facts dd { font-size: var(--text-body); line-height: 1.5; color: var(--text); }
+	.fq-state {
+		margin-top: 18px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		line-height: 1.6;
+		color: var(--accent-warm);
+	}
+</style>
+
+<script>
+	const KEYS = ['0', 'f1', 'f2', 'f3', 'f4', 'f5'];
+	const root = document.documentElement;
+	const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-fq-key]'));
+	const notes = Array.from(document.querySelectorAll<HTMLElement>('[data-fq-note]'));
+	const state = document.getElementById('fq-state');
+
+	function scrollToY(y: number) {
+		const lenis = (window as any).__lenis;
+		if (lenis && typeof lenis.scrollTo === 'function') lenis.scrollTo(y, { immediate: true });
+		else window.scrollTo(0, y);
+	}
+
+	function set(key: string, scroll = false) {
+		if (!KEYS.includes(key)) return;
+		root.dataset.fc = key;
+
+		const boot = (window as any).__fcBoot || {};
+		Object.keys(boot).forEach((name) => {
+			if (name === key) boot[name].boot();
+			else boot[name].reset();
+		});
+
+		buttons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.fqKey === key)));
+		notes.forEach((note) => note.toggleAttribute('hidden', note.dataset.fqNote !== key));
+
+		const label = buttons.find((button) => button.dataset.fqKey === key)?.textContent?.trim() || key;
+		if (state) state.textContent = `Активно: ${label}${key === '0' ? ' — боевая секция без изменений' : ' — прототип, не боевой код'}`;
+
+		if (scroll) {
+			const target = key === '0' ? document.getElementById('faq') : document.getElementById(`fc-${key}`);
+			if (target) scrollToY(Math.max(0, target.getBoundingClientRect().top + window.scrollY - 88));
+		}
+	}
+
+	buttons.forEach((button) => button.addEventListener('click', () => set(button.dataset.fqKey || '0', true)));
+
+	document.querySelectorAll<HTMLButtonElement>('[data-fq-scroll]').forEach((button) => {
+		button.addEventListener('click', () => {
+			const section = root.dataset.fc === '0' ? document.getElementById('faq') : document.getElementById(`fc-${root.dataset.fc}`);
+			if (!section) return;
+			const box = section.getBoundingClientRect();
+			const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+			const target = button.dataset.fqScroll === 'down'
+				? Math.min(max, box.top + window.scrollY + box.height - window.innerHeight * 0.5)
+				: Math.max(0, box.top + window.scrollY - 88);
+			scrollToY(target);
+		});
+	});
+
+	document.addEventListener('keydown', (event) => {
+		const tag = (event.target as HTMLElement)?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+		if (event.key >= '0' && event.key <= '5') set(KEYS[Number(event.key)], true);
+	});
+
+	set(root.dataset.fc || '0');
+	(window as any).__fq = { set, state: () => root.dataset.fc };
+</script>

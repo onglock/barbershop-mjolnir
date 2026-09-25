@@ -1,0 +1,830 @@
+---
+/* ══ FAQ — пять концепций подачи (превью для выбора) ═══════════════════
+   F1 «СВИТОК РУН»   — руны как указатель, ответ разворачивается свитком
+   F2 «РАЗГОВОР»     — вопрос и ответ как переписка с мастером
+   F3 «3D-СТОПКА»    — карточки в стопке: клик переворачивает, второй уносит
+   F4 «ЛЕНТА»        — горизонтальный пиннинг, карточка у центра крупнее
+   F5 «СТЕНА РУН»    — руны светятся от близости курсора, ответ печатается
+
+   Вопросы, ответы и руны — те же семь, что в боевой секции (Faq.tsx).
+   Новый контент не нужен.
+   ══════════════════════════════════════════════════════════════════════ */
+
+const questions = [
+	{ rune: 'ᚦ', num: '01', q: 'Сколько стоит стрижка и что входит в цену?', a: 'Мужская стрижка — 3 500 ₽, стрижка машинкой — 2 000 ₽. В цену входят консультация, мытьё, стрижка и укладка.' },
+	{ rune: 'ᛗ', num: '02', q: 'Как записаться и нужно ли приходить заранее?', a: 'Через форму на сайте или по телефону. Приходите за 5 минут до начала — начнём без спешки.' },
+	{ rune: 'ᚱ', num: '03', q: 'Можно ли перенести или отменить запись?', a: 'Предупредите за 3 часа по телефону — перенесём на удобное время. Отменять можно без объяснений.' },
+	{ rune: 'ᛁ', num: '04', q: 'Где вас найти и есть ли парковка?', a: 'Никольская — рядом городская парковка, вечером места есть.' },
+	{ rune: 'ᛋ', num: '05', q: 'Как можно оплатить?', a: 'Наличными, картой и переводом. Чек выдаём на месте; для компаний выставляем счёт.' },
+	{ rune: 'ᛏ', num: '06', q: 'Стрижёте ли вы детей?', a: 'Да, с 6 лет и вместе со взрослым. Услуга «Отец и сын» — 5 000 ₽ на двоих.' },
+	{ rune: 'ᛒ', num: '07', q: 'Почему «Мьёльнир»?', a: 'Мьёльнир — молот Тора. Он про вес и точность инструмента. Лишь рука мастера достойна его поднять.' },
+];
+---
+
+<!-- ══ F1 «СВИТОК РУН» ══════════════════════════════════════════════ -->
+<section id="fc-f1" class="fc fc-scroll" data-concept="f1">
+	<div class="fc-inner">
+		<div class="fc-head">
+			<p class="fc-label">Вопросы</p>
+			<h2 class="fc-title">Что спрашивают</h2>
+			<p class="fc-hint">Выберите руну — свиток развернётся</p>
+		</div>
+		<div class="fc-scroll-body">
+			<div class="fc-runes" role="tablist" aria-orientation="vertical" aria-label="Вопросы">
+				{
+					questions.map((item, index) => (
+						<button
+							type="button"
+							class="fc-rune"
+							data-fc-rune={index}
+							role="tab"
+							id={`fc-rune-${index}`}
+							aria-controls={`fc-answer-${index}`}
+							aria-selected={index === 0}
+							tabindex={index === 0 ? 0 : -1}
+						>
+							<span class="fc-rune-glyph" aria-hidden="true">{item.rune}</span>
+							<span class="fc-rune-num">{item.num}</span>
+						</button>
+					))
+				}
+			</div>
+			<div class="fc-scroll-panel">
+				<span class="fc-rule" aria-hidden="true"></span>
+				{
+					questions.map((item, index) => (
+						<div class="fc-answer" data-fc-answer={index} id={`fc-answer-${index}`} role="tabpanel" aria-labelledby={`fc-rune-${index}`}>
+							<p class="fc-answer-rune" aria-hidden="true">{item.rune}</p>
+							<h3 class="fc-answer-q">{item.q}</h3>
+							<p class="fc-answer-a">{item.a}</p>
+						</div>
+					))
+				}
+				<span class="fc-rule" aria-hidden="true"></span>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- ══ F2 «РАЗГОВОР» ════════════════════════════════════════════════ -->
+<section id="fc-f2" class="fc fc-talk" data-concept="f2">
+	<div class="fc-inner">
+		<div class="fc-head">
+			<p class="fc-label">Вопросы</p>
+			<h2 class="fc-title">Что спрашивают</h2>
+			<p class="fc-hint">Спрашивайте по одному: клик или Enter</p>
+		</div>
+		<div class="fc-chat" data-fchat>
+			<div class="fc-chat-log" data-fchat-log>
+				{
+					questions.map((item, index) => (
+						<div class="fc-pair" data-fpair={index}>
+							<div class="fc-line fc-line--ask"><span class="fc-who">Гость</span><p class="fc-line-text">{item.q}</p></div>
+							<div class="fc-line fc-line--answer"><span class="fc-who">Мастер</span><p class="fc-line-text">{item.a}</p></div>
+						</div>
+					))
+				}
+				<div class="fc-typing" data-fchat-typing aria-hidden="true"><span></span><span></span><span></span></div>
+			</div>
+			<div class="fc-foot">
+				<button type="button" class="fc-btn" data-fchat-next>Дальше</button>
+				<button type="button" class="fc-btn fc-btn--quiet" data-fchat-reset>Сначала</button>
+				<span class="fc-state" data-fchat-state>0 / {questions.length}</span>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- ══ F3 «3D-СТОПКА» ═══════════════════════════════════════════════ -->
+<section id="fc-f3" class="fc fc-deck" data-concept="f3">
+	<div class="fc-inner">
+		<div class="fc-head">
+			<p class="fc-label">Вопросы</p>
+			<h2 class="fc-title">Что спрашивают</h2>
+			<p class="fc-hint">Клик — перевернуть карточку, второй — убрать</p>
+		</div>
+		<div class="fc-deck-stage" data-fdeck>
+			{
+				questions.map((item, index) => (
+					<article class="fc-card" data-fcard={index}>
+						<div class="fc-card-inner">
+							<div class="fc-card-face fc-card-front">
+								<p class="fc-card-rune" aria-hidden="true">{item.rune}</p>
+								<p class="fc-card-num">{item.num}</p>
+								<p class="fc-card-q">{item.q}</p>
+							</div>
+							<div class="fc-card-face fc-card-back">
+								<p class="fc-card-rune" aria-hidden="true">{item.rune}</p>
+								<p class="fc-card-a">{item.a}</p>
+							</div>
+						</div>
+					</article>
+				))
+			}
+			<div class="fc-foot">
+				<button type="button" class="fc-btn" data-fdeck-open>Перевернуть</button>
+				<button type="button" class="fc-btn" data-fdeck-next>Убрать карточку</button>
+				<span class="fc-state" data-fdeck-state>1 / {questions.length}</span>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- ══ F4 «ЛЕНТА ВОПРОСОВ» ══════════════════════════════════════════ -->
+<section id="fc-f4" class="fc fc-tape" data-concept="f4">
+	<div class="fc-tape-scene" data-ftape-scene>
+		<div class="fc-tape-sticky">
+			<div class="fc-head">
+				<p class="fc-label">Вопросы</p>
+				<h2 class="fc-title">Что спрашивают</h2>
+				<p class="fc-hint">Скролл ведёт ленту, центральная карточка ближе</p>
+			</div>
+			<div class="fc-tape-track" data-ftape-track>
+				{
+					questions.map((item) => (
+						<article class="fc-tile">
+							<p class="fc-tile-rune" aria-hidden="true">{item.rune}</p>
+							<p class="fc-tile-num">{item.num}</p>
+							<h3 class="fc-tile-q">{item.q}</h3>
+							<p class="fc-tile-a">{item.a}</p>
+						</article>
+					))
+				}
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- ══ F5 «СТЕНА РУН» ═══════════════════════════════════════════════ -->
+<section id="fc-f5" class="fc fc-field" data-concept="f5">
+	<div class="fc-inner">
+		<div class="fc-head">
+			<p class="fc-label">Вопросы</p>
+			<h2 class="fc-title">Что спрашивают</h2>
+			<p class="fc-hint">Руны отвечают на близость курсора, клик печатает ответ</p>
+		</div>
+		<div class="fc-field-wall" data-ffield>
+			{
+				questions.map((item, index) => (
+					<button type="button" class="fc-glyph" data-fglyph={index} aria-pressed={index === 0}>
+						<span class="fc-glyph-rune" aria-hidden="true">{item.rune}</span>
+						<span class="fc-glyph-num">{item.num}</span>
+					</button>
+				))
+			}
+		</div>
+		<div class="fc-field-panel">
+			{
+				questions.map((item, index) => (
+					<div class="fc-field-item" data-fitem={index}>
+						<p class="fc-field-q" data-fquestion>{item.q}</p>
+						<p class="fc-field-a" data-fanswer>{item.a}</p>
+					</div>
+				))
+			}
+		</div>
+	</div>
+</section>
+
+<style>
+	/* ── Общее ──────────────────────────────────────────────────────── */
+	.fc { position: relative; border-bottom: 1px solid var(--border); padding: 32px 24px; }
+	@media (min-width: 1024px) { .fc { padding: 40px 32px; } }
+	.fc-inner { margin: 0 auto; max-width: 1400px; }
+	.fc-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.fc-title {
+		margin-top: 24px;
+		max-width: 14ch;
+		font-size: var(--text-h2);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.fc-hint {
+		margin-top: 14px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--accent-warm);
+	}
+	.fc-btn {
+		min-height: 44px;
+		padding: 10px 16px;
+		border: 1px solid var(--border);
+		background: transparent;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--text);
+		cursor: pointer;
+	}
+	.fc-btn:hover { border-color: var(--accent); color: var(--accent); }
+	.fc-btn--quiet { color: var(--text-muted); }
+	.fc-state {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.fc-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px; }
+
+	/* ── F1 Свиток рун ──────────────────────────────────────────────── */
+	.fc-scroll-body { margin-top: 40px; display: grid; gap: 32px; }
+	@media (min-width: 1024px) {
+		.fc-scroll-body { grid-template-columns: 96px minmax(0, 1fr); gap: 48px; }
+	}
+	.fc-runes { display: flex; flex-wrap: wrap; gap: 8px; }
+	@media (min-width: 1024px) {
+		.fc-runes { flex-direction: column; flex-wrap: nowrap; gap: 4px; }
+	}
+	.fc-rune {
+		display: inline-flex;
+		align-items: center;
+		gap: 12px;
+		min-height: 48px;
+		padding: 8px 14px;
+		border: 1px solid transparent;
+		background: transparent;
+		cursor: pointer;
+	}
+	.fc-rune-glyph {
+		font-size: 20px;
+		line-height: 1;
+		color: var(--text-muted);
+		transition: color 260ms cubic-bezier(0.33, 1, 0.68, 1), transform 260ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.fc-rune-num {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.1em;
+		color: var(--text-muted);
+	}
+	.fc-rune[aria-selected='true'] .fc-rune-glyph { color: var(--accent); transform: scale(1.15); }
+	.fc-rune[aria-selected='true'] .fc-rune-num { color: var(--text); }
+	@media (min-width: 1024px) {
+		.fc-rune[aria-selected='true'] { border-left-color: var(--accent); }
+		.fc-rune:hover .fc-rune-glyph { color: var(--text); }
+	}
+	.fc-scroll-panel { position: relative; padding: 0 0 8px; }
+	.fc-rule { display: block; height: 1px; background: var(--border); }
+	.fc-answer { padding: 28px 0; }
+	.fc-answer-rune { font-size: 26px; line-height: 1; color: var(--accent-warm); }
+	.fc-answer-q {
+		margin-top: 16px;
+		font-family: var(--font-display);
+		font-size: clamp(1.25rem, 1.6vw, 1.75rem);
+		line-height: 1.2;
+		color: var(--text);
+	}
+	.fc-answer-a { margin-top: 16px; max-width: 62ch; font-size: var(--text-body); line-height: 1.6; color: var(--text-muted); }
+	/* Со скриптом открыт один ответ, свиток «разворачивается» по высоте. */
+	.fc[data-js] .fc-answer {
+		display: none;
+		overflow: hidden;
+		animation: fc-unroll 420ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.fc[data-js] .fc-answer[data-open] { display: block; }
+	@keyframes fc-unroll {
+		from { opacity: 0; clip-path: inset(0 0 92% 0); }
+		to { opacity: 1; clip-path: inset(0 0 0 0); }
+	}
+
+	/* ── F2 Разговор ────────────────────────────────────────────────── */
+	.fc-chat { margin-top: 40px; max-width: 860px; }
+	.fc-chat-log { display: flex; flex-direction: column; gap: 20px; }
+	.fc-pair { display: flex; flex-direction: column; gap: 10px; }
+	.fc-line {
+		max-width: 78%;
+		border: 1px solid var(--border);
+		padding: 16px 18px;
+		background: color-mix(in srgb, var(--bg-deep) 72%, transparent);
+	}
+	.fc-line--ask { align-self: flex-end; border-color: color-mix(in srgb, var(--accent-warm) 45%, var(--border)); }
+	.fc-line--answer { align-self: flex-start; }
+	.fc-who {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--accent);
+	}
+	.fc-line--ask .fc-who { color: var(--accent-warm); }
+	.fc-line-text { margin-top: 8px; font-size: var(--text-body); line-height: 1.55; color: var(--text); }
+	.fc[data-js] .fc-pair { display: none; }
+	.fc[data-js] .fc-pair[data-open] { display: flex; animation: fc-fade 380ms cubic-bezier(0.33, 1, 0.68, 1); }
+	@keyframes fc-fade { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+	.fc-typing { display: none; gap: 5px; padding: 14px 18px; border: 1px dashed var(--border); width: max-content; }
+	.fc[data-js] .fc-typing[data-on] { display: flex; }
+	.fc-typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); animation: fc-blink 1.1s infinite ease-in-out; }
+	.fc-typing span:nth-child(2) { animation-delay: 0.15s; }
+	.fc-typing span:nth-child(3) { animation-delay: 0.3s; }
+	@keyframes fc-blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+
+	/* ── F3 3D-стопка ───────────────────────────────────────────────── */
+	.fc-deck-stage { margin-top: 40px; display: grid; gap: 20px; }
+	@media (min-width: 1024px) {
+		.fc-deck-stage { display: block; position: relative; height: 460px; perspective: 1400px; }
+	}
+	.fc-card { border: 1px solid var(--border); background: var(--bg-deep); }
+	.fc-card-inner { display: grid; }
+	.fc-card-front, .fc-card-back { padding: 28px; }
+	@media (min-width: 1024px) {
+		.fc-deck-stage[data-js] .fc-card {
+			position: absolute;
+			left: 0;
+			top: 0;
+			width: min(560px, 52%);
+			transform-style: preserve-3d;
+			transition: transform 560ms cubic-bezier(0.33, 1, 0.68, 1), opacity 560ms cubic-bezier(0.33, 1, 0.68, 1);
+		}
+		.fc-deck-stage[data-js] .fc-card-inner { position: relative; transform-style: preserve-3d; transition: transform 560ms cubic-bezier(0.33, 1, 0.68, 1); }
+		.fc-deck-stage[data-js] .fc-card[data-flipped] .fc-card-inner { transform: rotateY(180deg); }
+		.fc-deck-stage[data-js] .fc-card-face { backface-visibility: hidden; }
+		.fc-deck-stage[data-js] .fc-card-back { position: absolute; inset: 0; transform: rotateY(180deg); }
+	}
+	.fc-card-rune { font-size: 22px; line-height: 1; color: var(--accent-warm); }
+	.fc-card-num {
+		margin-top: 12px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		color: var(--text-muted);
+	}
+	.fc-card-q { margin-top: 16px; font-family: var(--font-display); font-size: 1.375rem; line-height: 1.2; color: var(--text); }
+	.fc-card-a { margin-top: 16px; font-size: var(--text-body); line-height: 1.6; color: var(--text); }
+
+	/* ── F4 Лента вопросов ──────────────────────────────────────────── */
+	.fc-tape-scene { position: relative; }
+	@media (min-width: 1024px) {
+		.fc-tape-scene { height: 300vh; }
+		.fc-tape-sticky {
+			position: sticky;
+			top: 0;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			height: 100svh;
+			overflow: hidden;
+		}
+	}
+	.fc-tape-track { margin-top: 40px; display: flex; gap: 20px; overflow-x: auto; scrollbar-width: none; }
+	.fc-tape-track::-webkit-scrollbar { display: none; }
+	@media (min-width: 1024px) {
+		.fc-tape-track { margin-top: 56px; overflow: visible; width: max-content; padding: 0 32px; }
+	}
+	.fc-tile {
+		flex: none;
+		width: 78vw;
+		border: 1px solid var(--border);
+		padding: 32px;
+		background: color-mix(in srgb, var(--bg-deep) 76%, transparent);
+		transition: border-color 320ms cubic-bezier(0.33, 1, 0.68, 1), transform 320ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	@media (min-width: 1024px) {
+		.fc-tile { width: 34vw; }
+	}
+	.fc-tile-rune { font-size: 24px; line-height: 1; color: var(--accent-warm); }
+	.fc-tile-num {
+		margin-top: 12px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		color: var(--text-muted);
+	}
+	.fc-tile-q { margin-top: 16px; font-family: var(--font-display); font-size: 1.375rem; line-height: 1.2; color: var(--text); }
+	.fc-tile-a { margin-top: 16px; font-size: var(--text-body); line-height: 1.6; color: var(--text-muted); }
+
+	/* ── F5 Стена рун ───────────────────────────────────────────────── */
+	.fc-field-wall {
+		margin-top: 40px;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 18px;
+	}
+	@media (min-width: 1024px) {
+		.fc-field-wall { height: 240px; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 12px; }
+	}
+	.fc-glyph {
+		display: inline-flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		min-width: 64px;
+		min-height: 64px;
+		padding: 12px;
+		border: 1px solid transparent;
+		background: transparent;
+		cursor: pointer;
+		transition: transform 260ms cubic-bezier(0.33, 1, 0.68, 1), border-color 260ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.fc-glyph-rune {
+		font-size: 34px;
+		line-height: 1;
+		color: var(--text-muted);
+		transition: color 260ms cubic-bezier(0.33, 1, 0.68, 1), text-shadow 260ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.fc-glyph-num {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.1em;
+		color: var(--text-muted);
+	}
+	.fc-glyph[aria-pressed='true'] .fc-glyph-rune { color: var(--accent); }
+	.fc-glyph[data-near] .fc-glyph-rune { color: var(--text); text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 55%, transparent); }
+	.fc-field-panel { margin-top: 32px; border-top: 1px solid var(--border); padding-top: 28px; }
+	.fc-field-item { margin-top: 20px; }
+	.fc[data-js] .fc-field-item { display: none; }
+	.fc[data-js] .fc-field-item[data-open] { display: block; }
+	.fc-field-q { font-family: var(--font-display); font-size: 1.375rem; line-height: 1.2; color: var(--text); }
+	.fc-field-a { margin-top: 14px; max-width: 62ch; font-size: var(--text-body); line-height: 1.6; color: var(--text-muted); }
+	.fc-caret { display: inline-block; width: 2px; height: 1em; margin-left: 2px; background: var(--accent); vertical-align: -0.15em; }
+
+	/* ── Reduced motion ─────────────────────────────────────────────── */
+	@media (prefers-reduced-motion: reduce) {
+		.fc-tape-scene { height: auto !important; }
+		.fc-tape-sticky { position: static !important; height: auto !important; }
+		.fc-tape-track { transform: none !important; }
+		.fc-card, .fc-card-inner, .fc-tile, .fc-glyph, .fc-rune-glyph, .fc-answer, .fc-pair {
+			transition: none !important;
+			transform: none !important;
+			animation: none !important;
+		}
+		.fc[data-js] .fc-answer { display: block !important; }
+		.fc[data-js] .fc-pair { display: flex !important; }
+		.fc[data-js] .fc-field-item { display: block !important; }
+		.fc-typing { display: none !important; }
+	}
+</style>
+
+<script>
+	/* Пять концепций FAQ: каждая умеет boot() и reset(). */
+	type Boot = { boot: () => void; reset: () => void };
+	type Win = Window & { __fcBoot?: Record<string, Boot> };
+	const win = window as Win;
+	win.__fcBoot = win.__fcBoot || {};
+	const reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+	const sec = (id: string) => document.getElementById(id) as HTMLElement | null;
+
+	/* ── F1 Свиток рун ──────────────────────────────────────────────── */
+	(() => {
+		let index = 0;
+		let wired = false;
+		const paint = () => {
+			const s = sec('fc-f1');
+			if (!s) return;
+			const runes = Array.from(s.querySelectorAll<HTMLButtonElement>('.fc-rune'));
+			const answers = Array.from(s.querySelectorAll<HTMLElement>('.fc-answer'));
+			runes.forEach((rune, i) => {
+				rune.setAttribute('aria-selected', String(i === index));
+				rune.tabIndex = i === index ? 0 : -1;
+			});
+			answers.forEach((answer, i) => answer.toggleAttribute('data-open', i === index));
+		};
+		win.__fcBoot.f1 = {
+			boot() {
+				const s = sec('fc-f1');
+				if (!s) return;
+				s.setAttribute('data-js', '');
+				if (!wired) {
+					wired = true;
+					const runes = Array.from(s.querySelectorAll<HTMLButtonElement>('.fc-rune'));
+					runes.forEach((rune, i) => {
+						rune.addEventListener('click', () => { index = i; paint(); });
+						rune.addEventListener('mouseenter', () => { index = i; paint(); });
+					});
+					s.querySelector('.fc-runes')?.addEventListener('keydown', (event) => {
+						const key = (event as KeyboardEvent).key;
+						const count = runes.length;
+						if (key === 'ArrowDown' || key === 'ArrowRight') { event.preventDefault(); index = (index + 1) % count; paint(); }
+						else if (key === 'ArrowUp' || key === 'ArrowLeft') { event.preventDefault(); index = (index - 1 + count) % count; paint(); }
+						else if (key === 'Home') { event.preventDefault(); index = 0; paint(); }
+						else if (key === 'End') { event.preventDefault(); index = count - 1; paint(); }
+					});
+				}
+				paint();
+			},
+			reset() {
+				const s = sec('fc-f1');
+				if (!s) return;
+				s.removeAttribute('data-js');
+				s.querySelectorAll<HTMLElement>('.fc-answer').forEach((a) => a.removeAttribute('data-open'));
+			},
+		};
+	})();
+
+	/* ── F2 Разговор ────────────────────────────────────────────────── */
+	(() => {
+		let shown = 0;
+		let timer = 0;
+		let wired = false;
+		const paint = () => {
+			const s = sec('fc-f2');
+			if (!s) return;
+			const pairs = Array.from(s.querySelectorAll<HTMLElement>('[data-fpair]'));
+			pairs.forEach((pair, i) => pair.toggleAttribute('data-open', i < shown));
+			const typing = s.querySelector<HTMLElement>('[data-fchat-typing]');
+			typing?.toggleAttribute('data-on', shown > 0 && shown < pairs.length);
+			const state = s.querySelector<HTMLElement>('[data-fchat-state]');
+			if (state) state.textContent = `${shown} / ${pairs.length}`;
+		};
+		const next = () => {
+			const s = sec('fc-f2');
+			if (!s) return;
+			const total = s.querySelectorAll('[data-fpair]').length;
+			if (shown >= total) return;
+			s.querySelector<HTMLElement>('[data-fchat-typing]')?.setAttribute('data-on', '');
+			window.clearTimeout(timer);
+			timer = window.setTimeout(() => { shown += 1; paint(); }, reduceQuery.matches ? 0 : 700);
+		};
+		win.__fcBoot.f2 = {
+			boot() {
+				const s = sec('fc-f2');
+				if (!s || reduceQuery.matches) return;
+				s.setAttribute('data-js', '');
+				if (!wired) {
+					wired = true;
+					s.addEventListener('click', (event) => {
+						const target = event.target as HTMLElement;
+						if (target.closest('[data-fchat-next]')) { next(); return; }
+						if (target.closest('[data-fchat-reset]')) { shown = 0; paint(); return; }
+						if (target.closest('.fc-chat')) next();
+					});
+					s.addEventListener('keydown', (event) => {
+						if ((event as KeyboardEvent).key === 'Enter' || (event as KeyboardEvent).key === ' ') {
+							event.preventDefault();
+							next();
+						}
+					});
+					s.tabIndex = 0;
+				}
+				shown = 0;
+				paint();
+				next();
+			},
+			reset() {
+				const s = sec('fc-f2');
+				if (!s) return;
+				window.clearTimeout(timer);
+				shown = 0;
+				s.removeAttribute('data-js');
+				s.querySelectorAll<HTMLElement>('[data-fpair]').forEach((p) => p.removeAttribute('data-open'));
+				s.querySelector('[data-fchat-typing]')?.removeAttribute('data-on');
+			},
+		};
+	})();
+
+	/* ── F3 3D-стопка ───────────────────────────────────────────────── */
+	(() => {
+		let order: number[] = [];
+		let wired = false;
+		const paint = () => {
+			const s = sec('fc-f3');
+			if (!s) return;
+			const cards = Array.from(s.querySelectorAll<HTMLElement>('[data-fcard]'));
+			/* Стопка собирается только на десктопе: на 390 карточки идут обычным
+			   списком, иначе сдвиг по глубине уводил бы последние за правый край. */
+			const stacked = window.innerWidth >= 1024;
+			order.forEach((cardIndex, position) => {
+				const card = cards[cardIndex];
+				if (!card) return;
+				if (!stacked) {
+					card.style.transform = '';
+					card.style.zIndex = '';
+					card.style.opacity = '';
+					card.style.pointerEvents = '';
+					card.removeAttribute('data-flipped');
+					return;
+				}
+				const depth = position;
+				card.style.transform = `translate3d(${depth * 14}px, ${depth * -12}px, ${-depth * 60}px) rotateZ(${depth * 0.6}deg)`;
+				card.style.zIndex = String(40 - depth);
+				card.style.opacity = String(Math.max(0.35, 1 - depth * 0.12));
+				card.style.pointerEvents = position === 0 ? 'auto' : 'none';
+				if (position !== 0) card.removeAttribute('data-flipped');
+			});
+			const state = s.querySelector<HTMLElement>('[data-fdeck-state]');
+			if (state) state.textContent = stacked ? `осталось ${order.length}` : `всего ${cards.length}`;
+		};
+		const wire = () => {
+			const s = sec('fc-f3');
+			if (!s || wired) return;
+			wired = true;
+			s.addEventListener('click', (event) => {
+				const target = event.target as HTMLElement;
+				const stage = s.querySelector<HTMLElement>('[data-fdeck]');
+				if (!stage) return;
+				const top = stage.querySelector<HTMLElement>(`[data-fcard="${order[0]}"]`);
+				if (target.closest('[data-fdeck-open]') || target.closest('.fc-card')) {
+					if (top && !top.hasAttribute('data-flipped')) { top.setAttribute('data-flipped', ''); return; }
+				}
+				if (target.closest('[data-fdeck-next]') || target.closest('.fc-card')) {
+					if (top) {
+						/* Карточка уходит: сначала переворот назад, потом падение вниз */
+						top.removeAttribute('data-flipped');
+						top.style.transform = `${top.style.transform} translateY(420px)`;
+						top.style.opacity = '0';
+						window.setTimeout(() => {
+							order.push(order.shift() as number);
+							paint();
+						}, reduceQuery.matches ? 0 : 420);
+					}
+				}
+			});
+		};
+		win.__fcBoot.f3 = {
+			boot() {
+				const s = sec('fc-f3');
+				if (!s) return;
+				const stage = s.querySelector<HTMLElement>('[data-fdeck]');
+				stage?.setAttribute('data-js', '');
+				s.setAttribute('data-js', '');
+				wire();
+				if (!order.length) order = Array.from(s.querySelectorAll('[data-fcard]')).map((_, i) => i);
+				paint();
+			},
+			reset() {
+				const s = sec('fc-f3');
+				if (!s) return;
+				s.removeAttribute('data-js');
+				s.querySelector<HTMLElement>('[data-fdeck]')?.removeAttribute('data-js');
+				order = [];
+				s.querySelectorAll<HTMLElement>('[data-fcard]').forEach((card) => {
+					card.style.transform = '';
+					card.style.opacity = '';
+					card.style.zIndex = '';
+					card.style.pointerEvents = '';
+					card.removeAttribute('data-flipped');
+				});
+			},
+		};
+	})();
+
+	/* ── F4 Лента вопросов: пиннинг + глубина у центра ──────────────── */
+	(() => {
+		let wired = false;
+		let queued = false;
+		const frame = () => {
+			const s = sec('fc-f4');
+			if (!s || reduceQuery.matches) return;
+			const scene = s.querySelector<HTMLElement>('[data-ftape-scene]');
+			const track = s.querySelector<HTMLElement>('[data-ftape-track]');
+			if (!scene || !track || window.innerWidth < 1024) return;
+			const box = scene.getBoundingClientRect();
+			const span = Math.max(1, box.height - window.innerHeight);
+			const progress = Math.min(1, Math.max(0, -box.top / span));
+			const distance = Math.max(0, track.scrollWidth - window.innerWidth);
+			track.style.transform = `translate3d(${-progress * distance}px, 0, 0)`;
+			const center = window.innerWidth / 2;
+			Array.from(track.querySelectorAll<HTMLElement>('.fc-tile')).forEach((tile) => {
+				const rect = tile.getBoundingClientRect();
+				const offset = (rect.left + rect.width / 2 - center) / window.innerWidth;
+				const near = Math.max(0, 1 - Math.abs(offset) * 2.4);
+				tile.style.transform = `scale(${(0.92 + near * 0.08).toFixed(3)}) translateY(${((1 - near) * 12).toFixed(1)}px)`;
+				tile.style.opacity = (0.55 + near * 0.45).toFixed(2);
+				tile.toggleAttribute('data-center', near > 0.85);
+			});
+		};
+		const onScroll = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; frame(); }); };
+		win.__fcBoot.f4 = {
+			boot() {
+				const s = sec('fc-f4');
+				if (!s || reduceQuery.matches) return;
+				s.setAttribute('data-js', '');
+				if (!wired) { wired = true; window.addEventListener('scroll', onScroll, { passive: true }); window.addEventListener('resize', onScroll); }
+				frame();
+			},
+			reset() {
+				const s = sec('fc-f4');
+				if (!s) return;
+				s.removeAttribute('data-js');
+				const track = s.querySelector<HTMLElement>('[data-ftape-track]');
+				if (track) {
+					track.style.transform = '';
+					track.querySelectorAll<HTMLElement>('.fc-tile').forEach((tile) => { tile.style.transform = ''; tile.style.opacity = ''; tile.removeAttribute('data-center'); });
+				}
+			},
+		};
+	})();
+
+	/* ── F5 Стена рун: свечение от курсора + печать ответа ──────────── */
+	(() => {
+		let index = 0;
+		let wired = false;
+		let raf = 0;
+		let mouseX = -9999;
+		let mouseY = -9999;
+		let typing = 0;
+
+		const near = () => {
+			const s = sec('fc-f5');
+			if (!s) return;
+			const glyphs = Array.from(s.querySelectorAll<HTMLElement>('[data-fglyph]'));
+			glyphs.forEach((glyph) => {
+				const rect = glyph.getBoundingClientRect();
+				const dx = rect.left + rect.width / 2 - mouseX;
+				const dy = rect.top + rect.height / 2 - mouseY;
+				const distance = Math.sqrt(dx * dx + dy * dy);
+				const proximity = Math.max(0, 1 - distance / 420);
+				glyph.toggleAttribute('data-near', proximity > 0.35);
+				glyph.style.transform = `translateY(${(-proximity * 10).toFixed(1)}px) scale(${(1 + proximity * 0.12).toFixed(3)})`;
+				const rune = glyph.querySelector<HTMLElement>('.fc-glyph-rune');
+				if (rune) rune.style.opacity = String(0.45 + proximity * 0.55);
+			});
+		};
+		const loop = () => { near(); raf = requestAnimationFrame(loop); };
+
+		/* Печать ответа по символам — «мастер отвечает на глазах». */
+		const typeAnswer = () => {
+			const s = sec('fc-f5');
+			if (!s) return;
+			const items = Array.from(s.querySelectorAll<HTMLElement>('[data-fitem]'));
+			items.forEach((item, i) => item.toggleAttribute('data-open', i === index));
+			const item = items[index];
+			if (!item) return;
+			const q = item.querySelector<HTMLElement>('[data-fquestion]');
+			const a = item.querySelector<HTMLElement>('[data-fanswer]');
+			if (!q || !a) return;
+			const fullQ = q.dataset.full || q.textContent || '';
+			const fullA = a.dataset.full || a.textContent || '';
+			q.dataset.full = fullQ;
+			a.dataset.full = fullA;
+			window.clearInterval(typing);
+			if (reduceQuery.matches) { q.textContent = fullQ; a.textContent = fullA; return; }
+			let step = 0;
+			const total = fullQ.length + fullA.length + 12;
+			q.textContent = '';
+			a.textContent = '';
+			typing = window.setInterval(() => {
+				step += 2;
+				const qPart = Math.min(fullQ.length, step);
+				const aPart = Math.max(0, Math.min(fullA.length, step - fullQ.length - 10));
+				q.textContent = fullQ.slice(0, qPart);
+				a.textContent = fullA.slice(0, aPart);
+				if (qPart >= fullQ.length && aPart >= fullA.length) {
+					window.clearInterval(typing);
+					if (!a.querySelector('.fc-caret')) {
+						const caret = document.createElement('span');
+						caret.className = 'fc-caret';
+						a.appendChild(caret);
+					}
+				}
+				if (step > total) window.clearInterval(typing);
+			}, 22);
+		};
+
+		win.__fcBoot.f5 = {
+			boot() {
+				const s = sec('fc-f5');
+				if (!s || reduceQuery.matches) return;
+				s.setAttribute('data-js', '');
+				if (!wired) {
+					wired = true;
+					s.addEventListener('mousemove', (event) => { mouseX = event.clientX; mouseY = event.clientY; });
+					s.addEventListener('mouseleave', () => { mouseX = -9999; mouseY = -9999; });
+					s.addEventListener('click', (event) => {
+						const glyph = (event.target as HTMLElement).closest<HTMLElement>('[data-fglyph]');
+						if (!glyph) return;
+						index = Number(glyph.dataset.fglyph);
+						s.querySelectorAll<HTMLButtonElement>('[data-fglyph]').forEach((g, i) => g.setAttribute('aria-pressed', String(i === index)));
+						typeAnswer();
+					});
+					cancelAnimationFrame(raf);
+					raf = requestAnimationFrame(loop);
+				}
+				index = 0;
+				s.querySelectorAll<HTMLButtonElement>('[data-fglyph]').forEach((g, i) => g.setAttribute('aria-pressed', String(i === index)));
+				typeAnswer();
+			},
+			reset() {
+				const s = sec('fc-f5');
+				if (!s) return;
+				cancelAnimationFrame(raf);
+				raf = 0;
+				window.clearInterval(typing);
+				s.removeAttribute('data-js');
+				s.querySelectorAll<HTMLElement>('[data-fglyph]').forEach((g) => { g.style.transform = ''; g.removeAttribute('data-near'); });
+				s.querySelectorAll<HTMLElement>('[data-fitem]').forEach((item) => {
+					item.removeAttribute('data-open');
+					const q = item.querySelector<HTMLElement>('[data-fquestion]');
+					const a = item.querySelector<HTMLElement>('[data-fanswer]');
+					if (q?.dataset.full) q.textContent = q.dataset.full;
+					if (a?.dataset.full) a.textContent = a.dataset.full;
+					a?.querySelector('.fc-caret')?.remove();
+				});
+			},
+		};
+	})();
+
+	const active = document.documentElement.dataset.fc;
+	if (active && win.__fcBoot[active]) win.__fcBoot[active].boot();
+</script>
