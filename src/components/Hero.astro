@@ -816,6 +816,25 @@ import HeroIntro from './HeroIntro';
 		filter: none !important;
 		transform: none !important;
 	}
+
+	/* ── prefers-reduced-motion: конечный вид сразу, без гидратации ─────
+	   Сцена входа в SSR-разметке лежит скрытой (opacity 0, blur, сдвиг), а
+	   показывает её остров HeroIntro. Тем, кто просил покой, анимация не
+	   нужна — значит, и зависеть от острова им незачем: выставляем конечный
+	   вид правилом CSS, он действует с первого кадра. Длительность перехода
+	   при reduce у острова нулевая, поэтому расхождения гидратации нет.
+	   Селекторы — ровно те элементы, чью видимость держит остров; внутренние
+	   состояния CTA (призыв / рамка) не трогаем: ими управляет скрипт Hero. */
+	@media (prefers-reduced-motion: reduce) {
+		#top .hero-intro p.text-label,
+		#top .hero-sub,
+		#top .hero-intro h1 span span,
+		#top .hero-cta {
+			opacity: 1 !important;
+			filter: none !important;
+			transform: none !important;
+		}
+	}
 </style>
 
 <script>

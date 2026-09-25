@@ -10,8 +10,17 @@ const SUBTITLE = 'Стрижка — не пятнадцать минут, а в
 
 /**
  * Сцена входа hero: лейбл → сплит-текст заголовка → подзаголовок → CTA.
- * При prefers-reduced-motion каскад пропускается: каждому
- * элементу явно задаётся конечное состояние с нулевой длительностью.
+ *
+ * СТАРТОВОЕ СОСТОЯНИЕ ОДИНАКОВО НА СЕРВЕРЕ И НА КЛИЕНТЕ — всегда «скрыто»
+ * (opacity 0, blur, сдвиг). Раньше `initial` зависел от useReducedMotion(),
+ * и при prefers-reduced-motion: reduce клиент ждал opacity 1, тогда как сервер
+ * отдал 0: React сообщал о расхождении гидратации и не патчил его
+ * («A tree hydrated but some attributes of the server rendered HTML didn't
+ * match the client properties»).
+ * Теперь media-запрос влияет только на ДЛИТЕЛЬНОСТЬ: при reduce переход
+ * нулевой, поэтому конечный вид применяется сразу после гидратации. Чтобы
+ * покой не зависел и от гидратации, тот же конечный вид для reduce выставлен
+ * CSS-правилом в Hero.astro.
  *
  * Почему не «initial/animate = undefined»: сервер не знает про медиазапрос,
  * поэтому в SSR-разметке уже лежат стартовые стили (opacity 0, blur, сдвиг).
@@ -51,7 +60,7 @@ export default function HeroIntro() {
 	}, []);
 
 	const fade = (delay: number) => ({
-		initial: { opacity: reduced ? 1 : 0 },
+		initial: { opacity: 0 },
 		animate: { opacity: 1 },
 		transition: reduced ? { duration: 0 } : { duration: 0.8, delay, ease: EASE_HOVER },
 	});
@@ -69,11 +78,7 @@ export default function HeroIntro() {
 							<span key={word} className="inline-block overflow-hidden align-bottom">
 								<motion.span
 									className="inline-block"
-									initial={
-										reduced
-											? { y: 0, opacity: 1, filter: 'blur(0px)' }
-											: { y: '100%', opacity: 0, filter: 'blur(8px)' }
-									}
+									initial={{ y: '100%', opacity: 0, filter: 'blur(8px)' }}
 									animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
 									transition={
 										reduced
@@ -123,7 +128,7 @@ export default function HeroIntro() {
 				{/* Водяной знак C2 — элемент потока: margin-top: auto раздаёт
 				    остаток высоты поровну между тремя зазорами. */}
 				<div className="hero-decor decor-2" aria-hidden="true"><span>МЬЁЛЬНИР</span></div>
+			</div>
 		</div>
-	</div>
 );
 }

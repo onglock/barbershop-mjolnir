@@ -1,0 +1,250 @@
+---
+// /training-preview — развилки секции «Обучение» кнопками (правило 20.6):
+// какая карточка выделена, цвет бейджа, есть ли проявление карточек.
+// Живой рендер боевого компонента Training — тот же, что стоит на главной;
+// оси переключаются атрибутами на секции, поэтому превью и бой не расходятся.
+if (import.meta.env.PROD) return Astro.redirect('/');
+
+import Layout from '../layouts/Layout.astro';
+import TrainingVariants from '../components/preview/TrainingVariants.astro';
+
+const rows = [
+	{
+		group: 'highlight',
+		label: 'Выделена карточка',
+		options: [
+			{ value: 'right', label: 'Правая — Премиум' },
+			{ value: 'middle', label: 'Средняя — Среднее' },
+		],
+	},
+	{
+		group: 'badge',
+		label: 'Бейдж и акцентная граница',
+		options: [
+			{ value: 'amber', label: 'Янтарь' },
+			{ value: 'steel', label: 'Сталь' },
+		],
+	},
+	{
+		group: 'reveal',
+		label: 'Появление карточек',
+		options: [
+			{ value: 'on', label: 'с проявлением' },
+			{ value: 'off', label: 'без' },
+		],
+	},
+];
+
+const initial = { highlight: 'right', badge: 'steel', reveal: 'on' };
+---
+
+<Layout title="Обучение · превью — Мьёльнир">
+	<main id="main" class="relative z-10 bg-bg">
+		<!-- Тот же общий фон секций, что на главной: превью должно показывать
+		     секцию в бою, а не на голом фоне. -->
+		<div class="section-bg" aria-hidden="true"></div>
+
+		<div class="trp-head">
+			<p class="trp-eyebrow">Превью · Обучение</p>
+			<h1 class="trp-title">Три тарифа курсов</h1>
+			<p class="trp-note">
+				Тексты — черновик Hermes, ждут вашего утверждения. Развилки переключаются в панели
+				справа снизу.
+			</p>
+		</div>
+
+		<TrainingVariants />
+	</main>
+
+	<!-- Панель параметров: PreviewPanel перенесёт её в выезжающий дровер -->
+	<aside class="trp-panel" data-pp>
+		<p class="trp-panel-title">Обучение · тарифы</p>
+		{
+			rows.map((row) => (
+				<div class="trp-row">
+					<span class="trp-row-label">{row.label}</span>
+					<span class="trp-row-btns">
+						{row.options.map((opt) => (
+							<button
+								type="button"
+								data-trg={row.group}
+								data-trv={opt.value}
+								aria-pressed={initial[row.group as keyof typeof initial] === opt.value ? 'true' : 'false'}
+							>
+								{opt.label}
+							</button>
+						))}
+					</span>
+				</div>
+			))
+		}
+		<p class="trp-state" id="trp-state">—</p>
+	</aside>
+</Layout>
+
+<style>
+	/* Панель живёт в дровере PreviewPanel — стили под его узкую ширину. */
+	.trp-panel-title {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.trp-row {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		margin-top: 14px;
+	}
+	.trp-row-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.trp-row-btns {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+	.trp-row-btns button {
+		min-height: 40px;
+		padding: 8px 12px;
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		background: transparent;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		cursor: pointer;
+		transition:
+			border-color 200ms cubic-bezier(0.33, 1, 0.68, 1),
+			color 200ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.trp-row-btns button:hover {
+		border-color: var(--accent);
+		color: var(--text);
+	}
+	.trp-row-btns button[aria-pressed='true'] {
+		border-color: var(--accent);
+		color: var(--text);
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+	}
+	.trp-state {
+		margin-top: 14px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		line-height: 1.5;
+		color: var(--accent-warm);
+	}
+</style>
+
+<style>
+	.trp-head {
+		margin: 0 auto;
+		max-width: 1400px;
+		padding: 96px 24px 24px;
+	}
+	.trp-eyebrow,
+	.trp-title {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.trp-title {
+		margin-top: 12px;
+		font-family: var(--font-display);
+		font-size: clamp(1.5rem, 3vw, 2.25rem);
+		letter-spacing: -0.03em;
+		color: var(--text);
+	}
+	.trp-note {
+		margin-top: 12px;
+		max-width: 68ch;
+		font-size: var(--text-body);
+		color: var(--text-muted);
+	}
+
+	/* Общий фон секций — как на главной (index.astro). */
+	.section-bg {
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
+		background-image: url('/hero-bg/hero-bg-main.jpg');
+		background-size: cover;
+		background-position: center 80%;
+		background-repeat: no-repeat;
+		opacity: 0.3;
+	}
+	@media (max-width: 1023px) {
+		.section-bg {
+			display: none;
+		}
+	}
+</style>
+
+<script>
+	/* Кнопки панели дёргают ручки самого компонента (window.__tr). Скрипт
+	   компонента поднимается вместе с ним, поэтому ждём его появления, а не
+	   надеемся на порядок тегов. */
+	const state = document.getElementById('trp-state');
+	const buttons = [...document.querySelectorAll<HTMLButtonElement>('.trp-panel button')];
+	const labels: Record<string, string> = {
+		highlight: 'карточка',
+		badge: 'бейдж',
+		reveal: 'появление',
+	};
+	const names: Record<string, string> = {
+		right: 'правая (Премиум)',
+		middle: 'средняя (Среднее)',
+		amber: 'янтарь',
+		steel: 'сталь',
+		on: 'с проявлением',
+		off: 'без',
+	};
+
+	type TrApi = { set: (p: Record<string, string>) => void; state: () => Record<string, unknown> };
+
+	const paint = () => {
+		const api = (window as unknown as { __tr?: TrApi }).__tr;
+		if (!api || !state) return;
+		const s = api.state();
+		const widths = (s.cardWidths as number[]) ?? [];
+		state.textContent =
+			`выделена: ${names[String(s.highlight)]} · бейдж: ${names[String(s.badge)]} · ` +
+			`появление: ${names[String(s.reveal)]} · скрыто: ${s.hidden} из ${s.items} · ` +
+			`ширины: ${widths.join(' / ')} px`;
+	};
+
+	const start = (attempt = 0) => {
+		const api = (window as unknown as { __tr?: TrApi }).__tr;
+		if (!api) {
+			if (attempt < 60) requestAnimationFrame(() => start(attempt + 1));
+			return;
+		}
+
+		buttons.forEach((button) => {
+			button.addEventListener('click', () => {
+				const group = button.dataset.trg!;
+				const value = button.dataset.trv!;
+				api.set({ [group]: value });
+				buttons
+					.filter((other) => other.dataset.trg === group)
+					.forEach((other) => other.setAttribute('aria-pressed', String(other === button)));
+				paint();
+			});
+		});
+
+		paint();
+		(window as unknown as { __trp?: unknown }).__trp = { paint, api };
+	};
+
+	start();
+</script>

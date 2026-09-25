@@ -1,0 +1,300 @@
+---
+// «Обучение» — три тарифа курсов. Секция стоит между «Мастерской» и «Молвой».
+//
+// СНИМОК РАЗВИЛОК для /training-preview (история выбора 2026-09-25).
+// Боевая секция — src/components/Training.astro: там параметры уже зафиксированы
+// (выделен «Премиум», стальная граница, плашка статична, проявление по скроллу).
+// Здесь остались переключатели трёх осей — на случай, если решения захочется
+// пересмотреть: data-highlight, data-badge, data-reveal на самой секции.
+//
+// Три оси, которые Кирилл выбирает на /training-preview — все три живут
+// АТРИБУТАМИ НА СЕКЦИИ, а не классами на карточках:
+//   data-highlight="right|middle" — какая карточка выделена (правую-«Премиум»
+//                                   Кирилл предложил сам, она и по умолчанию);
+//   data-badge="amber|steel"      — цвет бейджа И акцентной границы выделенной
+//                                   карточки (одна ручка, чтобы цвета не разъехались);
+//   data-reveal="on|off"          — проявление карточек при входе в кадр.
+// Так превью переключает оси сменой одного атрибута, без перерисовки, и те же
+// атрибуты работают в SSR — на боевой странице разметка не отличается от превью.
+//
+// Черновик без JS: карточки видны сразу (скрытое стартовое состояние включает
+// ТОЛЬКО скрипт — атрибут data-rv), поэтому контент читается при отключённом JS.
+import { training, type TrainingPlan } from '../../lib/training';
+
+interface Props {
+	/** Якорь секции. Пропом — чтобы превью не ломало id боевой секции. */
+	sectionId?: string;
+	highlight?: 'right' | 'middle';
+	badge?: 'amber' | 'steel';
+	reveal?: boolean;
+}
+
+const { sectionId = 'training', highlight = 'right', badge = 'steel', reveal = true } = Astro.props;
+---
+
+<section
+	id={sectionId}
+	class="training scroll-mt-24 border-b border-border px-6 py-8 lg:px-8 lg:py-10"
+	data-highlight={highlight}
+	data-badge={badge}
+	data-reveal={reveal ? 'on' : 'off'}
+	data-draft="true"
+>
+	<div class="mx-auto max-w-[1400px]">
+		<p class="font-label text-label uppercase text-text-muted">{training.eyebrow}</p>
+
+		<h2 class="mt-6 max-w-[16ch] text-h2 uppercase text-text">{training.heading}</h2>
+
+		<p class="mt-6 max-w-[64ch] text-body text-text-muted">{training.lead}</p>
+
+		<div class="mt-10 grid gap-6 lg:grid-cols-3">
+			{
+				training.plans.map((plan: TrainingPlan) => (
+					<article class="tr-item" data-plan={plan.id}>
+						<div class="tr-card flex h-full flex-col border border-border">
+							{/* Плашка статична на «Премиуме» (решение Кирилла 2026-09-25). */}
+							{plan.badge && <span class="tr-badge font-label text-label uppercase">{plan.badge}</span>}
+
+							<div class="flex flex-1 flex-col p-6 lg:p-7">
+								<p class="font-label text-label uppercase text-text-muted">{plan.step}</p>
+
+								<p class="mt-5 flex items-baseline gap-3">
+									<span class="tr-price font-display text-text">{plan.price}</span>
+									<span class="font-label text-label uppercase text-text-muted">{plan.unit}</span>
+								</p>
+
+								<h3 class="tr-name mt-4 font-display uppercase text-text">{plan.name}</h3>
+
+								<p class="mt-4 text-body text-text-muted">{plan.description}</p>
+
+								<ul class="mt-6 space-y-3">
+									{plan.features.map((feature) => (
+										<li class="flex gap-3 text-body text-text">
+											{/* Галочка — SVG в акцентном цвете. Разметку нельзя вынести
+											    в frontmatter const: там обычный TS, JSX не парсится. */}
+											<svg
+												class="tr-check"
+												viewBox="0 0 16 16"
+												fill="none"
+												aria-hidden="true"
+												focusable="false"
+											>
+												<path
+													d="M2.5 8.5 6 12l7.5-8"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="square"
+												/>
+											</svg>
+											<span>{feature}</span>
+										</li>
+									))}
+								</ul>
+							</div>
+						</div>
+					</article>
+				))
+			}
+		</div>
+
+		<p class="mt-8 font-label text-label uppercase text-text-muted">{training.footnote}</p>
+	</div>
+</section>
+
+<style>
+	/* ── Ручки вариантов ────────────────────────────────────────────────
+	   Цвет выделенной карточки — от бейджа: одна ручка на двоих, иначе
+	   янтарный бейдж мог бы оказаться на стальной границе. */
+	.training[data-badge='amber'] {
+		--tr-accent: var(--accent-warm);
+	}
+	.training[data-badge='steel'] {
+		--tr-accent: var(--accent);
+	}
+
+	/* Размеры цены и названия тарифа — КОМПОНЕНТНЫЕ (уровень 3 токенов).
+	   Шкала сайта — три размера (display / h2 / body / label), и ни один из
+	   них не годится внутри карточки: text-h2 на 1280 это 83 px. */
+	.tr-price {
+		font-size: clamp(2rem, 3.4vw, 2.75rem);
+		line-height: 1;
+		letter-spacing: -0.03em;
+		font-weight: 600;
+	}
+	.tr-name {
+		font-size: clamp(1.375rem, 2.1vw, 1.75rem);
+		line-height: 1.1;
+		letter-spacing: -0.02em;
+		font-weight: 600;
+	}
+
+	.tr-check {
+		flex: 0 0 auto;
+		width: 16px;
+		height: 16px;
+		margin-top: 0.28em;
+		color: var(--accent);
+	}
+
+	/* ── Бейдж ─────────────────────────────────────────────────────── */
+	.tr-badge {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 30px;
+		padding: 0 12px;
+		background: var(--tr-accent, var(--accent));
+		color: var(--bg-deep);
+	}
+
+	/* ── Карточка: переходы ───────────────────────────────────────── */
+	.tr-card {
+		transition:
+			transform 300ms var(--ease-hover),
+			border-color 300ms var(--ease-hover),
+			background-color 300ms var(--ease-hover);
+	}
+
+	/* ── Выделенная карточка ──────────────────────────────────────── */
+	.training[data-highlight='right'] .tr-item:nth-child(3) .tr-card,
+	.training[data-highlight='middle'] .tr-item:nth-child(2) .tr-card {
+		background-color: var(--surface);
+		border-color: var(--tr-accent, var(--accent));
+	}
+	/* Подъём выделенной карточки — только на десктопе: на 390 карточки
+	   идут столбиком, и подъём читается как сломанный зазор. */
+	@media (min-width: 1024px) {
+		.training[data-highlight='right'] .tr-item:nth-child(3) .tr-card,
+		.training[data-highlight='middle'] .tr-item:nth-child(2) .tr-card {
+			transform: translateY(-10px);
+		}
+	}
+
+	/* Наведение — как у соседних секций (Masters, Services): подъём и
+	   акцентная рамка. На выделенной карточке не меняем ничего: она уже
+	   акцентная, второй акцент читался бы как ошибка. */
+	@media (hover: hover) and (min-width: 1024px) {
+		.tr-item:hover .tr-card {
+			transform: translateY(-4px);
+			border-color: var(--accent);
+		}
+		.training[data-highlight='right'] .tr-item:nth-child(3):hover .tr-card,
+		.training[data-highlight='middle'] .tr-item:nth-child(2):hover .tr-card {
+			transform: translateY(-10px);
+			border-color: var(--tr-accent, var(--accent));
+		}
+	}
+
+	/* ── Проявление карточек ──────────────────────────────────────────
+	   Скрытое стартовое состояние включается ТОЛЬКО скриптом (data-rv) —
+	   без JS карточки видны сразу. Разнос по времени — 90 мс на карточку. */
+	.training[data-rv='ready'][data-reveal='on'] .tr-item {
+		opacity: 0;
+		transform: translateY(18px);
+		transition:
+			opacity 620ms var(--ease-hover),
+			transform 620ms var(--ease-hover);
+	}
+	.training[data-rv='ready'][data-reveal='on'] .tr-item:nth-child(2) {
+		transition-delay: 90ms;
+	}
+	.training[data-rv='ready'][data-reveal='on'] .tr-item:nth-child(3) {
+		transition-delay: 180ms;
+	}
+	.training[data-rv='ready'][data-reveal='on'] .tr-item.is-in {
+		opacity: 1;
+		transform: none;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.tr-item,
+		.tr-card {
+			opacity: 1 !important;
+			transform: none !important;
+			transition: none !important;
+			transition-delay: 0ms !important;
+		}
+	}
+</style>
+
+<script>
+	/* Один скрипт на все ручки. Корень ищем по КЛАССУ, а не по id: на
+	   превью-странице рядом может стоять вторая копия секции (правило §5
+	   скилла motion-designer). */
+	type Axis = 'highlight' | 'badge' | 'reveal';
+
+	const sections = [...document.querySelectorAll<HTMLElement>('section.training')];
+	const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+	sections.forEach((section) => {
+		const items = [...section.querySelectorAll<HTMLElement>('.tr-item')];
+		let observer: IntersectionObserver | null = null;
+
+		const showAll = () => items.forEach((item) => item.classList.add('is-in'));
+
+		const arm = (animate: boolean) => {
+			if (!animate || reduced()) {
+				section.removeAttribute('data-rv');
+				showAll();
+				return;
+			}
+			/* Переключаем проявление заново: снимаем состояние, включаем
+			   скрытый старт, ждём кадр (иначе браузер склеит оба состояния
+			   в один стиль и анимации не будет) и только потом наблюдаем. */
+			items.forEach((item) => item.classList.remove('is-in'));
+			observer?.disconnect();
+			section.dataset.rv = 'ready';
+			requestAnimationFrame(() => {
+				observer = new IntersectionObserver(
+					(entries, obs) => {
+						entries.forEach((entry) => {
+							if (!entry.isIntersecting) return;
+							entry.target.classList.add('is-in');
+							obs.unobserve(entry.target);
+						});
+					},
+					{ threshold: 0.15 },
+				);
+				items.forEach((item) => observer!.observe(item));
+			});
+		};
+
+		/* Стартовое состояние берём из разметки: она уже несёт решение
+		   (проп reveal, по умолчанию «с проявлением»). */
+		arm(section.dataset.reveal === 'on');
+
+		const set = (partial: Partial<Record<Axis, string>>) => {
+			if (partial.highlight) section.dataset.highlight = partial.highlight;
+			if (partial.badge) section.dataset.badge = partial.badge;
+			if (partial.reveal) {
+				section.dataset.reveal = partial.reveal;
+				arm(partial.reveal === 'on');
+			}
+		};
+
+		const state = () => {
+			/* Выделенную карточку определяем по оси, а не по цвету: цвета в
+			   проекте в oklch и/или через color-mix, сравнивать строки нельзя. */
+			const featured = section.dataset.highlight === 'middle' ? 1 : 2;
+			const hidden = items.filter((item) => Number(getComputedStyle(item).opacity) < 0.5).length;
+			return {
+				highlight: section.dataset.highlight,
+				badge: section.dataset.badge,
+				reveal: section.dataset.reveal,
+				revealReady: section.dataset.rv === 'ready',
+				items: items.length,
+				hidden,
+				featuredIndex: featured,
+				featuredPlan: items[featured]?.dataset.plan ?? null,
+				badgeVisible: items.filter((item) => {
+					/* Плашка есть только у «Премиума» — у остальных её нет вовсе. */
+					const badge = item.querySelector('.tr-badge');
+					return badge ? getComputedStyle(badge).display !== 'none' : false;
+				}).length,
+				cardWidths: items.map((item) => Math.round(item.getBoundingClientRect().width)),
+			};
+		};
+
+		(window as unknown as { __tr: unknown }).__tr = { set, state, arm: () => arm(true) };
+	});
+</script>
