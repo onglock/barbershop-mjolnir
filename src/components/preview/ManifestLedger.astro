@@ -1,0 +1,388 @@
+---
+/* ══ КОНЦЕПЦИЯ C — «ЖУРНАЛ МАСТЕРА» ════════════════════════════════════
+   Ось: артефакт. Раздел читается как журнал цеха: четыре записи едут
+   горизонтально, пока идёт вертикальный скролл; запись — своя метка, свой
+   абзац и своя «створка» интерьера (тот же кадр, разный кроп). В конце
+   лента печатает итог: 2014 / 3 / 900+. Призрачное слово едет вдоль ленты
+   с другой скоростью — им и читается глубина сцены.
+
+   Оценка координатора от 2026-09-25: самая дорогая из четырёх и требует
+   нового контента (даты записей, желательно 3–4 реальных фото). Прототип
+   сделан, чтобы Кирилл мог сравнить её с остальными глазами, а не в уме.
+
+   Без JS и на 390 — вертикальный список записей, весь текст читается.
+   ══════════════════════════════════════════════════════════════════════ */
+import { Image } from 'astro:assets';
+import {
+	manifestChapterMarks,
+	manifestChapterTitles,
+	manifestGhost,
+	manifestLabel,
+	manifestParagraphs,
+	manifestPhoto,
+	manifestStats,
+	manifestTitle,
+} from '../../lib/manifest';
+
+const crops = ['0% 50%', '34% 45%', '67% 52%', '100% 50%'];
+
+const entries = manifestParagraphs.map((paragraph, i) => ({
+	...paragraph,
+	i,
+	mark: manifestChapterMarks[paragraph.id],
+	title: manifestChapterTitles[paragraph.id],
+	crop: crops[i],
+}));
+---
+
+<section id="manifest-c" class="ml" data-concept="c">
+	<div class="ml-scene" data-ml-scene>
+		<div class="ml-sticky">
+			<div class="ml-clip" aria-hidden="true">
+				<span class="ml-ghost" data-ml-ghost>{manifestGhost}</span>
+			</div>
+
+			<div class="ml-track" data-ml-track>
+				<header class="ml-head">
+					<p class="ml-label">{manifestLabel}</p>
+					<h2 class="ml-title">{manifestTitle}</h2>
+					<p class="ml-hint" aria-hidden="true">Дальше — записи журнала</p>
+				</header>
+
+				{
+					entries.map((entry) => (
+						<article class="ml-entry" data-entry={entry.i}>
+							<div class="ml-plate">
+								<Image
+									src={manifestPhoto}
+									alt="Барбершоп «Мьёльнир»: зеркала, подвесные лампы и мастер за работой"
+									widths={[480, 800, 1200]}
+									sizes="(min-width: 1024px) 52vw, 100vw"
+									format="webp"
+									quality={80}
+									loading="lazy"
+									decoding="async"
+									class="ml-img"
+								/>
+							</div>
+							<div class="ml-entry-text">
+								<p class="ml-mark">{entry.mark}</p>
+								<h3 class="ml-entry-title">{entry.title}</h3>
+								<p class="ml-text">{entry.text}</p>
+							</div>
+						</article>
+					))
+				}
+
+				<article class="ml-entry ml-total">
+					<div class="ml-entry-text">
+						<p class="ml-mark">итог журнала</p>
+						<div class="ml-stats">
+							{
+								manifestStats.map((stat) => (
+									<div class="ml-stat">
+										<p class="ml-stat-value">{stat.value}</p>
+										<p class="ml-stat-label">{stat.label}</p>
+									</div>
+								))
+							}
+						</div>
+					</div>
+				</article>
+			</div>
+		</div>
+	</div>
+</section>
+
+<style>
+	.ml {
+		position: relative;
+		border-bottom: 1px solid var(--border);
+	}
+
+	/* Призрачное слово режет своя обёртка: overflow на секции ломает sticky. */
+	.ml-clip {
+		position: absolute;
+		inset: 0;
+		overflow: hidden;
+		pointer-events: none;
+	}
+
+	.ml-scene { position: relative; }
+	.ml-sticky {
+		padding: 32px 24px;
+	}
+	@media (min-width: 1024px) {
+		.ml-scene { height: 400vh; }
+		.ml-sticky {
+			position: sticky;
+			top: 0;
+			display: flex;
+			align-items: center;
+			height: 100svh;
+			padding: 40px 0;
+			overflow: hidden;
+		}
+	}
+
+	.ml-ghost {
+		pointer-events: none;
+		position: absolute;
+		top: -1rem;
+		left: 0;
+		user-select: none;
+		white-space: nowrap;
+		font-family: var(--font-manifest);
+		font-size: var(--text-display);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+		opacity: 0.08;
+		will-change: transform;
+	}
+
+	.ml-track {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		gap: 48px;
+		width: 100%;
+	}
+	@media (min-width: 1024px) {
+		.ml-track {
+			flex-direction: row;
+			align-items: center;
+			gap: 64px;
+			padding: 0 32px;
+			width: max-content;
+			will-change: transform;
+		}
+	}
+
+	.ml-head { max-width: 420px; }
+	.ml-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.ml-title {
+		margin-top: 24px;
+		max-width: 12ch;
+		font-family: var(--font-manifest);
+		font-size: var(--text-h2);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.ml-hint {
+		margin-top: 24px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--accent-warm);
+	}
+
+	.ml-entry {
+		display: grid;
+		gap: 20px;
+	}
+	@media (min-width: 1024px) {
+		.ml-entry {
+			/* Ширины створок заданы жёстко: внутри .ml-track с width: max-content
+			   процентная ширина картинки не даёт вклада в размер колонки, и
+			   minmax(0, 34vw) схлопывался в 0. */
+			grid-template-columns: 34vw minmax(280px, 22vw);
+			align-items: center;
+			gap: 32px;
+		}
+	}
+
+	.ml-plate {
+		overflow: hidden;
+		border: 1px solid var(--border);
+	}
+	.ml-img {
+		display: block;
+		width: 100%;
+		height: auto;
+		object-fit: cover;
+		object-position: var(--ml-crop, 50% 50%);
+		transition: object-position 800ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	@media (min-width: 1024px) {
+		.ml-img { aspect-ratio: 4 / 3; }
+	}
+
+	.ml-mark {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--accent-warm);
+	}
+	.ml-entry-title {
+		margin-top: 12px;
+		font-family: var(--font-display);
+		font-size: 1.5rem;
+		line-height: 1.15;
+		color: var(--text);
+	}
+	.ml-text {
+		margin-top: 16px;
+		font-size: var(--text-body);
+		line-height: 1.6;
+		color: var(--text-muted);
+	}
+
+	.ml-stats {
+		margin-top: 24px;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 32px 48px;
+	}
+	.ml-stat-value {
+		font-family: var(--font-display);
+		font-size: calc(var(--text-display) * 0.62);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		font-variant-numeric: tabular-nums;
+		color: var(--accent);
+	}
+	.ml-stat-label {
+		margin-top: 12px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.ml-scene { height: auto !important; }
+		.ml-sticky { position: static !important; height: auto !important; }
+		.ml-track { transform: none !important; }
+		.ml-img { transition: none !important; }
+	}
+</style>
+
+<script>
+	const KEY = 'c';
+	let counted = false;
+	let countRun = 0;
+	let wired = false;
+
+	type Boot = { boot: () => void; reset: () => void };
+	type Win = Window & { __mcBoot?: Record<string, Boot> };
+
+	const section = () => document.querySelector('.ml') as HTMLElement | null;
+
+	function countUp() {
+		const sec = section();
+		if (!sec || counted) return;
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		counted = true;
+		const run = ++countRun;
+		Array.from(sec.querySelectorAll<HTMLElement>('.ml-stat-value')).forEach((el) => {
+			const raw = el.dataset.final || el.textContent || '';
+			el.dataset.final = raw;
+			const digits = raw.replace(/\D/g, '');
+			if (!digits) return;
+			const head = raw.slice(0, raw.indexOf(digits));
+			const tail = raw.slice(raw.indexOf(digits) + digits.length);
+			const target = Number(digits);
+			const start = performance.now();
+			const step = (now: number) => {
+				if (run !== countRun) return;
+				const p = Math.min(1, (now - start) / 900);
+				const eased = 1 - Math.pow(1 - p, 3);
+				el.textContent = head + String(Math.round(target * eased)) + tail;
+				if (p < 1) requestAnimationFrame(step);
+				else el.textContent = raw;
+			};
+			requestAnimationFrame(step);
+		});
+	}
+
+	/* Кроп каждой створки ставим из данных в разметке: он же нужен при
+	   возврате на десктоп после узкого окна. */
+	function crops() {
+		const sec = section();
+		if (!sec) return;
+		const table = ['0% 50%', '34% 45%', '67% 52%', '100% 50%'];
+		Array.from(sec.querySelectorAll<HTMLElement>('.ml-entry')).forEach((entry, i) => {
+			const img = entry.querySelector<HTMLElement>('.ml-img');
+			if (img && table[i]) img.style.setProperty('--ml-crop', table[i]);
+		});
+	}
+
+	function onScroll() {
+		const sec = section();
+		if (!sec) return;
+		const scene = sec.querySelector<HTMLElement>('[data-ml-scene]');
+		const track = sec.querySelector<HTMLElement>('[data-ml-track]');
+		const ghost = sec.querySelector<HTMLElement>('[data-ml-ghost]');
+		if (!scene || !track) return;
+		if (window.innerWidth < 1024) {
+			track.style.transform = '';
+			return;
+		}
+		const rect = scene.getBoundingClientRect();
+		const span = Math.max(1, rect.height - window.innerHeight);
+		const p = Math.min(1, Math.max(0, -rect.top / span));
+		const distance = Math.max(0, track.scrollWidth - window.innerWidth);
+		track.style.transform = `translate3d(${-p * distance}px, 0, 0)`;
+		if (ghost) ghost.style.transform = `translate3d(${-p * distance * 0.28 + 40}px, 0, 0)`;
+		if (p > 0.86) countUp();
+	}
+
+	function boot() {
+		const sec = section();
+		if (!sec) return;
+		sec.setAttribute('data-js', '');
+		crops();
+		if (!wired) wire();
+		onScroll();
+	}
+
+	function wire() {
+		const sec = section();
+		if (!sec || wired) return;
+		wired = true;
+
+		let queued = false;
+		const onScrollQueued = () => {
+			if (queued) return;
+			queued = true;
+			requestAnimationFrame(() => {
+				queued = false;
+				onScroll();
+			});
+		};
+		window.addEventListener('scroll', onScrollQueued, { passive: true });
+		window.addEventListener('resize', onScrollQueued);
+		onScroll();
+	}
+
+	function reset() {
+		const sec = section();
+		if (!sec) return;
+		countRun++;
+		counted = false;
+		sec.removeAttribute('data-js');
+		const track = sec.querySelector<HTMLElement>('[data-ml-track]');
+		if (track) track.style.transform = '';
+		Array.from(sec.querySelectorAll<HTMLElement>('.ml-stat-value')).forEach((el) => {
+			if (el.dataset.final) el.textContent = el.dataset.final;
+		});
+	}
+
+	const win = window as Win;
+	win.__mcBoot = win.__mcBoot || {};
+	win.__mcBoot[KEY] = { boot, reset };
+	if (document.documentElement.dataset.mc === KEY) boot();
+</script>

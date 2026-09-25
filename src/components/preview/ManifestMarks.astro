@@ -1,0 +1,484 @@
+---
+/* ══ КОНЦЕПЦИЯ B — «ТРИ МЕТКИ» ══════════════════════════════════════════
+   Ось: выбор читателя. Три цифры раздела (2014 / 3 / 900+) выходят из подвала
+   секции и становятся навигацией: метка — крупная кнопка, фото превращается
+   в «экран», который отвечает на выбранную метку своим кропом, а четыре
+   абзаца распределены по меткам (lib/manifest.ts → manifestMarkPanels).
+
+   Это прототип подачи для /manifest-concepts-preview, не боевой раздел.
+   Без JS текст читается целиком: панели стоят друг под другом, все абзацы
+   видны; метки — обычные кнопки без логики.
+   ══════════════════════════════════════════════════════════════════════ */
+import { Image } from 'astro:assets';
+import {
+	manifestGhost,
+	manifestLabel,
+	manifestMarkPanels,
+	manifestPhoto,
+	manifestStats,
+	manifestTitle,
+	paragraphById,
+} from '../../lib/manifest';
+
+/* Кроп кадра под каждую метку: «камера» уезжает по интерьеру. Один кадр —
+   три состояния, нового фото не требуется. */
+const crops = ['26% 46%', '50% 28%', '78% 64%'];
+const zooms = [1.05, 1, 1.07];
+
+const marks = manifestStats.map((stat, i) => ({
+	...stat,
+	i,
+	crop: crops[i],
+	zoom: zooms[i],
+	paragraphs: manifestMarkPanels[i].map(paragraphById),
+}));
+---
+
+<section id="manifest-b" class="mb" data-concept="b">
+	<span aria-hidden="true" class="mb-ghost">{manifestGhost}</span>
+
+	<div class="mb-wrap">
+		<p class="mb-label">{manifestLabel}</p>
+		<h2 class="mb-title">{manifestTitle}</h2>
+
+		<div class="mb-grid">
+			<!-- Метки: цифры стали кнопками -->
+			<div class="mb-marks" role="tablist" aria-orientation="vertical" aria-label="Манифест в трёх фактах">
+				{
+					marks.map((mark) => (
+						<button
+							type="button"
+							class="mb-mark"
+							data-mark
+							role="tab"
+							id={`mb-tab-${mark.i}`}
+							aria-controls={`mb-panel-${mark.i}`}
+							aria-selected={mark.i === 0}
+							tabindex={mark.i === 0 ? 0 : -1}
+							data-crop={mark.crop}
+							data-zoom={String(mark.zoom)}
+						>
+							<span class="mb-bar" aria-hidden="true" />
+							<span class="mb-value">{mark.value}</span>
+							<span class="mb-mark-label">{mark.label}</span>
+						</button>
+					))
+				}
+			</div>
+
+			<!-- Экран: фото + раскрытый текст выбранной метки -->
+			<div class="mb-screen" data-screen>
+				<div class="mb-media">
+					<Image
+						src={manifestPhoto}
+						alt="Барбершоп «Мьёльнир»: зеркала, подвесные лампы и мастер за работой"
+						widths={[480, 800, 1200]}
+						sizes="(min-width: 1024px) 52vw, 100vw"
+						format="webp"
+						quality={80}
+						loading="lazy"
+						decoding="async"
+						class="mb-img"
+					/>
+				</div>
+
+				<div class="mb-panels">
+					{
+						marks.map((mark) => (
+							<div
+								class="mb-panel"
+								data-panel
+								id={`mb-panel-${mark.i}`}
+								role="tabpanel"
+								aria-labelledby={`mb-tab-${mark.i}`}
+							>
+								<p class="mb-cap">
+									{mark.value} · {mark.label}
+								</p>
+								{mark.paragraphs.map((paragraph) => (
+									<p class="mb-text">{paragraph.text}</p>
+								))}
+							</div>
+						))
+					}
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+<style>
+	.mb {
+		position: relative;
+		overflow: hidden;
+		border-bottom: 1px solid var(--border);
+		padding: 32px 24px;
+	}
+	@media (min-width: 1024px) {
+		.mb { padding: 40px 32px; }
+	}
+
+	/* Призрачное слово раздела: остаётся на месте, работает как постоянный фон */
+	.mb-ghost {
+		pointer-events: none;
+		position: absolute;
+		top: -1rem;
+		left: 0;
+		user-select: none;
+		white-space: nowrap;
+		font-family: var(--font-manifest);
+		font-size: var(--text-display);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+		opacity: 0.08;
+	}
+	@media (min-width: 1024px) {
+		.mb-ghost { top: -2.5rem; }
+	}
+
+	.mb-wrap {
+		position: relative;
+		margin: 0 auto;
+		max-width: 1400px;
+	}
+
+	.mb-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.mb-title {
+		margin-top: 24px;
+		max-width: 12ch;
+		font-family: var(--font-manifest);
+		font-size: var(--text-h2);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+
+	.mb-grid {
+		margin-top: 40px;
+		display: grid;
+		gap: 32px;
+	}
+	@media (min-width: 1024px) {
+		.mb-grid {
+			margin-top: 48px;
+			grid-template-columns: 4fr 8fr;
+			gap: 48px;
+		}
+	}
+
+	/* ── Метки ─────────────────────────────────────────────────────── */
+	.mb-marks {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.mb-mark {
+		position: relative;
+		display: grid;
+		grid-template-columns: auto 1fr;
+		align-items: baseline;
+		column-gap: 16px;
+		width: 100%;
+		min-height: 64px;
+		padding: 20px 0 20px 20px;
+		border: 0;
+		border-top: 1px solid var(--border);
+		background: transparent;
+		text-align: left;
+		cursor: pointer;
+		transition: color 320ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mb-mark:last-child { border-bottom: 1px solid var(--border); }
+	.mb-mark:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+	/* Полоса слева — «отметка», растёт у выбранной метки */
+	.mb-bar {
+		position: absolute;
+		left: 0;
+		top: 50%;
+		width: 2px;
+		height: 0;
+		background: var(--accent);
+		translate: 0 -50%;
+		transition: height 420ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mb-mark[aria-selected='true'] .mb-bar { height: 64%; }
+
+	.mb-value {
+		font-family: var(--font-display);
+		font-size: calc(var(--text-display) * 0.72);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		font-variant-numeric: tabular-nums;
+		color: var(--text-muted);
+		transition: color 420ms cubic-bezier(0.33, 1, 0.68, 1), opacity 420ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mb-mark[aria-selected='true'] .mb-value { color: var(--accent); }
+	.mb-mark:hover .mb-value { color: var(--text); }
+	.mb-mark[aria-selected='true']:hover .mb-value { color: var(--accent); }
+
+	.mb-mark-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		transition: color 420ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mb-mark[aria-selected='true'] .mb-mark-label { color: var(--text); }
+
+	/* ── Экран ─────────────────────────────────────────────────────── */
+	.mb-media {
+		--mb-crop: 26% 46%;
+		--mb-zoom: 1.05;
+		overflow: hidden;
+		border: 1px solid var(--border);
+	}
+	.mb-img {
+		display: block;
+		width: 100%;
+		height: auto;
+		object-fit: cover;
+		object-position: var(--mb-crop);
+		transform: scale(var(--mb-zoom));
+		transition: object-position 900ms cubic-bezier(0.33, 1, 0.68, 1), transform 900ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+
+	.mb-panels {
+		/* Без JS панели идут друг под другом: весь текст читается. */
+		display: block;
+	}
+	.mb-panel { margin-top: 24px; }
+	.mb-panel[data-active] { margin-top: 24px; }
+
+	.mb-cap {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--accent-warm);
+	}
+	.mb-text {
+		margin-top: 16px;
+		max-width: 62ch;
+		font-size: var(--text-body);
+		line-height: 1.6;
+		color: var(--text);
+	}
+	.mb-text + .mb-text { margin-top: 12px; color: var(--text-muted); }
+
+	/* ── Со скриптом: панели накладываются и меняются местами ──────── */
+	.mb[data-js] .mb-panels {
+		display: grid;
+	}
+	.mb[data-js] .mb-panel {
+		grid-area: 1 / 1;
+		margin-top: 24px;
+		opacity: 0;
+		visibility: hidden;
+		transform: translateY(10px);
+		transition: opacity 520ms cubic-bezier(0.33, 1, 0.68, 1), transform 520ms cubic-bezier(0.33, 1, 0.68, 1),
+			visibility 0s linear 520ms;
+	}
+	.mb[data-js] .mb-panel[data-active] {
+		opacity: 1;
+		visibility: visible;
+		transform: none;
+		transition: opacity 520ms cubic-bezier(0.33, 1, 0.68, 1), transform 520ms cubic-bezier(0.33, 1, 0.68, 1),
+			visibility 0s linear 0s;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.mb-mark,
+		.mb-bar,
+		.mb-value,
+		.mb-mark-label,
+		.mb-img,
+		.mb[data-js] .mb-panel {
+			transition: none !important;
+			transform: none !important;
+		}
+		.mb[data-js] .mb-panel { transform: none !important; }
+	}
+</style>
+
+<script>
+	const KEY = 'b';
+	let current = 0;
+	let counted = false;
+	let countRun = 0;
+	let wired = false;
+
+	type Boot = { boot: () => void; reset: () => void };
+	type Win = Window & { __mcBoot?: Record<string, Boot> };
+
+	const section = () => document.querySelector('.mb') as HTMLElement | null;
+
+	/* Цифры отсчитываются один раз. Финальное значение стоит в разметке
+	   всё время — счёт только переписывает текст между кадрами, поэтому
+	   без JS и для парсера значение верное. */
+	function countUp() {
+		const sec = section();
+		if (!sec || counted) return;
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		counted = true;
+		const values = Array.from(sec.querySelectorAll<HTMLElement>('.mb-value'));
+		const run = ++countRun;
+		const reduce = false;
+		values.forEach((el) => {
+			const raw = el.dataset.final || el.textContent || '';
+			el.dataset.final = raw;
+			const digits = raw.replace(/\D/g, '');
+			const head = raw.slice(0, raw.indexOf(digits));
+			const tail = raw.slice(raw.indexOf(digits) + digits.length);
+			if (!digits) return;
+			const target = Number(digits);
+			const dur = 900;
+			const start = performance.now();
+			const step = (now: number) => {
+				if (run !== countRun || reduce) return;
+				const p = Math.min(1, (now - start) / dur);
+				const eased = 1 - Math.pow(1 - p, 3);
+				el.textContent = head + String(Math.round(target * eased)) + tail;
+				if (p < 1) requestAnimationFrame(step);
+				else el.textContent = raw;
+			};
+			requestAnimationFrame(step);
+		});
+	}
+
+	function activate(index: number, moveFocus = false) {
+		const sec = section();
+		if (!sec) return;
+		const tabs = Array.from(sec.querySelectorAll<HTMLButtonElement>('.mb-mark'));
+		const panels = Array.from(sec.querySelectorAll<HTMLElement>('.mb-panel'));
+		if (!tabs.length || !panels.length) return;
+
+		current = ((index % tabs.length) + tabs.length) % tabs.length;
+		tabs.forEach((tab, i) => {
+			const on = i === current;
+			tab.setAttribute('aria-selected', String(on));
+			tab.tabIndex = on ? 0 : -1;
+			if (on && moveFocus) tab.focus();
+		});
+		panels.forEach((panel, i) => {
+			const on = i === current;
+			if (on) {
+				panel.setAttribute('data-active', '');
+				panel.removeAttribute('aria-hidden');
+				panel.removeAttribute('inert');
+			} else {
+				panel.removeAttribute('data-active');
+				panel.setAttribute('aria-hidden', 'true');
+				panel.setAttribute('inert', '');
+			}
+		});
+		showCrop();
+	}
+
+	/* Кроп кадра берём у активной метки: один кадр — разные состояния. */
+	function showCrop(tab?: HTMLButtonElement) {
+		const sec = section();
+		if (!sec) return;
+		const source =
+			tab || (sec.querySelectorAll<HTMLButtonElement>('.mb-mark')[current] as HTMLButtonElement | undefined);
+		const media = sec.querySelector<HTMLElement>('.mb-media');
+		if (!source || !media) return;
+		media.style.setProperty('--mb-crop', source.dataset.crop || '50% 50%');
+		media.style.setProperty('--mb-zoom', source.dataset.zoom || '1');
+	}
+
+	function boot() {
+		const sec = section();
+		if (!sec) return;
+		sec.setAttribute('data-js', '');
+		if (!wired) wire();
+		activate(current);
+	}
+
+	function wire() {
+		const sec = section();
+		if (!sec || wired) return;
+		wired = true;
+
+		const tabs = Array.from(sec.querySelectorAll<HTMLButtonElement>('.mb-mark'));
+		const list = sec.querySelector<HTMLElement>('.mb-marks');
+
+		tabs.forEach((tab, i) => {
+			tab.addEventListener('click', () => activate(i));
+			if (window.matchMedia('(hover: hover)').matches) {
+				/* Наведение показывает кадр метки, текст ждёт клика:
+				   «посмотреть» и «прочитать» — разные действия. */
+				tab.addEventListener('mouseenter', () => {
+					if (i !== current) showCrop(tab);
+				});
+				tab.addEventListener('mouseleave', () => showCrop());
+			}
+		});
+
+		list?.addEventListener('keydown', (event) => {
+			const key = (event as KeyboardEvent).key;
+			if (key === 'ArrowDown' || key === 'ArrowRight') {
+				event.preventDefault();
+				activate(current + 1, true);
+			} else if (key === 'ArrowUp' || key === 'ArrowLeft') {
+				event.preventDefault();
+				activate(current - 1, true);
+			} else if (key === 'Home') {
+				event.preventDefault();
+				activate(0, true);
+			} else if (key === 'End') {
+				event.preventDefault();
+				activate(tabs.length - 1, true);
+			}
+		});
+
+		const io = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) {
+						countUp();
+						io.disconnect();
+					}
+				});
+			},
+			{ threshold: 0.35 },
+		);
+		io.observe(sec);
+	}
+
+	function reset() {
+		const sec = section();
+		if (!sec) return;
+		countRun++;
+		counted = false;
+		const values = Array.from(sec.querySelectorAll<HTMLElement>('.mb-value'));
+		values.forEach((el) => {
+			if (el.dataset.final) el.textContent = el.dataset.final;
+		});
+		Array.from(sec.querySelectorAll<HTMLElement>('.mb-panel')).forEach((panel) => {
+			panel.removeAttribute('data-active');
+			panel.removeAttribute('aria-hidden');
+			panel.removeAttribute('inert');
+		});
+		sec.removeAttribute('data-js');
+		const screen = sec.querySelector<HTMLElement>('.mb-media');
+		screen?.style.removeProperty('--mb-crop');
+		screen?.style.removeProperty('--mb-zoom');
+	}
+
+	const win = window as Win;
+	win.__mcBoot = win.__mcBoot || {};
+	win.__mcBoot[KEY] = { boot, reset };
+	if (document.documentElement.dataset.mc === KEY) boot();
+</script>

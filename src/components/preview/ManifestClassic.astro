@@ -1,0 +1,65 @@
+---
+/* ══ Старая версия раздела «Манифест» (копия до перехода на «Хронику») ══
+   Нужна ровно для одного: кнопка «До» на /manifest-chronicle-preview, чтобы
+   Кирилл сравнивал прежний статичный раздел с новой хроникой на одном месте
+   страницы. Разметка скопирована с коммита 86b435a один в один, изменены
+   только id (чтобы не дублировался с боевым) и источник данных — lib/manifest.
+   В прод не попадает: страница-хозяин закрыта редиректом.
+   ══════════════════════════════════════════════════════════════════════ */
+import { Image } from 'astro:assets';
+import { manifestGhost, manifestLabel, manifestParagraphs, manifestPhoto, manifestStats, manifestTitle } from '../../lib/manifest';
+
+const stats = manifestStats;
+---
+
+<section id="manifest-classic" class="relative overflow-hidden border-b border-border px-6 py-8 lg:px-8 lg:py-10">
+	<!-- Призрачный заголовок: гигантский текст с opacity 0.08 на фоне -->
+	<span
+		aria-hidden="true"
+		class="pointer-events-none absolute -top-4 left-0 select-none whitespace-nowrap font-manifest text-display uppercase text-text opacity-[0.08] lg:-top-10"
+	>
+		{manifestGhost}
+	</span>
+
+	<div class="relative mx-auto max-w-[1400px]">
+		<div class="grid gap-16 lg:grid-cols-12 lg:gap-12">
+			<div class="lg:col-span-6">
+				<p class="font-label text-label uppercase text-text-muted">{manifestLabel}</p>
+
+				<h2 class="mt-6 max-w-[12ch] font-manifest text-h2 uppercase text-text">{manifestTitle}</h2>
+
+				{
+					manifestParagraphs.map((paragraph, index) => (
+						<p class={`${index === 0 ? 'mt-12 text-text' : 'mt-6 text-text-muted'} text-body`}>{paragraph.text}</p>
+					))
+				}
+			</div>
+
+			<div class="lg:col-span-6">
+				<Image
+					src={manifestPhoto}
+					alt="Барбершоп «Мьёльнир»: зеркала, подвесные лампы и мастер за работой"
+					widths={[480, 800, 1200]}
+					sizes="(min-width: 1024px) 45vw, 100vw"
+					format="webp"
+					quality={80}
+					loading="lazy"
+					decoding="async"
+					class="w-full border border-border"
+				/>
+			</div>
+		</div>
+
+		<!-- Цифры вместо прилагательных -->
+		<div class="mt-24 grid gap-12 border-t border-border pt-12 sm:grid-cols-3 lg:mt-32">
+			{
+				stats.map((stat) => (
+					<div>
+						<p class="font-display text-display text-accent">{stat.value}</p>
+						<p class="mt-4 font-label text-label uppercase text-text-muted">{stat.label}</p>
+					</div>
+				))
+			}
+		</div>
+	</div>
+</section>

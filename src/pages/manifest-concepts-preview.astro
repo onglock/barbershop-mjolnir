@@ -1,0 +1,390 @@
+---
+/* ══ /manifest-concepts-preview ════════════════════════════════════════
+   Пять состояний раздела Manifest на одном живом месте: текущий вид («как на
+   сайте») и четыре концепции подачи. Переключение — кнопками в панели,
+   хоткеями 1–4 (0 — текущий) и стрелками ← →.
+
+   Кириллу показываются ВАРИАНТЫ, а не скриншоты (правило §20.6), поэтому
+   страница рендерит настоящие компоненты, а не картинки. Концепции живут
+   отдельными файлами в src/components/preview/ и построены на данных
+   src/lib/manifest.ts — тех же, что у боевого раздела.
+
+   Порядок по умолчанию — по решению координатора от 2026-09-25:
+   B (основной) → D → A → C. Открывается B. */
+if (import.meta.env.PROD) return Astro.redirect('/');
+
+import Layout from '../layouts/Layout.astro';
+import Manifest from '../components/Manifest.astro';
+import ManifestChronicle from '../components/preview/ManifestChronicle.astro';
+import ManifestMarks from '../components/preview/ManifestMarks.astro';
+import ManifestLedger from '../components/preview/ManifestLedger.astro';
+import ManifestRules from '../components/preview/ManifestRules.astro';
+
+const concepts = [
+	{
+		key: '0',
+		hotkey: '0',
+		button: 'как на сайте',
+		title: 'Текущий раздел',
+		note: 'Сегодняшнее состояние: призрачный «Мьёльнир», h2 «Ремесло, а не скидки», четыре абзаца, фото справа, три цифры отдельной строкой. Раздел статичен — ни одного взаимодействия нет, и эффекты на него не ложатся именно поэтому.',
+		structure: 'не меняется',
+		effects: 'нет',
+		content: 'не нужен',
+		complexity: '—',
+	},
+	{
+		key: 'b',
+		hotkey: '1',
+		button: 'B · Три метки',
+		title: 'B. «Три метки» — ось: выбор читателя',
+		note: 'Цифры выходят из подвала секции и становятся навигацией: три метки — три кнопки. Фото превращается в экран, который отвечает на выбранную метку своим кропом, а четыре абзаца распределены по меткам: 2014 — основание и правило, «3» — почему трём мастерам хватает времени на форму и инструмент, «900+» — почему возвращаются.',
+		structure: 'три цифры из нижней строки переезжают в левую колонку и становятся списком-навигацией; текст разделён на три панели; фото остаётся на месте, но получает состояние (кроп + подпись)',
+		effects: 'click — переключение метки; hover — предпоказ кадра метки; Arrow/Home/End — с клавиатуры; scroll — один отсчёт цифр при первом появлении (табличные цифры, финальное значение стоит в DOM сразу)',
+		content: 'новый текст не нужен — абзацы только группируются',
+		complexity: 'средняя',
+	},
+	{
+		key: 'd',
+		hotkey: '2',
+		button: 'D · Четыре правила',
+		title: 'D. «Четыре правила» — ось: правило',
+		note: 'Четыре абзаца становятся четырьмя правилами цеха: заголовок правила — фрагмент самого абзаца, тело — абзац целиком. Правила висят на стене: фото поднимается за ними липким слоем, скролл выкладывает пластины, клик раскрывает одну и приглушает остальные. Три цифры ставятся печатью в конце документа.',
+		structure: 'раздел превращается в документ-стену: список правил слева, липкое фото справа, цифры — печать под текстом',
+		effects: 'scroll — выкладывание пластин по одному и лёгкий рост фото; click — раскрытие правила (grid-rows 0fr→1fr), остальные пластины уходят в тень; scroll — отсчёт цифр один раз',
+		content: 'черновик текста: заголовки правил — фрагменты их же абзацев, новых слов нет, но формулировки не утверждены',
+		complexity: 'средняя',
+	},
+	{
+		key: 'a',
+		hotkey: '3',
+		button: 'A · Хроника',
+		title: 'A. «Хроника» — ось: время',
+		note: 'Раздел читается как хроника: четыре главы идут длинной лентой, фото стоит рядом липким слоем и работает камерой — на каждой главе свой кроп того же кадра, — а по шкале времени загорается отметка главы, 2014 стоит её началом. Три цифры закрывают шкалу итогом. Пининг тут — sticky на одном элементе, без скролл-джекинга: глава переключается попаданием в центр экрана, а не связкой каждого пикселя.',
+		structure: 'четыре абзаца становятся главами с метками; фото уезжает в липкий слой со шкалой времени; цифры становятся итогом шкалы',
+		effects: 'scroll — проявление главы, переключение камеры (кроп), заливка шкалы, уход призрачного слова; scroll — отсчёт цифр',
+		content: 'черновик текста: подписи глав («Подвал на Никольской», «Форма и время», «Свой инструмент», «Честный ответ») — собраны из слов самих абзацев, но не утверждены',
+		complexity: 'сложная',
+	},
+	{
+		key: 'c',
+		hotkey: '4',
+		button: 'C · Журнал мастера',
+		title: 'C. «Журнал мастера» — ось: артефакт',
+		note: 'Раздел читается как журнал цеха: четыре записи едут горизонтально, пока идёт вертикальный скролл; у записи своя метка, свой абзац и своя створка интерьера. В конце лента печатает итог: 2014 / 3 / 900+. Призрачное слово едет вдоль ленты медленнее — им читается глубина сцены.',
+		structure: 'раздел превращается в горизонтальную ленту записей с липкой сценой; итог — последняя карточка ленты',
+		effects: 'scroll — сдвиг ленты по горизонтали, параллакс призрачного слова, отсчёт цифр в конце',
+		content: 'нужны метки/даты записей; желательно 3–4 реальных фото интерьера вместо одного кадра в четырёх кропах',
+		complexity: 'сложная',
+	},
+];
+---
+
+<Layout title="Манифест — концепции подачи (превью)">
+	<main id="main" class="relative z-10 bg-bg">
+		<div class="section-bg" aria-hidden="true"></div>
+
+		<section class="mcp-head">
+			<p class="mcp-label">Превью · Манифест</p>
+			<h1 class="mcp-title">Концепции подачи</h1>
+			<p class="mcp-lead">
+				Пять состояний одного раздела на одном и том же месте страницы. Переключение — кнопки в панели
+				«Параметры превью» (правый нижний угол), хоткеи <b>0–4</b> или стрелки <b>← →</b>. Описание активной
+				концепции — в той же панели. Текст, цифры и фото у всех состояний одни и те же
+				(<code>src/lib/manifest.ts</code>) — меняется только подача.
+			</p>
+		</section>
+
+		<!-- Сцена: настоящий раздел и четыре его переосмысления -->
+		<div class="mcp-stage">
+			<Manifest />
+			<ManifestChronicle />
+			<ManifestMarks />
+			<ManifestLedger />
+			<ManifestRules />
+		</div>
+
+		<!-- Контекст снизу: чем раздел закрывается на главной -->
+		<section class="mcp-seam" aria-hidden="true">
+			<p class="mcp-label">Далее на главной — секция «Услуги»</p>
+		</section>
+	</main>
+
+	<!-- Панель: кнопки выбора и описание активной концепции -->
+	<aside class="mcp-panel" data-pp>
+		<p class="mcp-panel-title">Манифест · концепции подачи</p>
+
+		<div class="mcp-row">
+			<span class="mcp-row-label">Подача</span>
+			<span class="mcp-row-btns">
+				{
+					concepts.map((concept) => (
+						<button
+							type="button"
+							data-mcp-key={concept.key}
+							aria-pressed={concept.key === 'b'}
+							title={`Хоткей: ${concept.hotkey}`}
+						>
+							{concept.button}
+						</button>
+					))
+				}
+			</span>
+		</div>
+
+		<div class="mcp-notes">
+			{
+				concepts.map((concept) => (
+					<div class="mcp-note" data-mcp-note={concept.key} hidden={concept.key !== 'b'}>
+						<p class="mcp-note-title">{concept.title}</p>
+						<p class="mcp-note-text">{concept.note}</p>
+						<dl class="mcp-facts">
+							<dt>Структура</dt>
+							<dd>{concept.structure}</dd>
+							<dt>Взаимодействия</dt>
+							<dd>{concept.effects}</dd>
+							<dt>Новый контент</dt>
+							<dd>{concept.content}</dd>
+							<dt>Сложность</dt>
+							<dd>{concept.complexity}</dd>
+						</dl>
+					</div>
+				))
+			}
+		</div>
+
+		<p class="mcp-state" id="mcp-state">—</p>
+	</aside>
+
+	<p class="mcp-devnote">Dev-only. Удалить перед деплоем.</p>
+</Layout>
+
+<style is:global>
+	/* Селекторы обязаны быть глобальными: секции приходят из других
+	   компонентов и своего атрибута скоупа этой страницы не имеют. */
+	.mcp-stage > * { display: none; }
+	html[data-mc='0'] .mcp-stage > #manifest { display: block; }
+	html[data-mc='a'] .mcp-stage > #manifest-a { display: block; }
+	html[data-mc='b'] .mcp-stage > #manifest-b { display: block; }
+	html[data-mc='c'] .mcp-stage > #manifest-c { display: block; }
+	html[data-mc='d'] .mcp-stage > #manifest-d { display: block; }
+	/* До работы скрипта показываем рекомендованную концепцию (B) */
+	html:not([data-mc]) .mcp-stage > #manifest-b { display: block; }
+</style>
+
+<style>
+	.mcp-head {
+		margin: 0 auto;
+		max-width: 1400px;
+		padding: 40px 24px 8px;
+	}
+	@media (min-width: 1024px) {
+		.mcp-head { padding: 56px 32px 8px; }
+	}
+	.mcp-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.mcp-title {
+		margin-top: 24px;
+		font-family: var(--font-manifest);
+		font-size: var(--text-h2);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.mcp-lead {
+		margin-top: 24px;
+		max-width: 78ch;
+		font-size: var(--text-body);
+		line-height: 1.6;
+		color: var(--text-muted);
+	}
+	.mcp-lead b { color: var(--text); font-weight: 500; }
+	.mcp-lead code {
+		font-family: var(--font-label);
+		font-size: 0.9em;
+		color: var(--accent);
+	}
+
+	.mcp-seam {
+		margin: 0 auto;
+		max-width: 1400px;
+		padding: 24px 24px 96px;
+	}
+	@media (min-width: 1024px) {
+		.mcp-seam { padding: 32px 32px 128px; }
+	}
+
+	.mcp-devnote {
+		padding: 24px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	/* ── Панель в дровере PreviewPanel ─────────────────────────────── */
+	.mcp-panel-title {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.mcp-row {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		margin-top: 14px;
+	}
+	.mcp-row-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.mcp-row-btns {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+	.mcp-row-btns button {
+		min-height: 44px;
+		padding: 10px 12px;
+		border: 1px solid var(--border);
+		background: transparent;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		cursor: pointer;
+		transition: border-color 200ms cubic-bezier(0.33, 1, 0.68, 1), color 200ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mcp-row-btns button:hover {
+		border-color: var(--accent);
+		color: var(--text);
+	}
+	.mcp-row-btns button[aria-pressed='true'] {
+		border-color: var(--accent);
+		color: var(--text);
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+	}
+
+	.mcp-note {
+		margin-top: 18px;
+		border-top: 1px solid var(--border);
+		padding-top: 16px;
+	}
+	.mcp-note-title {
+		font-family: var(--font-display);
+		font-size: 1.25rem;
+		line-height: 1.2;
+		color: var(--text);
+	}
+	.mcp-note-text {
+		margin-top: 12px;
+		font-size: var(--text-body);
+		line-height: 1.55;
+		color: var(--text-muted);
+	}
+	.mcp-facts {
+		margin-top: 16px;
+		display: grid;
+		gap: 4px;
+	}
+	.mcp-facts dt {
+		margin-top: 10px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.mcp-facts dd {
+		font-size: var(--text-body);
+		line-height: 1.5;
+		color: var(--text);
+	}
+	.mcp-state {
+		margin-top: 18px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		line-height: 1.6;
+		color: var(--accent-warm);
+	}
+</style>
+
+<script>
+	const KEYS = ['0', 'b', 'd', 'a', 'c'];
+	const root = document.documentElement;
+
+	const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-mcp-key]'));
+	const notes = Array.from(document.querySelectorAll<HTMLElement>('[data-mcp-note]'));
+	const state = document.getElementById('mcp-state');
+
+	function set(key: string, scroll = false) {
+		if (!KEYS.includes(key)) return;
+		root.dataset.mc = key;
+
+		const boot = (window as any).__mcBoot || {};
+		Object.keys(boot).forEach((name) => {
+			if (name === key) boot[name].boot();
+			else boot[name].reset();
+		});
+
+		buttons.forEach((button) => {
+			button.setAttribute('aria-pressed', String(button.dataset.mcpKey === key));
+		});
+		notes.forEach((note) => {
+			const on = note.dataset.mcpNote === key;
+			note.toggleAttribute('hidden', !on);
+		});
+
+		const label = buttons.find((button) => button.dataset.mcpKey === key)?.textContent?.trim() || key;
+		if (state) {
+			state.textContent =
+				`Активно: ${label}` +
+				(key === '0' ? ' — боевой раздел, без изменений' : ' — прототип подачи, не боевой код');
+		}
+
+		if (scroll) {
+			const target =
+				key === '0'
+					? document.getElementById('manifest')
+					: document.getElementById(`manifest-${key}`);
+			const top = target ? target.getBoundingClientRect().top + window.scrollY - 88 : 0;
+			window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+		}
+	}
+
+	buttons.forEach((button) => {
+		button.addEventListener('click', () => set(button.dataset.mcpKey || 'b', true));
+	});
+
+	document.addEventListener('keydown', (event) => {
+		if (event.metaKey || event.ctrlKey || event.altKey) return;
+		const tag = (event.target as HTMLElement)?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+		const index = KEYS.indexOf(root.dataset.mc || 'b');
+		if (event.key >= '0' && event.key <= '4') {
+			const hot = ['0', 'b', 'd', 'a', 'c'][Number(event.key)];
+			set(hot, true);
+		} else if (event.key === 'ArrowRight') {
+			event.preventDefault();
+			set(KEYS[(index + 1) % KEYS.length], true);
+		} else if (event.key === 'ArrowLeft') {
+			event.preventDefault();
+			set(KEYS[(index - 1 + KEYS.length) % KEYS.length], true);
+		}
+	});
+
+	set(root.dataset.mc || 'b');
+</script>

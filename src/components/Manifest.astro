@@ -1,74 +1,116 @@
 ---
-// Манифест: философия ремесла + фото интерьера + три цифры вместо блока выгод.
-import { Image } from 'astro:assets';
-import manifestPhoto from '../assets/manifest-interior.jpg';
+/* ══ MANIFEST — «ХРОНИКА» ══════════════════════════════════════════════
+   Концепция A, выбрана Кириллом 2026-09-25. Ось раздела — время.
 
-const stats = [
-	{ value: '2014', label: 'год основания' },
-	{ value: '3', label: 'мастера' },
-	{ value: '900+', label: 'клиентов в месяц' },
-];
+   Как устроено:
+   • Обложка: прежний кадр интерьера открывает хронику (решение Кирилла —
+     «оставить, например, как обложку»).
+   • Четыре главы идут лентой. Тексты абзацев не тронуты, заголовки глав
+     утверждены Кириллом.
+   • Слева — вертикальная шкала времени: заливка непрерывная (это функция
+     прокрутки, не шаги) и четыре отметки с точками, 2014 в начале.
+   • Справа — «камера»: липкая рамка, внутри четыре кадра; кадр активной
+     главы проявляется, остальные погашены. Выбор кадра — тоже функция
+     прокрутки (глава, чей центр ближе к линии чтения), поэтому назад всё
+     едет назад.
+   • Три цифры закрывают хронику итогом, отсчёт один раз при появлении.
+
+   Scroll-linked, а не scroll-triggered: состояние целиком выводится из
+   положения прокрутки в обработчике кадра (rAF). Наблюдатели стоят только
+   на двух одноразовых событиях — reveal заголовка главы и отсчёт цифр.
+   Ключевые решения по надёжности:
+   • overflow: hidden на секции НЕ ставим (он делает её контейнером
+     прокрутки и убивает sticky) — призрачное слово режет обёртка .mk-clip;
+   • без JS и при prefers-reduced-motion камера превращается в сетку кадров,
+     sticky и reveal выключены, текст читается целиком;
+   • на 390 шкалы нет, но у каждой главы своя метка — информация не теряется.
+   ══════════════════════════════════════════════════════════════════════ */
+import { Image } from 'astro:assets';
+import {
+	manifestChapters,
+	manifestGhost,
+	manifestLabel,
+	manifestStats,
+	manifestTitle,
+} from '../lib/manifest';
+
+const stats = manifestStats;
+const first = manifestChapters[0];
 ---
 
-<section id="manifest" class="relative overflow-hidden border-b border-border px-6 py-8 lg:px-8 lg:py-10">
-	<!-- Призрачный заголовок: гигантский текст с opacity 0.08 на фоне -->
-	<span
-		aria-hidden="true"
-		class="pointer-events-none absolute -top-4 left-0 select-none whitespace-nowrap font-manifest text-display uppercase text-text opacity-[0.08] lg:-top-10"
-	>
-		Мьёльнир
-	</span>
+<section id="manifest" class="mk relative border-b border-border px-6 py-8 lg:px-8 lg:py-10">
+	<!-- Призрачный заголовок: выходит за край, поэтому живёт в своей обёртке -->
+	<div class="mk-clip" aria-hidden="true">
+		<span class="mk-ghost" data-mk-ghost>{manifestGhost}</span>
+	</div>
 
 	<div class="relative mx-auto max-w-[1400px]">
-		<div class="grid gap-16 lg:grid-cols-12 lg:gap-12">
-			<div class="lg:col-span-6">
-				<p class="font-label text-label uppercase text-text-muted">Манифест</p>
+		<header class="mk-head">
+			<p class="font-label text-label uppercase text-text-muted">{manifestLabel}</p>
+			<h2 class="mt-6 max-w-[12ch] font-manifest text-h2 uppercase text-text">{manifestTitle}</h2>
+		</header>
 
-				<h2 class="mt-6 max-w-[12ch] font-manifest text-h2 uppercase text-text">Ремесло, а не скидки</h2>
-
-				<p class="mt-12 text-body text-text">
-					Мы открылись в 2014 году на Никольской — в подвале с кирпичными стенами и одним креслом. Правило
-					с тех пор не менялось: один мастер, один клиент, одно кресло. Никакой записи каждые двадцать минут.
-				</p>
-
-				<p class="mt-6 text-body text-text-muted">
-					Стрижка — это не услуга за пятнадцать минут. Мы разбираем форму головы, направление роста волос,
-					то, чем вы укладываетесь дома. На это нужно время, и мы его тратим: за спиной мастера не стоит
-					следующий.
-				</p>
-
-				<p class="mt-6 text-body text-text-muted">
-					Работаем только инструментом, которым пользуемся сами: опасные бритвы, японские ножницы, воск
-					вместо лака. После восьми вечера новых клиентов не берём — у мастера должна быть свежая рука.
-				</p>
-
-				<p class="mt-6 text-body text-text-muted">
-					Если пришли с фотографией из интернета — разберём, сядет ли форма на вашу голову, и честно скажем,
-					если нет.
-				</p>
+		<div class="mk-body">
+			<!-- Шкала времени -->
+			<div class="mk-rail" data-mk-rail aria-hidden="true">
+				<span class="mk-rail-line"></span>
+				<span class="mk-rail-fill" data-mk-fill></span>
+				{
+					manifestChapters.map((chapter, index) => (
+						<span class="mk-rail-mark" data-mk-mark={index}>
+							<span class="mk-rail-dot" />
+							<span class="mk-rail-label">{chapter.rail}</span>
+						</span>
+					))
+				}
 			</div>
 
-			<div class="lg:col-span-6">
-				<Image
-					src={manifestPhoto}
-					alt="Барбершоп «Мьёльнир»: зеркала, подвесные лампы и мастер за работой"
-					widths={[480, 800, 1200]}
-					sizes="(min-width: 1024px) 45vw, 100vw"
-					format="webp"
-					quality={80}
-					loading="lazy"
-					decoding="async"
-					class="w-full border border-border"
-				/>
+			<!-- Главы -->
+			<div class="mk-chapters">
+				{
+					manifestChapters.map((chapter, index) => (
+						<article class="mk-chapter" data-chapter={index}>
+							<p class="mk-chapter-mark">{chapter.mark}</p>
+							<h3 class="mk-chapter-title">{chapter.title}</h3>
+							<p class="mk-chapter-text">{chapter.text}</p>
+						</article>
+					))
+				}
+			</div>
+
+			<!-- Камера: кадр активной главы -->
+			<div class="mk-camera">
+				<div class="mk-frame" data-mk-frame>
+					{
+						manifestChapters.map((chapter, index) => (
+							<Image
+								src={chapter.photo}
+								alt={chapter.alt}
+								widths={[400, 600, 800]}
+								sizes="(min-width: 1024px) 32vw, 47vw"
+								format="webp"
+								quality={78}
+								loading="lazy"
+								decoding="async"
+								class="mk-shot"
+								data-shot={index}
+							/>
+						))
+					}
+					<p class="mk-caption" data-mk-caption>
+						{first.mark} · {first.title}
+					</p>
+				</div>
 			</div>
 		</div>
 
-		<!-- Цифры вместо прилагательных -->
-		<div class="mt-24 grid gap-12 border-t border-border pt-12 sm:grid-cols-3 lg:mt-32">
+		<!-- Итог хроники: цифры вместо прилагательных -->
+		<div class="mk-stats">
+			<span class="mk-stats-rule" aria-hidden="true"></span>
 			{
 				stats.map((stat) => (
 					<div>
-						<p class="font-display text-display text-accent">{stat.value}</p>
+						<p class="mk-stat-value font-display text-display text-accent">{stat.value}</p>
 						<p class="mt-4 font-label text-label uppercase text-text-muted">{stat.label}</p>
 					</div>
 				))
@@ -76,3 +118,481 @@ const stats = [
 		</div>
 	</div>
 </section>
+
+<style>
+	/* ── Призрачное слово ───────────────────────────────────────────────
+	   Обёртка режет вылет за край. overflow: hidden на самой секции ставить
+	   нельзя: он делает её контейнером прокрутки и убивает position: sticky
+	   у камеры (проверено на прототипе, урок в журнале скилла). */
+	.mk-clip {
+		position: absolute;
+		inset: 0;
+		overflow: hidden;
+		pointer-events: none;
+	}
+	.mk-ghost {
+		position: absolute;
+		top: -1rem;
+		left: 0;
+		user-select: none;
+		white-space: nowrap;
+		font-family: var(--font-manifest);
+		font-size: var(--text-display);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+		opacity: 0.08;
+		will-change: transform;
+	}
+	@media (min-width: 1024px) {
+		.mk-ghost { top: -2.5rem; }
+	}
+
+	/* ── Каркас: шкала | главы | камера ──────────────────────────────── */
+	.mk-body {
+		margin-top: 40px;
+		display: grid;
+		gap: 32px;
+	}
+	@media (min-width: 1024px) {
+		.mk-body {
+			margin-top: 64px;
+			grid-template-columns: 84px minmax(0, 1fr) minmax(0, 0.94fr);
+			gap: 40px;
+		}
+	}
+
+	/* ── Шкала времени ───────────────────────────────────────────────── */
+	.mk-rail {
+		position: relative;
+		display: none;
+	}
+	@media (min-width: 1024px) {
+		.mk-rail { display: block; }
+	}
+	.mk-rail-line {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		width: 1px;
+		background: var(--border);
+	}
+	/* Заливка непрерывная: высоту ставит скрипт из положения линии чтения,
+	   поэтому назад она укорачивается ровно так же. */
+	.mk-rail-fill {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 2px;
+		height: 0;
+		background: var(--accent);
+	}
+	.mk-rail-mark {
+		position: absolute;
+		left: 0;
+		top: 12.5%;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		transform: translateY(-50%);
+	}
+	.mk-rail-mark[data-mk-mark='1'] { top: 37.5%; }
+	.mk-rail-mark[data-mk-mark='2'] { top: 62.5%; }
+	.mk-rail-mark[data-mk-mark='3'] { top: 87.5%; }
+	.mk-rail-dot {
+		width: 7px;
+		height: 7px;
+		margin-left: -3px;
+		border-radius: 50%;
+		background: var(--bg);
+		box-shadow: inset 0 0 0 1px var(--border);
+		transition: background-color 320ms cubic-bezier(0.33, 1, 0.68, 1), box-shadow 320ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mk-rail-mark[data-passed] .mk-rail-dot {
+		background: var(--accent);
+		box-shadow: inset 0 0 0 1px var(--accent);
+	}
+	.mk-rail-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		transition: color 320ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mk-rail-mark[data-passed] .mk-rail-label { color: var(--text); }
+
+	/* ── Главы ───────────────────────────────────────────────────────── */
+	.mk-chapter + .mk-chapter {
+		margin-top: 40px;
+		padding-top: 40px;
+		border-top: 1px solid var(--border);
+	}
+	@media (min-width: 1024px) {
+		.mk-chapter {
+			min-height: 56vh;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+		}
+		.mk-chapter + .mk-chapter {
+			margin-top: 0;
+			padding-top: 0;
+		}
+	}
+	.mk-chapter-mark {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		transition: color 420ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mk-chapter-title {
+		margin-top: 12px;
+		font-family: var(--font-display);
+		font-size: 1.5rem;
+		line-height: 1.15;
+		letter-spacing: -0.02em;
+		color: var(--text);
+	}
+	.mk-chapter-text {
+		margin-top: 16px;
+		max-width: 62ch;
+		font-size: var(--text-body);
+		line-height: 1.6;
+		color: var(--text-muted);
+	}
+
+	/* Со скриптом глава получает состояние: активная читается в полную силу,
+	   остальные приглушены — лента читается как последовательность. */
+	@media (min-width: 1024px) {
+		.mk[data-js] .mk-chapter {
+			opacity: 0.42;
+			transition: opacity 520ms cubic-bezier(0.33, 1, 0.68, 1);
+		}
+		.mk[data-js] .mk-chapter[data-active] { opacity: 1; }
+		.mk[data-js] .mk-chapter[data-active] .mk-chapter-mark { color: var(--accent); }
+		.mk[data-js] .mk-chapter[data-active] .mk-chapter-text { color: var(--text); }
+	}
+
+	/* Reveal заголовка: метка и заголовок поднимаются из-под строки */
+	.mk[data-js] .mk-chapter-mark,
+	.mk[data-js] .mk-chapter-title {
+		opacity: 0;
+		transform: translateY(16px);
+		transition: opacity 620ms cubic-bezier(0.33, 1, 0.68, 1), transform 620ms cubic-bezier(0.33, 1, 0.68, 1),
+			color 420ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mk[data-js] .mk-chapter[data-in] .mk-chapter-mark,
+	.mk[data-js] .mk-chapter[data-in] .mk-chapter-title {
+		opacity: 1;
+		transform: none;
+	}
+
+	/* ── Камера ──────────────────────────────────────────────────────── */
+	/* База (390, без JS, при reduce): сетка кадров, без липкости и наложений */
+	.mk-frame {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 12px;
+	}
+	.mk-shot {
+		display: block;
+		width: 100%;
+		aspect-ratio: 2 / 3;
+		object-fit: cover;
+		object-position: 50% 42%;
+		border: 1px solid var(--border);
+	}
+	.mk-caption { display: none; }
+
+	@media (min-width: 1024px) {
+		/* Колонка растягивается на всю строку: иначе липкой рамке некуда ехать */
+		.mk[data-js] .mk-camera { align-self: stretch; }
+		.mk[data-js] .mk-frame {
+			position: sticky;
+			top: 13vh;
+			display: block;
+			height: 66vh;
+			width: auto;
+			aspect-ratio: 2 / 3;
+			margin: 0 auto;
+		}
+		.mk[data-js] .mk-shot {
+			position: absolute;
+			inset: 0;
+			width: 100%;
+			height: 100%;
+			opacity: 0;
+			transition: opacity 620ms cubic-bezier(0.33, 1, 0.68, 1);
+		}
+		.mk[data-js] .mk-shot[data-active] { opacity: 1; }
+		.mk[data-js] .mk-caption {
+			display: block;
+			position: absolute;
+			left: 0;
+			bottom: 0;
+			z-index: 2;
+			padding: 12px 16px;
+			background: color-mix(in srgb, var(--bg-deep) 88%, transparent);
+			font-family: var(--font-label);
+			font-size: var(--text-label);
+			letter-spacing: 0.12em;
+			text-transform: uppercase;
+			color: var(--text);
+		}
+	}
+
+	/* ── Итог ────────────────────────────────────────────────────────── */
+	.mk-stats {
+		position: relative;
+		margin-top: 64px;
+		display: grid;
+		gap: 32px;
+		padding-top: 40px;
+	}
+	@media (min-width: 640px) {
+		.mk-stats { grid-template-columns: repeat(3, 1fr); }
+	}
+	@media (min-width: 1024px) {
+		.mk-stats { margin-top: 96px; }
+	}
+	.mk-stats-rule {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 1px;
+		background: var(--border);
+	}
+	.mk-stat-value { font-variant-numeric: tabular-nums; }
+
+	/* ── Reduced motion: без липкости, без наложений, без reveal ─────── */
+	@media (prefers-reduced-motion: reduce) {
+		.mk-ghost,
+		.mk-rail-fill,
+		.mk-rail-dot,
+		.mk-rail-label,
+		.mk-chapter,
+		.mk-chapter-mark,
+		.mk-chapter-title,
+		.mk-shot {
+			transition: none !important;
+			transform: none !important;
+		}
+		.mk[data-js] .mk-chapter { opacity: 1 !important; }
+		.mk[data-js] .mk-chapter-mark,
+		.mk[data-js] .mk-chapter-title { opacity: 1 !important; transform: none !important; }
+		.mk[data-js] .mk-camera { align-self: auto; }
+		.mk[data-js] .mk-frame {
+			position: static;
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			height: auto;
+			aspect-ratio: auto;
+			gap: 12px;
+		}
+		.mk[data-js] .mk-shot {
+			position: static;
+			inset: auto;
+			opacity: 1;
+			height: auto;
+		}
+		.mk[data-js] .mk-caption { display: none; }
+		.mk-rail-fill { height: 100% !important; }
+	}
+</style>
+
+<script>
+	/* Хроника. Состояние выводится из положения прокрутки в обработчике кадра:
+	   тянуть назад — едет назад. Наблюдатели стоят только на двух одноразовых
+	   событиях: reveal главы и отсчёт цифр. */
+	const section = document.getElementById('manifest');
+
+	if (section) {
+		const chapters = Array.from(section.querySelectorAll<HTMLElement>('.mk-chapter'));
+		const shots = Array.from(section.querySelectorAll<HTMLElement>('.mk-shot'));
+		const rail = section.querySelector<HTMLElement>('[data-mk-rail]');
+		const fill = section.querySelector<HTMLElement>('[data-mk-fill]');
+		const marks = Array.from(section.querySelectorAll<HTMLElement>('.mk-rail-mark'));
+		const caption = section.querySelector<HTMLElement>('[data-mk-caption]');
+		const ghost = section.querySelector<HTMLElement>('[data-mk-ghost]');
+		const reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+		/* Подписи кадров берём из самих глав — второй копии текста не заводим. */
+		const captions = chapters.map((chapter) => {
+			const mark = chapter.querySelector('.mk-chapter-mark')?.textContent?.trim() ?? '';
+			const title = chapter.querySelector('.mk-chapter-title')?.textContent?.trim() ?? '';
+			return `${mark} · ${title}`;
+		});
+
+		let active = -1;
+		let counted = false;
+		let countRun = 0;
+
+		/* Точки шкалы ставим по центрам глав: без этого шкала врёт на любой
+		   высоте окна. Пересчёт на ресайз, не каждый кадр. */
+		function layout() {
+			if (!rail || !chapters.length) return;
+			const railBox = rail.getBoundingClientRect();
+			if (railBox.height < 10) return;
+			chapters.forEach((chapter, index) => {
+				const box = chapter.getBoundingClientRect();
+				const center = box.top + box.height / 2 - railBox.top;
+				const percent = Math.min(99, Math.max(1, (center / railBox.height) * 100));
+				marks[index]?.style.setProperty('top', `${percent.toFixed(2)}%`);
+			});
+		}
+
+		function frame() {
+			if (reduceQuery.matches) return;
+			const viewport = window.innerHeight;
+			const line = viewport * 0.46; /* линия чтения */
+
+			/* Сначала все чтения раскладки, потом записи стилей — иначе браузер
+			   пересчитывает layout на каждой записи. */
+			const railBox = rail ? rail.getBoundingClientRect() : null;
+			const centers = chapters.map((chapter) => {
+				const box = chapter.getBoundingClientRect();
+				return box.top + box.height / 2;
+			});
+			let best = 0;
+			let bestDistance = Infinity;
+			centers.forEach((center, index) => {
+				const distance = Math.abs(center - line);
+				if (distance < bestDistance) {
+					bestDistance = distance;
+					best = index;
+				}
+			});
+
+			if (railBox && fill && railBox.height > 0) {
+				const progress = Math.min(1, Math.max(0, (line - railBox.top) / railBox.height));
+				fill.style.height = `${(progress * 100).toFixed(2)}%`;
+				marks.forEach((mark, index) => mark.toggleAttribute('data-passed', index <= best));
+			}
+
+			if (best !== active) {
+				active = best;
+				chapters.forEach((chapter, index) => chapter.toggleAttribute('data-active', index === best));
+				shots.forEach((shot, index) => shot.toggleAttribute('data-active', index === best));
+				if (caption && captions[best]) caption.textContent = captions[best];
+			}
+
+			if (ghost) {
+				const box = section.getBoundingClientRect();
+				const progress = Math.min(1, Math.max(0, (viewport - box.top) / (box.height + viewport)));
+				ghost.style.transform = `translateY(${((progress - 0.5) * -70).toFixed(1)}px)`;
+			}
+		}
+
+		let queued = false;
+		function onScroll() {
+			if (queued) return;
+			queued = true;
+			requestAnimationFrame(() => {
+				queued = false;
+				frame();
+			});
+		}
+
+		/* Подписка на события — ровно один раз за жизнь страницы. Иначе при
+		   смене media-запроса (или любой повторной инициализации) навешивается
+		   второй слушатель прокрутки и второй наблюдатель, и счёт цифр
+		   запускается заново при каждом возврате к блоку. */
+		let wired = false;
+		function wire() {
+			if (wired) return;
+			wired = true;
+			window.addEventListener('scroll', onScroll, { passive: true });
+			window.addEventListener('resize', () => {
+				layout();
+				frame();
+			});
+
+			const revealObserver = new IntersectionObserver(
+				(entries) => {
+					entries.forEach((entry) => {
+						if (entry.isIntersecting) {
+							(entry.target as HTMLElement).setAttribute('data-in', '');
+							revealObserver.unobserve(entry.target);
+						}
+					});
+				},
+				{ threshold: 0.2 },
+			);
+			chapters.forEach((chapter) => revealObserver.observe(chapter));
+
+			const stats = section.querySelector('.mk-stats');
+			if (stats) {
+				const statsObserver = new IntersectionObserver(
+					(entries) => {
+						entries.forEach((entry) => {
+							if (entry.isIntersecting) {
+								countUp();
+								/* Отсчёт одноразовый: дальше наблюдатель не нужен. */
+								statsObserver.disconnect();
+							}
+						});
+					},
+					{ threshold: 0.3 },
+				);
+				statsObserver.observe(stats);
+			}
+		}
+
+		function countUp() {
+			if (counted || reduceQuery.matches) return;
+			counted = true;
+			const run = ++countRun;
+			Array.from(section.querySelectorAll<HTMLElement>('.mk-stat-value')).forEach((el) => {
+				const raw = el.dataset.final || el.textContent || '';
+				el.dataset.final = raw;
+				const digits = raw.replace(/\D/g, '');
+				if (!digits) return;
+				const head = raw.slice(0, raw.indexOf(digits));
+				const tail = raw.slice(raw.indexOf(digits) + digits.length);
+				const target = Number(digits);
+				const start = performance.now();
+				const step = (now: number) => {
+					if (run !== countRun) return;
+					const progress = Math.min(1, (now - start) / 900);
+					const eased = 1 - Math.pow(1 - progress, 3);
+					el.textContent = head + String(Math.round(target * eased)) + tail;
+					if (progress < 1) requestAnimationFrame(step);
+					else el.textContent = raw;
+				};
+				requestAnimationFrame(step);
+			});
+		}
+
+		function enable() {
+			if (reduceQuery.matches) {
+				/* При reduce ничего не включаем: работает базовая сетка кадров
+				   из CSS, текст и фотографии видны целиком. */
+				section.removeAttribute('data-js');
+				return;
+			}
+			section.setAttribute('data-js', '');
+			layout();
+			frame();
+			wire();
+
+			/* Главы, которые уже в кадре, проявляем сразу: после перезагрузки
+			   первая глава не должна ждать первого пересечения. */
+			const viewport = window.innerHeight;
+			chapters.forEach((chapter) => {
+				const box = chapter.getBoundingClientRect();
+				if (box.top < viewport * 0.88 && box.bottom > 0) chapter.setAttribute('data-in', '');
+			});
+		}
+
+		enable();
+		/* Смена media-запроса только переключает режим: подписки не дублируются,
+		   счёт не перезапускается. */
+		reduceQuery.addEventListener('change', enable);
+	}
+</script>

@@ -1,0 +1,559 @@
+---
+/* ══ КОНЦЕПЦИЯ A — «ХРОНИКА» ═══════════════════════════════════════════
+   Ось: время. Раздел читается как хроника цеха: четыре главы идут длинной
+   лентой, фото стоит рядом липким слоем и работает «камерой» — на каждой
+   главе свой кроп того же кадра, — а слева по шкале времени загорается
+   отметка главы (2014 стоит её началом). Три цифры закрывают шкалу итогом.
+
+   Пининг здесь не «одна длинная сцена со scrub» (решение координатора
+   от 2026-09-25: непрерывная шкала — самая рискованная часть), а sticky на
+   одном элементе плюс переключение главы по попаданию в центр экрана.
+
+   Прототип для /manifest-concepts-preview. Без JS видны все главы целиком.
+   ══════════════════════════════════════════════════════════════════════ */
+import { Image } from 'astro:assets';
+import {
+	manifestChapterMarks,
+	manifestChapterTitles,
+	manifestGhost,
+	manifestLabel,
+	manifestParagraphs,
+	manifestPhoto,
+	manifestStats,
+	manifestTitle,
+} from '../../lib/manifest';
+
+/* Кроп кадра по главам: «камера» идёт слева направо по интерьеру. */
+const crops = ['18% 45%', '42% 30%', '66% 58%', '88% 62%'];
+
+const chapters = manifestParagraphs.map((paragraph, i) => ({
+	...paragraph,
+	i,
+	mark: manifestChapterMarks[paragraph.id],
+	title: manifestChapterTitles[paragraph.id],
+	crop: crops[i],
+}));
+---
+
+<section id="manifest-a" class="mk" data-concept="a">
+	<div class="mk-clip" aria-hidden="true">
+		<span class="mk-ghost" data-mk-ghost>{manifestGhost}</span>
+	</div>
+
+	<div class="mk-wrap">
+		<header class="mk-head">
+			<p class="mk-label">{manifestLabel}</p>
+			<h2 class="mk-title">{manifestTitle}</h2>
+			<p class="mk-draft">Подписи глав — черновик текста, не утверждён</p>
+		</header>
+
+		<div class="mk-grid">
+			<div class="mk-chapters">
+				{
+					chapters.map((chapter) => (
+						<article class="mk-chapter" data-chapter={chapter.i}>
+							<p class="mk-mark">{chapter.mark}</p>
+							<h3 class="mk-chapter-title">{chapter.title}</h3>
+							<p class="mk-text">{chapter.text}</p>
+						</article>
+					))
+				}
+			</div>
+
+			<div class="mk-camera">
+				<div class="mk-sticky">
+					<ol class="mk-rail" aria-hidden="true">
+						<span class="mk-rail-fill" data-mk-fill />
+						{chapters.map((chapter) => <li class="mk-tick" data-tick={chapter.i} />)}
+					</ol>
+					<div class="mk-photo">
+						<Image
+							src={manifestPhoto}
+							alt="Барбершоп «Мьёльнир»: зеркала, подвесные лампы и мастер за работой"
+							widths={[480, 800, 1200]}
+							sizes="(min-width: 1024px) 45vw, 100vw"
+							format="webp"
+							quality={80}
+							loading="lazy"
+							decoding="async"
+							class="mk-img"
+						/>
+						<p class="mk-photo-caption" data-mk-caption>{chapters[0].mark} · {chapters[0].title}</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Итог шкалы: цифры закрывают хронику -->
+		<div class="mk-stats">
+			<span class="mk-stats-rule" aria-hidden="true" />
+			{
+				manifestStats.map((stat) => (
+					<div class="mk-stat">
+						<p class="mk-stat-value">{stat.value}</p>
+						<p class="mk-stat-label">{stat.label}</p>
+					</div>
+				))
+			}
+		</div>
+	</div>
+</section>
+
+<style>
+	.mk {
+		position: relative;
+		border-bottom: 1px solid var(--border);
+		padding: 32px 24px;
+	}
+	@media (min-width: 1024px) {
+		.mk { padding: 40px 32px; }
+	}
+
+	/* Призрачное слово выходит за край секции, поэтому его режет отдельная
+	   обёртка. overflow: hidden на самой секции ставить нельзя — он делает
+	   секцию контейнером прокрутки и убивает position: sticky у камеры. */
+	.mk-clip {
+		position: absolute;
+		inset: 0;
+		overflow: hidden;
+		pointer-events: none;
+	}
+
+	.mk-ghost {
+		pointer-events: none;
+		position: absolute;
+		top: -1rem;
+		left: 0;
+		user-select: none;
+		white-space: nowrap;
+		font-family: var(--font-manifest);
+		font-size: var(--text-display);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+		opacity: 0.08;
+		will-change: transform;
+	}
+	@media (min-width: 1024px) {
+		.mk-ghost { top: -2.5rem; }
+	}
+
+	.mk-wrap {
+		position: relative;
+		margin: 0 auto;
+		max-width: 1400px;
+	}
+
+	.mk-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.mk-title {
+		margin-top: 24px;
+		max-width: 12ch;
+		font-family: var(--font-manifest);
+		font-size: var(--text-h2);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	/* Маркировка чернового текста: подписи глав придуманы не мной как автор —
+	   они собраны из слов самих абзацев, но остаются предложением. */
+	.mk-draft {
+		margin-top: 16px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--accent-warm);
+	}
+
+	.mk-grid {
+		display: grid;
+		gap: 40px;
+		margin-top: 40px;
+	}
+	@media (min-width: 1024px) {
+		.mk-grid {
+			grid-template-columns: 6fr 6fr;
+			gap: 48px;
+			margin-top: 0;
+		}
+	}
+
+	/* ── Главы ─────────────────────────────────────────────────────── */
+	.mk-chapter + .mk-chapter {
+		margin-top: 48px;
+		padding-top: 48px;
+		border-top: 1px solid var(--border);
+	}
+	@media (min-width: 1024px) {
+		.mk-chapter {
+			min-height: 52vh;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			transition: opacity 620ms cubic-bezier(0.33, 1, 0.68, 1);
+		}
+		.mk[data-js] .mk-chapter[data-active] .mk-mark { color: var(--accent); }
+		.mk[data-js] .mk-chapter[data-active] .mk-chapter-title { color: var(--text); }
+	}
+
+	.mk-mark {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		transition: color 420ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mk-chapter-title {
+		margin-top: 12px;
+		font-family: var(--font-display);
+		font-size: 1.5rem;
+		line-height: 1.15;
+		letter-spacing: -0.02em;
+		color: var(--text);
+	}
+	.mk-text {
+		margin-top: 16px;
+		max-width: 60ch;
+		font-size: var(--text-body);
+		line-height: 1.6;
+		color: var(--text-muted);
+	}
+	.mk[data-js] .mk-chapter[data-active] .mk-text { color: var(--text); }
+
+	/* Проявление главы: строки выезжают из-под маски */
+	.mk[data-js] .mk-chapter > * {
+		opacity: 0;
+		transform: translateY(18px);
+		transition: opacity 620ms cubic-bezier(0.33, 1, 0.68, 1), transform 620ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mk[data-js] .mk-chapter[data-in] > * { opacity: 1; transform: none; }
+
+	/* ── Камера: липкое фото со шкалой времени ─────────────────────── */
+	.mk-camera { position: relative; }
+	.mk-sticky {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 16px;
+	}
+	@media (min-width: 1024px) {
+		.mk-sticky {
+			position: sticky;
+			top: 16vh;
+			grid-template-columns: 28px 1fr;
+			gap: 20px;
+			align-items: stretch;
+		}
+	}
+
+	.mk-rail {
+		position: relative;
+		display: none;
+	}
+	@media (min-width: 1024px) {
+		.mk-rail {
+			display: block;
+			margin: 0;
+			padding: 0;
+			list-style: none;
+			border-left: 1px solid var(--border);
+		}
+	}
+	.mk-rail-fill {
+		position: absolute;
+		left: -1px;
+		top: 0;
+		width: 2px;
+		height: 0;
+		background: var(--accent);
+		transition: height 620ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mk-tick {
+		position: absolute;
+		left: -4px;
+		width: 7px;
+		height: 1px;
+		background: var(--border);
+		transition: background-color 420ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mk-tick:nth-child(2) { top: 0; }
+	.mk-tick:nth-child(3) { top: 33.3%; }
+	.mk-tick:nth-child(4) { top: 66.6%; }
+	.mk-tick:nth-child(5) { top: 100%; }
+	.mk[data-js] .mk-tick[data-tick-active] { background: var(--accent); }
+
+	.mk-photo {
+		--mk-crop: 18% 45%;
+		position: relative;
+		overflow: hidden;
+		border: 1px solid var(--border);
+	}
+	.mk-img {
+		display: block;
+		width: 100%;
+		height: auto;
+		object-fit: cover;
+		object-position: var(--mk-crop);
+		transform: scale(1.04);
+		transition: object-position 1200ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mk-photo-caption {
+		position: absolute;
+		left: 0;
+		bottom: 0;
+		padding: 12px 16px;
+		background: color-mix(in srgb, var(--bg-deep) 88%, transparent);
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+
+	/* ── Итог шкалы ───────────────────────────────────────────────── */
+	.mk-stats {
+		position: relative;
+		margin-top: 64px;
+		display: grid;
+		gap: 32px;
+		padding-top: 40px;
+	}
+	@media (min-width: 640px) {
+		.mk-stats { grid-template-columns: repeat(3, 1fr); }
+	}
+	.mk-stats-rule {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 1px;
+		background: var(--border);
+	}
+	.mk-stat-value {
+		font-family: var(--font-display);
+		font-size: var(--text-display);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		font-variant-numeric: tabular-nums;
+		color: var(--accent);
+	}
+	.mk-stat-label {
+		margin-top: 16px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.mk-ghost,
+		.mk-rail-fill,
+		.mk-tick,
+		.mk-img,
+		.mk-chapter,
+		.mk-chapter > * {
+			transition: none !important;
+			transform: none !important;
+			opacity: 1 !important;
+		}
+		.mk[data-js] .mk-sticky { position: static; }
+		.mk[data-js] .mk-chapter > * { opacity: 1 !important; transform: none !important; }
+	}
+</style>
+
+<script>
+	const KEY = 'a';
+	let active = 0;
+	let counted = false;
+	let countRun = 0;
+	let wired = false;
+
+	type Boot = { boot: () => void; reset: () => void };
+	type Win = Window & { __mcBoot?: Record<string, Boot> };
+
+	const section = () => document.querySelector('.mk') as HTMLElement | null;
+
+	function countUp() {
+		const sec = section();
+		if (!sec || counted) return;
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		counted = true;
+		const run = ++countRun;
+		Array.from(sec.querySelectorAll<HTMLElement>('.mk-stat-value')).forEach((el) => {
+			const raw = el.dataset.final || el.textContent || '';
+			el.dataset.final = raw;
+			const digits = raw.replace(/\D/g, '');
+			if (!digits) return;
+			const head = raw.slice(0, raw.indexOf(digits));
+			const tail = raw.slice(raw.indexOf(digits) + digits.length);
+			const target = Number(digits);
+			const start = performance.now();
+			const step = (now: number) => {
+				if (run !== countRun) return;
+				const p = Math.min(1, (now - start) / 900);
+				const eased = 1 - Math.pow(1 - p, 3);
+				el.textContent = head + String(Math.round(target * eased)) + tail;
+				if (p < 1) requestAnimationFrame(step);
+				else el.textContent = raw;
+			};
+			requestAnimationFrame(step);
+		});
+	}
+
+	function setChapter(index: number) {
+		const sec = section();
+		if (!sec) return;
+		const chapters = Array.from(sec.querySelectorAll<HTMLElement>('.mk-chapter'));
+		if (!chapters.length) return;
+		active = Math.min(Math.max(index, 0), chapters.length - 1);
+		chapters.forEach((chapter, i) => {
+			if (i === active) chapter.setAttribute('data-active', '');
+			else chapter.removeAttribute('data-active');
+		});
+		const ticks = Array.from(sec.querySelectorAll<HTMLElement>('.mk-tick'));
+		ticks.forEach((tick, i) => {
+			if (i <= active) tick.setAttribute('data-tick-active', '');
+			else tick.removeAttribute('data-tick-active');
+		});
+		const fill = sec.querySelector<HTMLElement>('.mk-rail-fill');
+		if (fill) fill.style.height = String(((active + 1) / chapters.length) * 100) + '%';
+
+		/* Камера переезжает: кроп берём у активной главы */
+		const chapter = chapters[active];
+		const crop = chapter.dataset.crop;
+		const photo = sec.querySelector<HTMLElement>('.mk-photo');
+		if (crop && photo) photo.style.setProperty('--mk-crop', crop);
+		const caption = sec.querySelector<HTMLElement>('.mk-caption-target') ||
+			sec.querySelector<HTMLElement>('[data-mk-caption]');
+		if (caption) caption.textContent = chapter.dataset.caption || caption.textContent;
+	}
+
+	function onScroll() {
+		const sec = section();
+		if (!sec) return;
+		const rect = sec.getBoundingClientRect();
+		const span = rect.height + window.innerHeight;
+		const p = Math.min(1, Math.max(0, (window.innerHeight - rect.top) / span));
+		const ghost = sec.querySelector<HTMLElement>('[data-mk-ghost]');
+		/* Призрачное слово уходит вверх по мере чтения: медленнее текста */
+		if (ghost) ghost.style.transform = `translateY(${(p - 0.5) * -60}px)`;
+	}
+
+	/* Проявление выкладывается ещё и вручную: при возврате в концепцию
+	   IntersectionObserver не обязан стрельнуть заново — элемент всё время
+	   был в кадре, просто скрыт (display: none). */
+	function paint() {
+		const sec = section();
+		if (!sec) return;
+		const height = window.innerHeight;
+		Array.from(sec.querySelectorAll<HTMLElement>('.mk-chapter')).forEach((chapter) => {
+			const rect = chapter.getBoundingClientRect();
+			if (rect.top < height * 0.85 && rect.bottom > height * 0.1) chapter.setAttribute('data-in', '');
+		});
+	}
+
+	function boot() {
+		const sec = section();
+		if (!sec) return;
+		sec.setAttribute('data-js', '');
+		if (!wired) wire();
+		setChapter(active);
+		onScroll();
+		paint();
+	}
+
+	function wire() {
+		const sec = section();
+		if (!sec || wired) return;
+		wired = true;
+
+		const chapters = Array.from(sec.querySelectorAll<HTMLElement>('.mk-chapter'));
+
+		/* Каждой главе — свои данные для камеры и подписи кадра */
+		const marks = ['2014', 'глава 02', 'глава 03', 'глава 04'];
+		const titles = ['Подвал на Никольской', 'Форма и время', 'Свой инструмент', 'Честный ответ'];
+		const crops = ['18% 45%', '42% 30%', '66% 58%', '88% 62%'];
+		chapters.forEach((chapter, i) => {
+			chapter.dataset.crop = crops[i];
+			chapter.dataset.caption = `${marks[i]} · ${titles[i]}`;
+		});
+
+		const io = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) setChapter(Number((entry.target as HTMLElement).dataset.chapter));
+				});
+			},
+			{ rootMargin: '-45% 0px -45% 0px', threshold: 0 },
+		);
+		chapters.forEach((chapter) => io.observe(chapter));
+
+		const revealIo = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) {
+						(entry.target as HTMLElement).setAttribute('data-in', '');
+						revealIo.unobserve(entry.target);
+					}
+				});
+			},
+			{ threshold: 0.25 },
+		);
+		chapters.forEach((chapter) => revealIo.observe(chapter));
+
+		const statsIo = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) {
+						countUp();
+						statsIo.disconnect();
+					}
+				});
+			},
+			{ threshold: 0.3 },
+		);
+		const stats = sec.querySelector('.mk-stats');
+		if (stats) statsIo.observe(stats);
+
+		let queued = false;
+		const onScrollQueued = () => {
+			if (queued) return;
+			queued = true;
+			requestAnimationFrame(() => {
+				queued = false;
+				onScroll();
+			});
+		};
+		window.addEventListener('scroll', onScrollQueued, { passive: true });
+		window.addEventListener('resize', onScrollQueued);
+	}
+
+	function reset() {
+		const sec = section();
+		if (!sec) return;
+		countRun++;
+		counted = false;
+		sec.removeAttribute('data-js');
+		Array.from(sec.querySelectorAll<HTMLElement>('.mk-chapter')).forEach((chapter) => {
+			chapter.removeAttribute('data-active');
+			chapter.removeAttribute('data-in');
+		});
+		Array.from(sec.querySelectorAll<HTMLElement>('.mk-stat-value')).forEach((el) => {
+			if (el.dataset.final) el.textContent = el.dataset.final;
+		});
+	}
+
+	const win = window as Win;
+	win.__mcBoot = win.__mcBoot || {};
+	win.__mcBoot[KEY] = { boot, reset };
+	if (document.documentElement.dataset.mc === KEY) boot();
+</script>

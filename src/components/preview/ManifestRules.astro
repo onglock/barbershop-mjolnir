@@ -1,0 +1,500 @@
+---
+/* ══ КОНЦЕПЦИЯ D — «ЧЕТЫРЕ ПРАВИЛА» ════════════════════════════════════
+   Ось: правило. Четыре абзаца раздела становятся четырьмя правилами цеха:
+   заголовок правила — фрагмент самого абзаца (lib/manifest.ts →
+   manifestRuleTitles), тело — абзац целиком. Правила висят на стене: фото
+   поднимается за ними липким слоем, скролл выкладывает пластины, клик
+   раскрывает одну и приглушает остальные, три цифры ставятся печатью в конце.
+
+   Прототип подачи для /manifest-concepts-preview. Без JS раскрыты все
+   правила и видны все абзацы — читается как обычный текст.
+   ══════════════════════════════════════════════════════════════════════ */
+import { Image } from 'astro:assets';
+import {
+	manifestGhost,
+	manifestLabel,
+	manifestParagraphs,
+	manifestPhoto,
+	manifestRuleTitles,
+	manifestStats,
+	manifestTitle,
+} from '../../lib/manifest';
+
+const rules = manifestParagraphs.map((paragraph, i) => ({
+	...paragraph,
+	num: String(i + 1).padStart(2, '0'),
+	title: manifestRuleTitles[paragraph.id],
+}));
+---
+
+<section id="manifest-d" class="md" data-concept="d">
+	<div class="md-clip" aria-hidden="true">
+		<span class="md-ghost" data-md-ghost>{manifestGhost}</span>
+	</div>
+
+	<div class="md-wrap">
+		<div class="md-grid">
+			<!-- Правила: список-стена -->
+			<div class="md-rules">
+				<p class="md-label">{manifestLabel}</p>
+				<h2 class="md-title">{manifestTitle}</h2>
+				<p class="md-draft">Заголовки правил — черновик текста, не утверждён</p>
+
+				<div class="md-plates">
+					{
+						rules.map((rule, i) => (
+							<article class="md-plate" data-plate data-open={i === 0 ? '' : undefined}>
+								<button
+									type="button"
+									class="md-head"
+									data-md-head
+									aria-expanded={i === 0}
+									aria-controls={`md-body-${i}`}
+								>
+									<span class="md-num" aria-hidden="true">{rule.num}</span>
+									<span class="md-rule">{rule.title}</span>
+									<span class="md-sign" aria-hidden="true">ᛏ</span>
+								</button>
+								<div class="md-body" id={`md-body-${i}`} data-md-body>
+									<div class="md-body-inner">
+										<p class="md-text">{rule.text}</p>
+									</div>
+								</div>
+							</article>
+						))
+					}
+				</div>
+			</div>
+
+			<!-- Стена: фото поднимается за пластинами -->
+			<div class="md-wall">
+				<div class="md-photo">
+					<Image
+						src={manifestPhoto}
+						alt="Барбершоп «Мьёльнир»: зеркала, подвесные лампы и мастер за работой"
+						widths={[480, 800, 1200]}
+						sizes="(min-width: 1024px) 45vw, 100vw"
+						format="webp"
+						quality={80}
+						loading="lazy"
+						decoding="async"
+						class="md-img"
+					/>
+				</div>
+			</div>
+		</div>
+
+		<!-- Печать итога: те же три цифры, но как подпись под документом -->
+		<div class="md-stats">
+			{
+				manifestStats.map((stat) => (
+					<div class="md-stat">
+						<p class="md-stat-value">{stat.value}</p>
+						<p class="md-stat-label">{stat.label}</p>
+					</div>
+				))
+			}
+		</div>
+	</div>
+</section>
+
+<style>
+	.md {
+		position: relative;
+		border-bottom: 1px solid var(--border);
+		padding: 32px 24px;
+	}
+	@media (min-width: 1024px) {
+		.md { padding: 40px 32px; }
+	}
+
+	/* Обёртка призрачного слова: режет выходящий за край текст. overflow на
+	   самой секции убрал — он ломает position: sticky у фото. */
+	.md-clip {
+		position: absolute;
+		inset: 0;
+		overflow: hidden;
+		pointer-events: none;
+	}
+
+	.md-ghost {
+		pointer-events: none;
+		position: absolute;
+		top: -1rem;
+		left: 0;
+		user-select: none;
+		white-space: nowrap;
+		font-family: var(--font-manifest);
+		font-size: var(--text-display);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+		opacity: 0.08;
+		will-change: transform;
+	}
+	@media (min-width: 1024px) {
+		.md-ghost { top: -2.5rem; }
+	}
+
+	.md-wrap {
+		position: relative;
+		margin: 0 auto;
+		max-width: 1400px;
+	}
+
+	.md-grid {
+		display: grid;
+		gap: 40px;
+	}
+	@media (min-width: 1024px) {
+		.md-grid { grid-template-columns: 7fr 5fr; gap: 48px; }
+	}
+
+	.md-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.md-title {
+		margin-top: 24px;
+		max-width: 12ch;
+		font-family: var(--font-manifest);
+		font-size: var(--text-h2);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	/* Маркировка чернового текста: заголовки правил — фрагменты самих абзацев,
+	   но всё равно предложение, а не утверждённая формулировка. */
+	.md-draft {
+		margin-top: 16px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--accent-warm);
+	}
+
+	.md-plates {
+		margin-top: 40px;
+		border-top: 1px solid var(--border);
+	}
+
+	/* ── Пластина правила ──────────────────────────────────────────── */
+	.md-plate {
+		border-bottom: 1px solid var(--border);
+		transition: opacity 420ms cubic-bezier(0.33, 1, 0.68, 1), background-color 420ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	/* Открытая пластина выступает, остальные отходят в тень — «стена» */
+	.md[data-js] .md-plate[data-open] { background: color-mix(in srgb, var(--surface) 55%, transparent); }
+	.md[data-js] .md-plate:not([data-open]) { opacity: 0.62; }
+	.md[data-js] .md-plate:not([data-open]):hover { opacity: 1; }
+
+	.md-head {
+		display: grid;
+		grid-template-columns: auto 1fr auto;
+		align-items: baseline;
+		column-gap: 20px;
+		width: 100%;
+		min-height: 64px;
+		padding: 22px 18px;
+		border: 0;
+		background: transparent;
+		text-align: left;
+		cursor: pointer;
+	}
+	.md-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+	.md-num {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		color: var(--text-muted);
+	}
+	.md-plate[data-open] .md-num { color: var(--accent); }
+
+	.md-rule {
+		font-family: var(--font-display);
+		font-size: 1.375rem;
+		line-height: 1.2;
+		letter-spacing: -0.02em;
+		color: var(--text);
+	}
+	.md-plate[data-open] .md-rule { color: var(--accent); }
+
+	.md-sign {
+		font-size: 16px;
+		line-height: 1;
+		color: var(--text-muted);
+		transform: rotate(180deg);
+		transition: transform 300ms cubic-bezier(0.33, 1, 0.68, 1), color 300ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.md-plate[data-open] .md-sign { transform: rotate(0deg); color: var(--accent); }
+
+	/* Тело правила: grid-rows 0fr → 1fr. Без JS оно открыто целиком. */
+	.md-body {
+		overflow: hidden;
+	}
+	.md-body-inner {
+		padding: 0 18px 24px 18px;
+	}
+	.md[data-js] .md-body {
+		display: grid;
+		grid-template-rows: 1fr;
+		transition: grid-template-rows 520ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.md[data-js] .md-plate:not([data-open]) .md-body { grid-template-rows: 0fr; }
+
+	.md-text {
+		max-width: 64ch;
+		font-size: var(--text-body);
+		line-height: 1.6;
+		color: var(--text);
+	}
+
+	/* ── Стена: фото ───────────────────────────────────────────────── */
+	.md-wall { position: relative; }
+	.md-photo {
+		overflow: hidden;
+		border: 1px solid var(--border);
+	}
+	.md-img {
+		display: block;
+		width: 100%;
+		height: auto;
+		object-fit: cover;
+		object-position: 50% 55%;
+		transform: scale(calc(1 + var(--md-p, 0) * 0.07));
+		transition: transform 240ms linear;
+	}
+	@media (min-width: 1024px) {
+		/* Колонка-стена растягивается на всю высоту строки: иначе её высота
+		   равна высоте фото и sticky некуда ехать — фото уходит со скроллом. */
+		.md-wall { align-self: stretch; }
+		.md[data-js] .md-photo {
+			position: sticky;
+			top: 12vh;
+		}
+	}
+
+	/* ── Выкладывание правил по скроллу ───────────────────────────── */
+	.md[data-js] .md-plate {
+		opacity: 0;
+		transform: translateY(26px);
+		transition: opacity 620ms cubic-bezier(0.33, 1, 0.68, 1), transform 620ms cubic-bezier(0.33, 1, 0.68, 1),
+			background-color 420ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.md[data-js] .md-plate[data-in] {
+		opacity: 1;
+		transform: none;
+	}
+	.md[data-js] .md-plate[data-in]:not([data-open]) { opacity: 0.62; }
+
+	/* ── Печать итога ─────────────────────────────────────────────── */
+	.md-stats {
+		margin-top: 64px;
+		display: grid;
+		gap: 32px;
+		border-top: 1px solid var(--border);
+		padding-top: 40px;
+	}
+	@media (min-width: 640px) {
+		.md-stats { grid-template-columns: repeat(3, 1fr); }
+	}
+	@media (min-width: 1024px) {
+		.md-stats { margin-top: 96px; }
+	}
+	.md-stat-value {
+		font-family: var(--font-display);
+		font-size: var(--text-display);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		font-variant-numeric: tabular-nums;
+		color: var(--accent);
+	}
+	.md-stat-label {
+		margin-top: 16px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.md-plate,
+		.md-head,
+		.md-sign,
+		.md-body,
+		.md-img {
+			transition: none !important;
+			transform: none !important;
+			opacity: 1 !important;
+		}
+		.md[data-js] .md-plate { transform: none !important; opacity: 1 !important; }
+		.md[data-js] .md-body { grid-template-rows: 1fr !important; }
+		.md[data-js] .md-photo { position: static; }
+	}
+</style>
+
+<script>
+	const KEY = 'd';
+	let counted = false;
+	let countRun = 0;
+	let wired = false;
+
+	type Boot = { boot: () => void; reset: () => void };
+	type Win = Window & { __mcBoot?: Record<string, Boot> };
+
+	const section = () => document.querySelector('.md') as HTMLElement | null;
+
+	function countUp() {
+		const sec = section();
+		if (!sec || counted) return;
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		counted = true;
+		const run = ++countRun;
+		Array.from(sec.querySelectorAll<HTMLElement>('.md-stat-value')).forEach((el) => {
+			const raw = el.dataset.final || el.textContent || '';
+			el.dataset.final = raw;
+			const digits = raw.replace(/\D/g, '');
+			if (!digits) return;
+			const head = raw.slice(0, raw.indexOf(digits));
+			const tail = raw.slice(raw.indexOf(digits) + digits.length);
+			const target = Number(digits);
+			const start = performance.now();
+			const step = (now: number) => {
+				if (run !== countRun) return;
+				const p = Math.min(1, (now - start) / 900);
+				const eased = 1 - Math.pow(1 - p, 3);
+				el.textContent = head + String(Math.round(target * eased)) + tail;
+				if (p < 1) requestAnimationFrame(step);
+				else el.textContent = raw;
+			};
+			requestAnimationFrame(step);
+		});
+	}
+
+	function setOpen(plate: HTMLElement | null) {
+		const sec = section();
+		if (!sec) return;
+		Array.from(sec.querySelectorAll<HTMLElement>('.md-plate')).forEach((item) => {
+			const on = item === plate;
+			if (on) item.setAttribute('data-open', '');
+			else item.removeAttribute('data-open');
+			const head = item.querySelector<HTMLElement>('.md-head');
+			head?.setAttribute('aria-expanded', String(on));
+		});
+	}
+
+	function onScroll() {
+		const sec = section();
+		if (!sec) return;
+		const rect = sec.getBoundingClientRect();
+		const span = rect.height + window.innerHeight;
+		const p = Math.min(1, Math.max(0, (window.innerHeight - rect.top) / span));
+		sec.style.setProperty('--md-p', String(p));
+	}
+
+	/* Выкладывание пластин подкладывается вручную при возврате: скрытый
+	   (display: none) элемент не даёт событий IntersectionObserver. */
+	function paint() {
+		const sec = section();
+		if (!sec) return;
+		const height = window.innerHeight;
+		Array.from(sec.querySelectorAll<HTMLElement>('.md-plate')).forEach((plate) => {
+			const rect = plate.getBoundingClientRect();
+			if (rect.top < height * 0.92 && rect.bottom > 0) plate.setAttribute('data-in', '');
+		});
+	}
+
+	function boot() {
+		const sec = section();
+		if (!sec) return;
+		sec.setAttribute('data-js', '');
+		if (!wired) wire();
+		setOpen(sec.querySelector<HTMLElement>('.md-plate[data-open]'));
+		onScroll();
+		paint();
+	}
+
+	function wire() {
+		const sec = section();
+		if (!sec || wired) return;
+		wired = true;
+
+		Array.from(sec.querySelectorAll<HTMLElement>('.md-plate')).forEach((plate) => {
+			const head = plate.querySelector<HTMLElement>('.md-head');
+			head?.addEventListener('click', () => {
+				/* Повторный клик по открытой пластине закрывает её: без этого
+				   на «стене» всегда оставалась бы открытая. */
+				setOpen(plate.hasAttribute('data-open') ? null : plate);
+			});
+		});
+
+		const plates = Array.from(sec.querySelectorAll<HTMLElement>('.md-plate'));
+		const io = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) {
+						(entry.target as HTMLElement).setAttribute('data-in', '');
+						io.unobserve(entry.target);
+					}
+				});
+			},
+			{ threshold: 0.2 },
+		);
+		plates.forEach((plate) => io.observe(plate));
+
+		const statsIo = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) {
+						countUp();
+						statsIo.disconnect();
+					}
+				});
+			},
+			{ threshold: 0.3 },
+		);
+		const stats = sec.querySelector('.md-stats');
+		if (stats) statsIo.observe(stats);
+
+		let queued = false;
+		const onScrollQueued = () => {
+			if (queued) return;
+			queued = true;
+			requestAnimationFrame(() => {
+				queued = false;
+				onScroll();
+			});
+		};
+		window.addEventListener('scroll', onScrollQueued, { passive: true });
+		window.addEventListener('resize', onScrollQueued);
+		onScroll();
+	}
+
+	function reset() {
+		const sec = section();
+		if (!sec) return;
+		countRun++;
+		counted = false;
+		sec.removeAttribute('data-js');
+		sec.style.removeProperty('--md-p');
+		Array.from(sec.querySelectorAll<HTMLElement>('.md-plate')).forEach((plate) => {
+			plate.removeAttribute('data-in');
+		});
+		Array.from(sec.querySelectorAll<HTMLElement>('.md-stat-value')).forEach((el) => {
+			if (el.dataset.final) el.textContent = el.dataset.final;
+		});
+	}
+
+	const win = window as Win;
+	win.__mcBoot = win.__mcBoot || {};
+	win.__mcBoot[KEY] = { boot, reset };
+	if (document.documentElement.dataset.mc === KEY) boot();
+</script>

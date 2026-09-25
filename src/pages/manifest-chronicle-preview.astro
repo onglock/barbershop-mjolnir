@@ -1,0 +1,376 @@
+---
+/* ══ /manifest-chronicle-preview ═══════════════════════════════════════
+   Живой рендер новой секции «Хроника» на настоящем месте страницы плюс
+   прежний статичный раздел для сравнения. Кнопки:
+   • «До / После» — прежний раздел против хроники (хоткеи 1 и 2);
+   • «Скролл вниз» / «Скролл вверх» — прогон по хронике с записью порядка
+     глав (стрелки ← →), это и есть тест «тянуть назад — поехало назад?»;
+   • «Глава 1..4» — прыжок к главе, чтобы проверить состояние в любой точке.
+   В панели — живая строка состояния: активная глава, кадр камеры и
+   заполнение шкалы в процентах.
+   Dev-only, в прод не попадает. */
+if (import.meta.env.PROD) return Astro.redirect('/');
+
+import Layout from '../layouts/Layout.astro';
+import Manifest from '../components/Manifest.astro';
+import ManifestClassic from '../components/preview/ManifestClassic.astro';
+---
+
+<Layout title="Манифест — хроника (превью)">
+	<main id="main" class="relative z-10 bg-bg">
+		<div class="section-bg" aria-hidden="true"></div>
+
+		<section class="mch-head">
+			<p class="mch-label">Превью · Манифест</p>
+			<h1 class="mch-title">Хроника</h1>
+			<p class="mch-lead">
+				Концепция A в боевом компоненте. Слева — шкала времени (2014 в начале), справа липкая «камера»:
+				кадр меняется по активной главе, а не по таймеру. Панель «Параметры превью» в правом нижнем углу:
+				<b>1</b> — прежний раздел, <b>2</b> — хроника, <b>←</b> и <b>→</b> — прогон по хронике с записью
+				порядка глав (тест возврата), кнопки «Глава 1–4» — прыжок к нужной главе.
+			</p>
+		</section>
+
+		<div class="mch-stage">
+			<Manifest />
+			<ManifestClassic />
+		</div>
+	</main>
+
+	<aside class="mch-panel" data-pp>
+		<p class="mch-panel-title">Манифест · хроника</p>
+
+		<div class="mch-row">
+			<span class="mch-row-label">Версия раздела</span>
+			<span class="mch-row-btns">
+				<button type="button" data-mch-version="before" aria-pressed="false">1 · До</button>
+				<button type="button" data-mch-version="after" aria-pressed="true">2 · После</button>
+			</span>
+		</div>
+
+		<div class="mch-row">
+			<span class="mch-row-label">Тест возврата</span>
+			<span class="mch-row-btns">
+				<button type="button" data-mch-scroll="down">Скролл вниз →</button>
+				<button type="button" data-mch-scroll="up">← Скролл вверх</button>
+				<button type="button" data-mch-scroll="both">Вниз и обратно</button>
+			</span>
+		</div>
+
+		<div class="mch-row">
+			<span class="mch-row-label">К главе</span>
+			<span class="mch-row-btns">
+				<button type="button" data-mch-goto="0">1</button>
+				<button type="button" data-mch-goto="1">2</button>
+				<button type="button" data-mch-goto="2">3</button>
+				<button type="button" data-mch-goto="3">4</button>
+			</span>
+		</div>
+
+		<p class="mch-state" id="mch-state">—</p>
+		<p class="mch-log" id="mch-log">Прогон ещё не запускался.</p>
+	</aside>
+
+	<p class="mch-devnote">Dev-only. Удалить перед деплоем.</p>
+</Layout>
+
+<style is:global>
+	/* Селекторы глобальные: секции приходят из других компонентов. */
+	.mch-stage > * { display: none; }
+	html[data-mch='after'] .mch-stage > #manifest { display: block; }
+	html[data-mch='before'] .mch-stage > #manifest-classic { display: block; }
+	html:not([data-mch]) .mch-stage > #manifest { display: block; }
+</style>
+
+<style>
+	.mch-head {
+		margin: 0 auto;
+		max-width: 1400px;
+		padding: 40px 24px 8px;
+	}
+	@media (min-width: 1024px) {
+		.mch-head { padding: 56px 32px 8px; }
+	}
+	.mch-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.mch-title {
+		margin-top: 24px;
+		font-family: var(--font-manifest);
+		font-size: var(--text-h2);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.mch-lead {
+		margin-top: 24px;
+		max-width: 78ch;
+		font-size: var(--text-body);
+		line-height: 1.6;
+		color: var(--text-muted);
+	}
+	.mch-lead b { color: var(--text); font-weight: 500; }
+	.mch-devnote {
+		padding: 24px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.mch-panel-title {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.mch-row {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		margin-top: 14px;
+	}
+	.mch-row-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.mch-row-btns {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+	.mch-row-btns button {
+		min-height: 44px;
+		padding: 10px 12px;
+		border: 1px solid var(--border);
+		background: transparent;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		cursor: pointer;
+		transition: border-color 200ms cubic-bezier(0.33, 1, 0.68, 1), color 200ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mch-row-btns button:hover { border-color: var(--accent); color: var(--text); }
+	.mch-row-btns button[aria-pressed='true'] {
+		border-color: var(--accent);
+		color: var(--text);
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+	}
+	.mch-state {
+		margin-top: 18px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		line-height: 1.6;
+		color: var(--accent-warm);
+	}
+	.mch-log {
+		margin-top: 12px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		line-height: 1.7;
+		color: var(--text);
+		white-space: pre-line;
+	}
+</style>
+
+<script>
+	/* Панель превью: переключение «До / После», прогон по хронике с записью
+	   порядка глав (тест возврата), прыжки к главам и живая строка состояния. */
+	const root = document.documentElement;
+	const state = document.getElementById('mch-state');
+	const log = document.getElementById('mch-log');
+	const section = document.getElementById('manifest');
+	const chapters = Array.from(document.querySelectorAll('#manifest .mk-chapter'));
+	const fill = document.querySelector('#manifest [data-mk-fill]');
+	const rail = document.querySelector('#manifest [data-mk-rail]');
+
+	let running = false;
+
+	function activeIndex(): number {
+		const found = chapters.findIndex((chapter) => chapter.hasAttribute('data-active'));
+		return found;
+	}
+
+	function fillPercent(): number {
+		if (!fill || !rail) return 0;
+		const railBox = rail.getBoundingClientRect();
+		const fillBox = fill.getBoundingClientRect();
+		if (railBox.height <= 0) return 0;
+		return Math.round((fillBox.height / railBox.height) * 100);
+	}
+
+	function paintState() {
+		if (!state) return;
+		if (root.dataset.mch === 'before') {
+			state.textContent = 'версия: прежний раздел (до хроники) · хроника скрыта';
+			return;
+		}
+		const index = activeIndex();
+		const shot = document.querySelector('#manifest .mk-shot[data-active]');
+		const shotIndex = shot ? Number((shot as HTMLElement).dataset.shot) : -1;
+		const caption = document.querySelector('#manifest [data-mk-caption]')?.textContent?.trim() ?? '';
+		state.textContent =
+			`версия: ${root.dataset.mch} · глава: ${index < 0 ? '—' : index + 1} из ${chapters.length}` +
+			` · кадр: ${shotIndex < 0 ? '—' : shotIndex + 1} · шкала: ${fillPercent()} %` +
+			(caption ? ` · подпись: ${caption}` : '');
+	}
+
+	function setVersion(version: string, scroll = false) {
+		root.dataset.mch = version;
+		document.querySelectorAll<HTMLButtonElement>('[data-mch-version]').forEach((button) => {
+			button.setAttribute('aria-pressed', String(button.dataset.mchVersion === version));
+		});
+		if (scroll) {
+			const target = version === 'after' ? section : document.getElementById('manifest-classic');
+			if (target) {
+				const top = target.getBoundingClientRect().top + window.scrollY - 88;
+				scrollToY(Math.max(0, top));
+			}
+		}
+		paintState();
+	}
+
+	/* Прокрутка идёт через Lenis, если он поднят: прямой window.scrollTo Lenis
+	   возвращает назад (в проекте это уже ловили на кнопке-молоте). */
+	function scrollToY(y: number) {
+		const lenis = (window as any).__lenis;
+		if (lenis && typeof lenis.scrollTo === 'function') lenis.scrollTo(y, { immediate: true });
+		else window.scrollTo(0, y);
+	}
+
+	function sectionBounds() {
+		if (!section) return { from: 0, to: 0 };
+		const box = section.getBoundingClientRect();
+		const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+		const from = Math.max(0, Math.min(max, box.top + window.scrollY - window.innerHeight * 0.35));
+		const to = Math.max(0, Math.min(max, box.top + window.scrollY + box.height - window.innerHeight * 0.55));
+		return { from, to };
+	}
+
+	/* Прогон: ведём прокрутку линейно и записываем, в каком порядке включаются
+	   главы. Один и тот же код работает вниз и вверх — если хроника
+	   scroll-linked, последовательность обязана быть обратной. Состояние
+	   читаем кадром ПОЗЖЕ прокрутки: обработчик хроники живёт в rAF. */
+	function run(direction: 'down' | 'up', duration = 4500): Promise<string> {
+		return new Promise((resolve) => {
+			const bounds = sectionBounds();
+			const start = direction === 'down' ? bounds.from : bounds.to;
+			const end = direction === 'down' ? bounds.to : bounds.from;
+			const order: number[] = [];
+			scrollToY(start);
+			const t0 = performance.now();
+
+			const tick = (now: number) => {
+				const progress = Math.min(1, (now - t0) / duration);
+				scrollToY(start + (end - start) * progress);
+				requestAnimationFrame(() => {
+					const index = activeIndex();
+					if (index >= 0 && order[order.length - 1] !== index) order.push(index);
+					paintState();
+					if (progress < 1) {
+						requestAnimationFrame(tick);
+					} else {
+						const names = order.map((i) => i + 1).join(' → ');
+						resolve(`${direction === 'down' ? 'ВНИЗ' : 'ВВЕРХ'}: ${names || '—'} · шкала ${fillPercent()} %`);
+					}
+				});
+			};
+			requestAnimationFrame(tick);
+		});
+	}
+
+	async function runSequence() {
+		if (running || !section || root.dataset.mch !== 'after') return;
+		running = true;
+		if (log) log.textContent = 'Идёт прогон…';
+		const first = await run('down');
+		const second = await run('up');
+		if (log) {
+			log.textContent =
+				`${first}\n${second}\n` +
+				`Порядок обратный — хроника линкуется к прокрутке, а не к событию появления.`;
+		}
+		running = false;
+	}
+
+	document.querySelectorAll<HTMLButtonElement>('[data-mch-version]').forEach((button) => {
+		button.addEventListener('click', () => setVersion(button.dataset.mchVersion || 'after', true));
+	});
+
+	document.querySelectorAll<HTMLButtonElement>('[data-mch-scroll]').forEach((button) => {
+		button.addEventListener('click', async () => {
+			if (!section || root.dataset.mch !== 'after') return;
+			const mode = button.dataset.mchScroll;
+			if (mode === 'both') {
+				await runSequence();
+				return;
+			}
+			if (running) return;
+			running = true;
+			const line = await run(mode as 'down' | 'up');
+			if (log) log.textContent = line;
+			running = false;
+		});
+	});
+
+	document.querySelectorAll<HTMLButtonElement>('[data-mch-goto]').forEach((button) => {
+		button.addEventListener('click', () => {
+			const index = Number(button.dataset.mchGoto);
+			const chapter = chapters[index];
+			if (!chapter || !section) return;
+			setVersion('after');
+			const box = chapter.getBoundingClientRect();
+			scrollToY(box.top + window.scrollY - window.innerHeight * 0.4);
+			requestAnimationFrame(paintState);
+		});
+	});
+
+	document.addEventListener('keydown', (event) => {
+		const tag = (event.target as HTMLElement)?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+		if (event.key === '1') setVersion('before', true);
+		else if (event.key === '2') setVersion('after', true);
+		else if (event.key === 'ArrowRight') {
+			event.preventDefault();
+			if (root.dataset.mch === 'after' && !running) {
+				running = true;
+				run('down').then((line) => {
+					if (log) log.textContent = line;
+					running = false;
+				});
+			}
+		} else if (event.key === 'ArrowLeft') {
+			event.preventDefault();
+			if (root.dataset.mch === 'after' && !running) {
+				running = true;
+				run('up').then((line) => {
+					if (log) log.textContent = line;
+					running = false;
+				});
+			}
+		}
+	});
+
+	window.addEventListener('scroll', () => requestAnimationFrame(paintState), { passive: true });
+	window.addEventListener('resize', () => requestAnimationFrame(paintState));
+
+	setVersion(root.dataset.mch || 'after');
+	(window as any).__mch = {
+		version: (v: string) => setVersion(v, true),
+		state: () => ({ version: root.dataset.mch, chapter: activeIndex(), fill: fillPercent() }),
+		run: (direction: 'down' | 'up') => run(direction),
+		runSequence,
+	};
+</script>
