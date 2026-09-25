@@ -1,0 +1,282 @@
+---
+/* ══ FAQ — «СВИТОК РУН» (концепция F1) ═════════════════════════════════
+   Руны вынесены отдельным индексом, ответ разворачивается справа как свиток:
+   сверху и снизу линейки, текст выезжает из-под верхнего среза.
+
+   Управление: наведение, клик, стрелки ↑↓ (и ←→), Home/End. Открыт всегда
+   ровно один вопрос, первый — по умолчанию. Раскладка: на ≥1024 руны стоят
+   колонкой слева от свитка, на 390 — строкой НАД свитком (узкая колонка
+   рун на телефоне съедала бы половину ширины).
+
+   Без JS видны все семь вопросов и ответов (CSS не прячет их без флага
+   data-js), при prefers-reduced-motion разворот происходит без анимации.
+   Тексты — из src/lib/faq.ts, слово в слово как в прежней версии.
+   ══════════════════════════════════════════════════════════════════════ */
+import { faqItems } from '../lib/faq';
+
+interface Props {
+	/* Якорь секции. На главной это #faq — туда ведёт пункт меню. */
+	sectionId?: string;
+}
+
+const { sectionId = 'faq' } = Astro.props;
+---
+
+<section id={sectionId} class="faq-scroll scroll-mt-24 border-b border-border px-6 py-8 lg:px-8 lg:py-10">
+	<div class="fc-inner">
+		<p class="font-label text-label uppercase text-text-muted">Вопросы</p>
+
+		<h2 class="mt-6 max-w-[14ch] text-h2 uppercase text-text">Что спрашивают</h2>
+
+		<div class="fc-body">
+			<!-- Руны: индекс -->
+			<div class="fc-runes" role="tablist" aria-orientation="vertical" aria-label="Вопросы">
+				{
+					faqItems.map((item, index) => (
+						<button
+							type="button"
+							class="fc-rune"
+							data-fc-rune={index}
+							role="tab"
+							id={`faq-rune-${item.id}`}
+							aria-controls={`faq-answer-${item.id}`}
+							aria-selected={index === 0}
+							tabindex={index === 0 ? 0 : -1}
+						>
+							<span class="fc-rune-glyph" aria-hidden="true">{item.rune}</span>
+							<span class="fc-rune-num" aria-hidden="true">{item.num}</span>
+							<span class="fc-rune-q">{item.question}</span>
+						</button>
+					))
+				}
+			</div>
+
+			<!-- Свиток: один открытый ответ -->
+			<div class="fc-scroll">
+				<span class="fc-rule" aria-hidden="true"></span>
+				{
+					faqItems.map((item, index) => (
+						<div
+							class="fc-answer"
+							data-fc-answer={index}
+							id={`faq-answer-${item.id}`}
+							role="tabpanel"
+							aria-labelledby={`faq-rune-${item.id}`}
+						>
+							<p class="fc-answer-rune" aria-hidden="true">{item.rune}</p>
+							<h3 class="fc-answer-q">{item.question}</h3>
+							<p class="fc-answer-a">{item.answer}</p>
+						</div>
+					))
+				}
+				<span class="fc-rule" aria-hidden="true"></span>
+			</div>
+		</div>
+	</div>
+</section>
+
+<style>
+	.fc-inner { margin: 0 auto; max-width: 1400px; }
+
+	.fc-body {
+		margin-top: 40px;
+		display: grid;
+		gap: 20px;
+	}
+	@media (min-width: 1024px) {
+		.fc-body {
+			margin-top: 56px;
+			grid-template-columns: 96px minmax(0, 1fr);
+			gap: 48px;
+			align-items: start;
+		}
+	}
+
+	/* ── Руны ──────────────────────────────────────────────────────── */
+	.fc-runes {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+	@media (min-width: 1024px) {
+		.fc-runes {
+			flex-direction: column;
+			flex-wrap: nowrap;
+			position: sticky;
+			top: 96px;
+		}
+	}
+	.fc-rune {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		min-height: 48px;
+		padding: 8px 14px;
+		border: 1px solid transparent;
+		background: transparent;
+		cursor: pointer;
+		text-align: left;
+	}
+	/* На телефоне руна — только знак и номер, вопрос стоит в свитке */
+	.fc-rune-q {
+		display: none;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.06em;
+		line-height: 1.35;
+		color: var(--text-muted);
+		text-transform: none;
+	}
+	.fc-rune-glyph {
+		font-size: 20px;
+		line-height: 1;
+		color: var(--text-muted);
+		transition: color 260ms cubic-bezier(0.33, 1, 0.68, 1), transform 260ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.fc-rune-num {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.1em;
+		color: var(--text-muted);
+	}
+	.fc-rune[aria-selected='true'] .fc-rune-glyph {
+		color: var(--accent);
+		transform: scale(1.12);
+	}
+	.fc-rune[aria-selected='true'] .fc-rune-num { color: var(--text); }
+	@media (min-width: 1024px) {
+		.fc-rune[aria-selected='true'] { border-left-color: var(--accent); }
+		.fc-rune:hover .fc-rune-glyph { color: var(--text); }
+	}
+	@media (hover: hover) and (min-width: 1024px) {
+		.fc-rune { transition: border-color 260ms cubic-bezier(0.33, 1, 0.68, 1); }
+	}
+
+	/* ── Свиток ────────────────────────────────────────────────────── */
+	.fc-scroll { position: relative; min-height: 240px; }
+	.fc-rule {
+		display: block;
+		height: 1px;
+		background: var(--border);
+	}
+	.fc-answer { padding: 28px 0; }
+	.fc-answer-rune {
+		font-size: 26px;
+		line-height: 1;
+		color: var(--accent-warm);
+	}
+	.fc-answer-q {
+		margin-top: 16px;
+		max-width: 32ch;
+		font-family: var(--font-display);
+		font-size: clamp(1.25rem, 1.7vw, 1.75rem);
+		line-height: 1.2;
+		letter-spacing: -0.02em;
+		color: var(--text);
+	}
+	.fc-answer-a {
+		margin-top: 16px;
+		max-width: 62ch;
+		font-size: var(--text-body);
+		line-height: 1.6;
+		color: var(--text-muted);
+	}
+
+	/* Со скриптом открыт ровно один ответ, текст выезжает из-под среза. */
+	.fc-body[data-js] .fc-answer { display: none; }
+	.fc-body[data-js] .fc-answer[data-open] {
+		display: block;
+		animation: fc-unroll 460ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	@keyframes fc-unroll {
+		from { opacity: 0; clip-path: inset(0 0 88% 0); }
+		to { opacity: 1; clip-path: inset(0 0 0 0); }
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.fc-answer[data-open] { animation: none !important; }
+		.fc-rune-glyph { transition: none !important; }
+	}
+</style>
+
+<script>
+	/* Свиток рун: один открытый ответ, первый — по умолчанию.
+	   Управление: наведение, клик, стрелки, Home/End. Подписки навешиваются
+	   один раз, режим только переключает видимость.
+	   Корень ищем по классу, а не по якорю: на превью-странице рядом живёт
+	   старая секция с тем же id, и getElementById вернул бы её. */
+	const section = document.querySelector<HTMLElement>('section.faq-scroll');
+
+	if (section) {
+		const body = section.querySelector<HTMLElement>('.fc-body');
+		const runes = Array.from(section.querySelectorAll<HTMLButtonElement>('.fc-rune'));
+		const answers = Array.from(section.querySelectorAll<HTMLElement>('.fc-answer'));
+		const list = section.querySelector<HTMLElement>('.fc-runes');
+		const reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+		let index = 0;
+		let wired = false;
+
+		function paint() {
+			runes.forEach((rune, i) => {
+				rune.setAttribute('aria-selected', String(i === index));
+				rune.tabIndex = i === index ? 0 : -1;
+			});
+			answers.forEach((answer, i) => answer.toggleAttribute('data-open', i === index));
+		}
+
+		function wire() {
+			if (wired) return;
+			wired = true;
+			runes.forEach((rune, i) => {
+				rune.addEventListener('click', () => {
+					index = i;
+					paint();
+				});
+				/* Наведение переключает только на устройствах с курсором и только
+				   если на странице-превью режим наведения не выключен. */
+				rune.addEventListener('mouseenter', () => {
+					if (!window.matchMedia('(hover: hover)').matches) return;
+					if (section!.hasAttribute('data-hover-off')) return;
+					index = i;
+					paint();
+				});
+			});
+			list?.addEventListener('keydown', (event) => {
+				const key = (event as KeyboardEvent).key;
+				const count = runes.length;
+				if (key === 'ArrowDown' || key === 'ArrowRight') {
+					event.preventDefault();
+					index = (index + 1) % count;
+					runes[index].focus();
+					paint();
+				} else if (key === 'ArrowUp' || key === 'ArrowLeft') {
+					event.preventDefault();
+					index = (index - 1 + count) % count;
+					runes[index].focus();
+					paint();
+				} else if (key === 'Home') {
+					event.preventDefault();
+					index = 0;
+					runes[0].focus();
+					paint();
+				} else if (key === 'End') {
+					event.preventDefault();
+					index = count - 1;
+					runes[count - 1].focus();
+					paint();
+				}
+			});
+		}
+
+		function enable() {
+			body?.setAttribute('data-js', '');
+			wire();
+			paint();
+		}
+
+		enable();
+		/* Смена предпочтения по движению ничего не ломает: анимация разворота
+		   снимается медиазапросом, логика остаётся. */
+		reduceQuery.addEventListener('change', enable);
+	}
+</script>

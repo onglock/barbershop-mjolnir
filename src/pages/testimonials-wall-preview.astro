@@ -1,0 +1,356 @@
+---
+/* ══ /testimonials-wall-preview ════════════════════════════════════════
+   «Живая стопка»: свободная композиция отзывов с перекрытиями, парением и
+   сменой мест. Панель: «До / Стена», количество (3 / 6 / 9 / 12 / 15),
+   «Перемешать» (новый seed — другая раскладка), «Пауза парения»,
+   «Сменить местами» (вручную), «Сброс». Строка состояния: количество,
+   seed, акцентная карточка, FPS.
+   В прод не попадает. */
+if (import.meta.env.PROD) return Astro.redirect('/');
+
+import Layout from '../layouts/Layout.astro';
+import TestimonialsClassic from '../components/preview/TestimonialsClassic.astro';
+import TestimonialsWall from '../components/TestimonialsWall.astro';
+import { wallReviews } from '../lib/testimonials-wall';
+
+const total = wallReviews.length;
+const drafts = wallReviews.filter((review) => review.draft).length;
+const steps = [3, 6, 8, 12, 15];
+const current = 8;
+const seed = 20260925;
+---
+
+<Layout title="Отзывы — живая стопка (превью)">
+	<main id="main" class="relative z-10 bg-bg">
+		<div class="section-bg" aria-hidden="true"></div>
+
+		<section class="wp-head">
+			<p class="wp-label">Превью · Молва</p>
+			<h1 class="wp-title">Живая стопка</h1>
+			<p class="wp-lead">
+				Боевое количество — <b>8</b> отзывов (в наборе {total}, из них {drafts} — черновик Hermes,
+				помечены в <code>src/lib/testimonials-wall.ts</code>; три первых — боевые). Карточки стоят
+				свободной стопкой: своя позиция, своя ширина, свой слой, своё парение, раз в 15–30 секунд две
+				карточки меняются местами. Наведение — рамка, клик — акцент и выход наверх, первый скролл
+				снимает фиксацию.
+			</p>
+		</section>
+
+		<div class="wp-stage">
+			<div id="wp-classic"><TestimonialsClassic /></div>
+			<TestimonialsWall sectionId="reviews-wall" count={current} renderMax={total} seed={seed} />
+		</div>
+	</main>
+
+	<aside class="wp-panel" data-pp>
+		<p class="wp-panel-title">Молва · живая стопка</p>
+
+		<div class="wp-row">
+			<span class="wp-row-label">Версия</span>
+			<span class="wp-row-btns">
+				<button type="button" data-wp-version="before" aria-pressed="false">До</button>
+				<button type="button" data-wp-version="after" aria-pressed="true">Стопка</button>
+			</span>
+		</div>
+
+		<div class="wp-row">
+			<span class="wp-row-label">Сколько отзывов</span>
+			<span class="wp-row-btns">
+				{steps.map((step) => <button type="button" data-wp-count={step} aria-pressed={step === current}>{step}</button>)}
+				<button type="button" data-wp-count={total} aria-pressed="false">Показать все {total}</button>
+			</span>
+		</div>
+
+		<div class="wp-row">
+			<span class="wp-row-label">Слайдер</span>
+			<span class="wp-slider">
+				<input type="range" min="3" max={total} step="1" value={current} data-wp-range />
+				<output data-wp-output>{current}</output>
+			</span>
+		</div>
+
+		<div class="wp-row">
+			<span class="wp-row-label">Раскладка и движение</span>
+			<span class="wp-row-btns">
+				<button type="button" data-wp-shuffle>Перемешать</button>
+				<button type="button" data-wp-swap>Сменить местами</button>
+				<button type="button" data-wp-pause aria-pressed="false">Пауза парения</button>
+				<button type="button" data-wp-reset>Сброс</button>
+			</span>
+		</div>
+
+		<p class="wp-state" id="wp-state">—</p>
+		<dl class="wp-stats" id="wp-stats"></dl>
+	</aside>
+
+	<p class="wp-devnote">Dev-only. Удалить перед деплоем.</p>
+</Layout>
+
+<style is:global>
+	.wp-stage > * { display: none; }
+	html[data-wp='before'] .wp-stage > #wp-classic { display: block; }
+	html[data-wp='after'] .wp-stage > #reviews-wall { display: block; }
+	html:not([data-wp]) .wp-stage > #reviews-wall { display: block; }
+</style>
+
+<style>
+	.wp-head { margin: 0 auto; max-width: 1400px; padding: 40px 24px 8px; }
+	@media (min-width: 1024px) {
+		.wp-head { padding: 56px 32px 8px; }
+	}
+	.wp-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.wp-title {
+		margin-top: 24px;
+		font-family: var(--font-manifest);
+		font-size: var(--text-h2);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.wp-lead { margin-top: 24px; max-width: 78ch; font-size: var(--text-body); line-height: 1.6; color: var(--text-muted); }
+	.wp-lead b { color: var(--text); font-weight: 500; }
+	.wp-lead code { font-family: var(--font-label); font-size: 0.9em; color: var(--accent); }
+	.wp-devnote {
+		padding: 24px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.wp-panel-title {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.wp-row { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+	.wp-row-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.wp-row-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+	.wp-row-btns button {
+		min-height: 44px;
+		padding: 10px 12px;
+		border: 1px solid var(--border);
+		background: transparent;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+	.wp-row-btns button:hover { border-color: var(--accent); color: var(--text); }
+	.wp-row-btns button[aria-pressed='true'] {
+		border-color: var(--accent);
+		color: var(--text);
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+	}
+	.wp-slider { display: flex; align-items: center; gap: 12px; }
+	.wp-slider input[type='range'] { flex: 1; accent-color: var(--accent); height: 32px; }
+	.wp-slider output {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.08em;
+		color: var(--text);
+		min-width: 3ch;
+	}
+	.wp-state {
+		margin-top: 18px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		line-height: 1.6;
+		color: var(--accent);
+	}
+	.wp-stats { margin-top: 12px; display: grid; gap: 8px; }
+	.wp-stats div { display: flex; justify-content: space-between; gap: 12px; }
+	.wp-stats dt {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.wp-stats dd { font-family: var(--font-label); font-size: var(--text-label); color: var(--text); text-align: right; }
+</style>
+
+<script>
+	/* Панель: версия «До / Стопка», количество, «Перемешать», «Пауза парения»,
+	   «Сменить местами», «Сброс» + живая строка состояния и статистика
+	   (количество, seed, акцентная карточка, FPS). */
+	const root = document.documentElement;
+	const state = document.getElementById('wp-state');
+	const statsList = document.getElementById('wp-stats');
+	const range = document.querySelector<HTMLInputElement>('[data-wp-range]');
+	const output = document.querySelector<HTMLOutputElement>('[data-wp-output]');
+	const countButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-wp-count]'));
+	const pauseButton = document.querySelector<HTMLButtonElement>('[data-wp-pause]');
+
+	type Api = {
+		total: number;
+		setCount: (n: number) => number;
+		setSeed: (s: number) => number;
+		shuffle: () => number;
+		swapNow: () => boolean;
+		pause: (on?: boolean) => boolean;
+		reframe: () => void;
+		stats: () => Record<string, string | number | boolean>;
+	};
+
+	const wall = (): Api | undefined => (window as any).__wall;
+
+	function rowsFor(data: Record<string, any>, total: number): Array<[string, string]> {
+		return [
+			['Показано отзывов', `${data.shown} из ${total}`],
+			['Seed раскладки', String(data.seed)],
+			['Акцентная карточка', `${data.accentWho ?? '—'}${data.pinned === '—' ? ' (по центру)' : ' (по клику)'}`],
+			['Ширина карточек', `${data.minWidth}–${data.maxWidth} px (средняя ${data.avgWidth})`],
+			['Перекрытий пар', String(data.overlaps)],
+			['Высота поля', `${data.field} px`],
+			['Высота секции', `${data.section} px`],
+			['Парение', data.paused ? 'на паузе' : 'идёт'],
+			['FPS', `${data.fps}`],
+		];
+	}
+
+	function paintStats() {
+		const api = wall();
+		if (!api || !statsList) return;
+		const data = api.stats();
+		const rows = rowsFor(data, api.total);
+		if (statsList.childElementCount !== rows.length) {
+			statsList.innerHTML = '';
+			rows.forEach(() => {
+				const div = document.createElement('div');
+				const dt = document.createElement('dt');
+				const dd = document.createElement('dd');
+				div.append(dt, dd);
+				statsList.append(div);
+			});
+		}
+		Array.from(statsList.children).forEach((row, index) => {
+			const [label, value] = rows[index];
+			const dt = row.querySelector('dt')!;
+			const dd = row.querySelector('dd')!;
+			if (dt.textContent !== label) dt.textContent = label;
+			if (dd.textContent !== value) dd.textContent = value;
+		});
+		if (state) {
+			const line =
+				`версия: ${root.dataset.wp === 'before' ? 'боевая секция' : 'живая стопка'} · ` +
+				`отзывов ${data.shown} · seed ${data.seed} · акцент: ${data.accentWho} · FPS ${data.fps}`;
+			if (state.textContent !== line) state.textContent = line;
+		}
+	}
+
+	function setCount(n: number, fromRange = false) {
+		const api = wall();
+		if (!api) return;
+		const applied = api.setCount(n);
+		countButtons.forEach((button) => button.setAttribute('aria-pressed', String(Number(button.dataset.wpCount) === applied)));
+		if (range && !fromRange) range.value = String(applied);
+		if (output) output.textContent = String(applied);
+		requestAnimationFrame(paintStats);
+	}
+
+	function setVersion(version: string) {
+		root.dataset.wp = version;
+		document.querySelectorAll<HTMLButtonElement>('[data-wp-version]').forEach((button) => {
+			button.setAttribute('aria-pressed', String(button.dataset.wpVersion === version));
+		});
+		if (version === 'after') {
+			requestAnimationFrame(() => {
+				wall()?.reframe();
+				paintStats();
+			});
+		} else {
+			paintStats();
+		}
+	}
+
+	function syncPause() {
+		const api = wall();
+		const paused = api ? api.stats().paused === true : false;
+		pauseButton?.setAttribute('aria-pressed', String(paused));
+		if (pauseButton) pauseButton.textContent = paused ? 'Включить парение' : 'Пауза парения';
+		paintStats();
+	}
+
+	document.querySelectorAll<HTMLButtonElement>('[data-wp-version]').forEach((button) => {
+		button.addEventListener('click', () => setVersion(button.dataset.wpVersion || 'after'));
+	});
+	countButtons.forEach((button) => {
+		button.addEventListener('click', () => setCount(Number(button.dataset.wpCount)));
+	});
+	range?.addEventListener('input', () => setCount(Number(range.value), true));
+	document.querySelector('[data-wp-shuffle]')?.addEventListener('click', () => {
+		wall()?.shuffle();
+		paintStats();
+	});
+	document.querySelector('[data-wp-swap]')?.addEventListener('click', () => {
+		wall()?.swapNow();
+		paintStats();
+	});
+	pauseButton?.addEventListener('click', () => {
+		wall()?.pause();
+		syncPause();
+	});
+	document.querySelector('[data-wp-reset]')?.addEventListener('click', () => {
+		const api = wall();
+		if (!api) return;
+		api.pause(false);
+		api.setSeed(20260925);
+		setCount(api.total);
+		syncPause();
+	});
+	document.addEventListener('keydown', (event) => {
+		const tag = (event.target as HTMLElement)?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+		if (event.key === '0') setVersion('before');
+		else if (event.key === '9') setVersion('after');
+		else if (event.key === 'm' || event.key === 'ь') {
+			wall()?.shuffle();
+			paintStats();
+		} else if (event.key === 'p' || event.key === 'з') {
+			wall()?.pause();
+			syncPause();
+		} else if (event.key === 's' || event.key === 'ы') {
+			wall()?.swapNow();
+			paintStats();
+		}
+	});
+
+	/* Панель обновляется не чаще 8 раз в секунду: пересчёт геометрии на
+	   каждый кадр заметно ест кадры. */
+	let lastPaint = 0;
+	function paintThrottled() {
+		const now = performance.now();
+		if (now - lastPaint < 120) return;
+		lastPaint = now;
+		requestAnimationFrame(paintStats);
+	}
+	window.addEventListener('scroll', paintThrottled, { passive: true });
+	window.addEventListener('resize', () => requestAnimationFrame(paintStats));
+	/* FPS в стопке считается своим циклом кадров — обновляем строку состояния
+	   спокойным тиком, чтобы видеть число при парении на месте. */
+	window.setInterval(paintStats, 700);
+
+	setVersion(root.dataset.wp || 'after');
+	setCount(current);
+	syncPause();
+	(window as any).__wp = { setCount, setVersion, paintStats, syncPause };
+</script>

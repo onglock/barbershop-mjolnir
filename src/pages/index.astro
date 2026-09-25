@@ -6,8 +6,8 @@ import Hero from '../components/Hero.astro';
 import Manifest from '../components/Manifest.astro';
 import Services from '../components/Services';
 import Masters from '../components/Masters.astro';
-import Testimonials from '../components/Testimonials.astro';
-import Faq from '../components/Faq';
+import TestimonialsWall from '../components/TestimonialsWall.astro';
+import FaqScroll from '../components/FaqScroll.astro';
 import ContactForm from '../components/ContactForm';
 import Footer from '../components/Footer.astro';
 ---
@@ -27,8 +27,8 @@ import Footer from '../components/Footer.astro';
 		<Manifest />
 		<Services client:visible />
 		<Masters />
-		<Testimonials />
-		<Faq client:visible />
+		<TestimonialsWall count={8} />
+		<FaqScroll />
 		<ContactForm client:idle />
 	</main>
 

@@ -7,7 +7,7 @@
 if (import.meta.env.PROD) return Astro.redirect('/');
 
 import Layout from '../layouts/Layout.astro';
-import Testimonials from '../components/Testimonials.astro';
+import TestimonialsClassic from '../components/preview/TestimonialsClassic.astro';
 import TestimonialsConcepts from '../components/preview/TestimonialsConcepts.astro';
 
 const concepts = [
@@ -83,7 +83,7 @@ const concepts = [
 		</section>
 
 		<div class="tp-stage">
-			<Testimonials />
+			<TestimonialsClassic />
 			<TestimonialsConcepts />
 		</div>
 	</main>

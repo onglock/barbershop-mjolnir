@@ -1,0 +1,224 @@
+---
+/* ══ /faq-scroll-preview ═══════════════════════════════════════════════
+   «Свиток рун» (F1) — боевая секция вживую на своём месте, и «До» — прежний
+   аккордеон (React-остров Faq, тот же, что был на главной). Панель показывает
+   активный вопрос и подсказки по управлению.
+   В прод не попадает. */
+if (import.meta.env.PROD) return Astro.redirect('/');
+
+import Layout from '../layouts/Layout.astro';
+import Faq from '../components/Faq';
+import FaqScroll from '../components/FaqScroll.astro';
+import { faqItems } from '../lib/faq';
+---
+
+<Layout title="Вопросы — свиток рун (превью)">
+	<main id="main" class="relative z-10 bg-bg">
+		<div class="section-bg" aria-hidden="true"></div>
+
+		<section class="fp-head">
+			<p class="fp-label">Превью · Вопросы</p>
+			<h1 class="fp-title">Свиток рун</h1>
+			<p class="fp-lead">
+				Концепция F1 в боевом компоненте <code>FaqScroll.astro</code>: руны — индекс, ответ разворачивается
+				справа как свиток. Управление: наведение, клик, стрелки <b>↑ ↓</b>, <b>Home</b> / <b>End</b>. Открыт
+				всегда один вопрос, первый — по умолчанию. «До» — прежний аккордеон для сравнения.
+			</p>
+		</section>
+
+		<div class="fp-stage">
+			<div id="fp-classic"><Faq client:load /></div>
+			<FaqScroll sectionId="faq-scroll" />
+		</div>
+	</main>
+
+	<aside class="fp-panel" data-pp>
+		<p class="fp-panel-title">Вопросы · свиток рун</p>
+
+		<div class="fp-row">
+			<span class="fp-row-label">Версия</span>
+			<span class="fp-row-btns">
+				<button type="button" data-fp-version="before" aria-pressed="false">До</button>
+				<button type="button" data-fp-version="after" aria-pressed="true">Свиток</button>
+			</span>
+		</div>
+
+		<div class="fp-row">
+			<span class="fp-row-label">Проверка наведения</span>
+			<span class="fp-row-btns">
+				<button type="button" data-fp-hover="off" aria-pressed="false">Выключить hover</button>
+				<button type="button" data-fp-hover="on" aria-pressed="true">Вернуть hover</button>
+			</span>
+		</div>
+
+		<div class="fp-row">
+			<span class="fp-row-label">Прыжок к вопросу</span>
+			<span class="fp-row-btns">
+				{
+					faqItems.map((item, index) => (
+						<button type="button" data-fp-jump={index} title={item.question}>
+							{item.rune} {item.num}
+						</button>
+					))
+				}
+			</span>
+		</div>
+
+		<p class="fp-state" id="fp-state">—</p>
+	</aside>
+
+	<p class="fp-devnote">Dev-only. Удалить перед деплоем.</p>
+</Layout>
+
+<style is:global>
+	.fp-stage > * { display: none; }
+	html[data-fp='before'] .fp-stage > #fp-classic { display: block; }
+	html[data-fp='after'] .fp-stage > #faq-scroll { display: block; }
+	html:not([data-fp]) .fp-stage > #faq-scroll { display: block; }
+</style>
+
+<style>
+	.fp-head { margin: 0 auto; max-width: 1400px; padding: 40px 24px 8px; }
+	@media (min-width: 1024px) {
+		.fp-head { padding: 56px 32px 8px; }
+	}
+	.fp-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.fp-title {
+		margin-top: 24px;
+		font-family: var(--font-manifest);
+		font-size: var(--text-h2);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.fp-lead { margin-top: 24px; max-width: 78ch; font-size: var(--text-body); line-height: 1.6; color: var(--text-muted); }
+	.fp-lead b { color: var(--text); font-weight: 500; }
+	.fp-lead code { font-family: var(--font-label); font-size: 0.9em; color: var(--accent); }
+	.fp-devnote {
+		padding: 24px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.fp-panel-title {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.fp-row { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+	.fp-row-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.fp-row-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+	.fp-row-btns button {
+		min-height: 44px;
+		padding: 10px 12px;
+		border: 1px solid var(--border);
+		background: transparent;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+	.fp-row-btns button:hover { border-color: var(--accent); color: var(--text); }
+	.fp-row-btns button[aria-pressed='true'] {
+		border-color: var(--accent);
+		color: var(--text);
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+	}
+	.fp-state {
+		margin-top: 18px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		line-height: 1.6;
+		color: var(--accent-warm);
+	}
+</style>
+
+<script>
+	/* Панель превью: версия, прыжки к вопросам, выключение наведения и живая
+	   строка состояния (какой вопрос открыт). */
+	const root = document.documentElement;
+	const state = document.getElementById('fp-state');
+	const section = document.querySelector<HTMLElement>('section.faq-scroll');
+
+	function openIndex(): number {
+		if (!section) return -1;
+		const answers = Array.from(section.querySelectorAll('.fc-answer'));
+		return answers.findIndex((answer) => answer.hasAttribute('data-open'));
+	}
+
+	function paint() {
+		if (!state) return;
+		const index = openIndex();
+		const runes = Array.from(section?.querySelectorAll('.fc-rune') ?? []);
+		const num = index >= 0 ? runes[index]?.querySelector('.fc-rune-num')?.textContent : '—';
+		const question = index >= 0 ? section?.querySelectorAll('.fc-answer-q')[index]?.textContent : '';
+		state.textContent =
+			`версия: ${root.dataset.fp === 'before' ? 'прежний аккордеон' : 'свиток рун'} · открыт: ${num ?? '—'}` +
+			(question ? ` · «${question.trim()}»` : '');
+	}
+
+	function setVersion(version: string) {
+		root.dataset.fp = version;
+		document.querySelectorAll<HTMLButtonElement>('[data-fp-version]').forEach((button) => {
+			button.setAttribute('aria-pressed', String(button.dataset.fpVersion === version));
+		});
+		requestAnimationFrame(paint);
+	}
+
+	function setHover(on: boolean) {
+		document.querySelectorAll<HTMLButtonElement>('[data-fp-hover]').forEach((button) => {
+			button.setAttribute('aria-pressed', String((button.dataset.fpHover === 'on') === on));
+		});
+		/* Выключение наведения = флаг на самой секции: обработчик mouseenter
+		   его проверяет. CSS не трогаем, иначе клик и клавиатура тоже отвалятся. */
+		if (on) section?.removeAttribute('data-hover-off');
+		else section?.setAttribute('data-hover-off', '');
+	}
+
+	document.querySelectorAll<HTMLButtonElement>('[data-fp-version]').forEach((button) => {
+		button.addEventListener('click', () => setVersion(button.dataset.fpVersion || 'after'));
+	});
+	document.querySelectorAll<HTMLButtonElement>('[data-fp-jump]').forEach((button) => {
+		button.addEventListener('click', () => {
+			const index = Number(button.dataset.fpJump);
+			const rune = section?.querySelectorAll<HTMLButtonElement>('.fc-rune')[index];
+			rune?.click();
+			rune?.focus();
+			requestAnimationFrame(paint);
+		});
+	});
+	document.querySelectorAll<HTMLButtonElement>('[data-fp-hover]').forEach((button) => {
+		button.addEventListener('click', () => setHover(button.dataset.fpHover === 'on'));
+	});
+	document.addEventListener('keydown', (event) => {
+		if (event.key === '0') setVersion('before');
+		else if (event.key === '9') setVersion('after');
+	});
+	window.addEventListener('click', () => requestAnimationFrame(paint));
+	window.addEventListener('keyup', () => requestAnimationFrame(paint));
+
+	setVersion(root.dataset.fp || 'after');
+	setHover(true);
+	requestAnimationFrame(paint);
+	(window as any).__fp = { setVersion, paint, openIndex };
+</script>

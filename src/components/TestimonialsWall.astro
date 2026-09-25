@@ -1,0 +1,692 @@
+---
+/* ══ TESTIMONIALS — «ЖИВАЯ СТОПКА» (свободная композиция) ══════════════
+   Не сетка: каждая карточка получает свою позицию в поле (x, y), ширину
+   220–320 px, свой z и свою фазу парения. Позиции считаются ОДИН РАЗ на
+   загрузке (детерминированно от seed, mulberry32) — не каждый кадр.
+
+   Слои на карточку (разделены, чтобы движения не конфликтовали):
+     .tw-item  — базовая позиция в поле (двигает только смена мест)
+     .tw-drift — парение (sin по времени) + параллакс от прокрутки, каждый кадр
+     .tw-lift  — подъём акцентной карточки, ТОЛЬКО CSS-переход 350 мс
+     .tw-card  — цвет/фон/рамка, CSS-переход 350 мс
+
+   Почему так: раньше подъём акцента жил в том же инлайн-трансформе, что и
+   параллакс, а «ближайшая» карточка выбиралась без гистерезиса — на равном
+   удалении от центра она переключалась КАЖДЫЙ КАДР, и карточки прыгали на
+   10 px (замер до правки: 10,2 px за кадр, 5 карточек из 9). Теперь выбор с
+   запасом 40 px, подъём — отдельный слой с переходом, сумма смещений
+   ограничена (±24 px по Y, ±16 px по X).
+
+   Акцент: ближайшая к центру окна карточка; клик по карточке (в том числе
+   по её видимому краю из-под соседней) фиксирует акцент на ней; первый
+   скролл снимает фиксацию и акцент снова следит за центром. Взятая кликом
+   карточка выходит наверх (data-pinned) — иначе её текст может остаться
+   под соседней.
+
+   ≥1024 — свободное поле с перекрытиями; <1024 — обычный список без
+   наложения (на телефоне стопка нечитаема). prefers-reduced-motion: парение
+   и смена мест выключены, позиции статичны, акцент работает.
+   ══════════════════════════════════════════════════════════════════════ */
+import { wallReviews } from '../lib/testimonials-wall';
+
+interface Props {
+	/* Якорь секции: на главной #molva (пункт меню ведёт туда). */
+	sectionId?: string;
+	/* Сколько карточек показывает секция (остальные скрыты скриптом). */
+	count?: number;
+	/* Сколько карточек вообще попадает в разметку: без JS секция показывает
+	   ровно боевое количество, а превью-странице нужен весь набор. */
+	renderMax?: number;
+	seed?: number;
+}
+
+const {
+	sectionId = 'molva',
+	count = 8,
+	renderMax = count,
+	seed = 20260925,
+} = Astro.props;
+---
+
+<section
+	id={sectionId}
+	class="tw scroll-mt-24 border-b border-border px-6 py-8 lg:px-8 lg:py-10"
+	data-wall
+	data-seed={seed}
+	data-count={count}
+>
+	<div class="tw-inner">
+		<p class="font-label text-label uppercase text-text-muted">Молва</p>
+
+		<h2 class="mt-6 max-w-[22ch] text-h2 uppercase text-text">О Мьёльнире слагают легенды</h2>
+
+		<div class="tw-field" data-field>
+			{
+				wallReviews.slice(0, renderMax).map((review, index) => (
+					<figure class="tw-item" data-item={index} style={`--wi:${index}`} tabindex="0">
+						<div class="tw-drift" data-drift>
+							<div class="tw-lift" data-lift>
+								<div class="tw-card" data-card>
+									<blockquote class="tw-text">«{review.text}»</blockquote>
+									<figcaption class="tw-author">
+										<span class="tw-monogram">{review.monogram}</span>
+										{review.author}
+									</figcaption>
+								</div>
+							</div>
+						</div>
+					</figure>
+				))
+			}
+		</div>
+	</div>
+</section>
+
+<style>
+	.tw-inner { margin: 0 auto; max-width: 1400px; }
+
+	.tw-field { position: relative; margin-top: 40px; }
+	@media (min-width: 1024px) {
+		.tw-field { margin-top: 56px; }
+	}
+
+	.tw-item { display: block; outline: none; }
+	.tw-item[data-off] { display: none; }
+
+	/* Пока скрипт не отметил поле (data-js), карточки идут списком — так же
+	   выглядит страница без JavaScript: текст читается, ничего не наложено. */
+	.tw-item + .tw-item { margin-top: 16px; }
+
+	@media (min-width: 1024px) {
+		.tw[data-js] .tw-item {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 260px; /* перезаписывается раскладкой */
+			transform: translate3d(0, 0, 0);
+			will-change: transform;
+			cursor: pointer;
+		}
+		.tw[data-js] .tw-item + .tw-item { margin-top: 0; }
+	}
+
+	.tw-drift { will-change: transform; }
+	.tw-lift { transition: transform 350ms cubic-bezier(0.33, 1, 0.68, 1); }
+
+	.tw-card {
+		height: 100%;
+		border: 1px solid var(--border);
+		padding: 24px;
+		background: color-mix(in srgb, var(--bg-deep) 84%, transparent);
+		transition:
+			border-color 350ms cubic-bezier(0.33, 1, 0.68, 1),
+			background-color 350ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	@media (min-width: 1024px) {
+		.tw-card { padding: 28px; }
+	}
+
+	.tw-text {
+		font-size: var(--text-body);
+		line-height: 1.55;
+		color: var(--text-muted);
+		transition: color 350ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.tw-author {
+		margin-top: 20px;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		transition: color 350ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.tw-monogram {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex: none;
+		width: 32px;
+		height: 32px;
+		border: 1px solid var(--border);
+		font-family: var(--font-display);
+		font-size: 15px;
+		color: var(--accent);
+		transition: border-color 350ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+
+	/* ── Акцент: синий --accent, подъём −12 px, текст в полную силу ──── */
+	.tw[data-js] .tw-item[data-accent] .tw-lift { transform: translate3d(0, -12px, 0); }
+	.tw[data-js] .tw-item[data-accent] .tw-card {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 10%, var(--bg-deep));
+	}
+	.tw[data-js] .tw-item[data-accent] .tw-text { color: var(--text); }
+	.tw[data-js] .tw-item[data-accent] .tw-author { color: var(--text); }
+	.tw[data-js] .tw-item[data-accent] .tw-monogram { border-color: var(--accent); }
+
+	/* Взятая кликом карточка выходит вперёд — её должно быть видно целиком */
+	.tw-item[data-pinned] { z-index: 900 !important; }
+
+	/* ── Наведение: только рамка, без подъёма и без выхода наверх ──────
+	   Клик главнее: если карточка зафиксирована кликом, наведение на другую
+	   показывает лишь рамку и акцент не переносит. Если карточка уже
+	   акцентная (от скролла или клика) — её вид не меняется. */
+	@media (hover: hover) {
+		.tw[data-js] .tw-item:hover .tw-card { border-color: var(--accent); }
+	}
+
+	.tw[data-js] .tw-item[data-far] .tw-card { opacity: 0.66; }
+
+	@media (min-width: 1024px) {
+		.tw-item:focus-visible .tw-card { outline: 1px solid var(--accent); outline-offset: 3px; }
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		/* Базовая позиция карточки — это раскладка, а не движение: её
+		   оставляем (иначе стопка схлопывается в угол). Гасим только слои
+		   движения. */
+		.tw-drift,
+		.tw-lift {
+			transform: none !important;
+			transition: none !important;
+		}
+		.tw-card,
+		.tw-text,
+		.tw-author,
+		.tw-monogram { transition: none !important; }
+	}
+</style>
+
+<script>
+	/* Свободная раскладка + парение + смена мест + акцент.
+	   Раскладка детерминированная: один seed даёт одну и ту же стопку,
+	   поэтому «перемешать» — это новый seed. */
+	const section = document.querySelector<HTMLElement>('.tw[data-wall]');
+
+	if (section) {
+		const field = section.querySelector<HTMLElement>('[data-field]')!;
+		const items = Array.from(section.querySelectorAll<HTMLElement>('[data-item]'));
+		const drifters = items.map((item) => item.querySelector<HTMLElement>('[data-drift]')!);
+		const reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+		const wideQuery = window.matchMedia('(min-width: 1024px)');
+
+		const WIDTH_MIN = 220;
+		const WIDTH_MAX = 320;
+		const ROW_STEP = 250;
+		const JITTER_X = 0.16; /* доля шага колонки */
+		const JITTER_Y = 0.22; /* доля шага строки */
+		const LIMIT_Y = 24; /* предел суммарного смещения (парение + параллакс) */
+		const LIMIT_X = 16;
+		const ACCENT_MARGIN = 40; /* гистерезис: акцент меняется, только если новый ближе на 40 px */
+		const SWAP_MS = 2500;
+		const SWAP_AFTER_MIN = 15000;
+		const SWAP_AFTER_MAX = 30000;
+
+		/* ── детерминированный генератор ─────────────────────────────── */
+		function mulberry32(start: number) {
+			let a = start >>> 0;
+			return () => {
+				a = (a + 0x6d2b79f5) | 0;
+				let t = Math.imul(a ^ (a >>> 15), 1 | a);
+				t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+				return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+			};
+		}
+
+		type Card = {
+			index: number;
+			x: number;
+			y: number;
+			w: number;
+			ampY: number;
+			ampX: number;
+			periodY: number;
+			periodX: number;
+			phase: number;
+			phaseX: number;
+			z: number;
+			rate: number;
+		};
+
+		let seed = Number(section.dataset.seed || 20260925);
+		let count = Math.max(1, Math.min(items.length, Number(section.dataset.count || items.length)));
+		let cards: Card[] = [];
+		let paused = false;
+		let frozenAt = 0;
+		let accent = -1;
+		let pinned: number | null = null;
+		let swapTimer: number | null = null;
+		let swap: {
+			a: number;
+			b: number;
+			fromA: [number, number];
+			fromB: [number, number];
+			toA: [number, number];
+			toB: [number, number];
+			t0: number;
+		} | null = null;
+		let running = false;
+		let rafId = 0;
+		let frameCounter = 0;
+		let fpsWindowStart = 0;
+		let fps = 0;
+
+		const columnCount = (): number => {
+			if (!wideQuery.matches) return 1;
+			const width = field.clientWidth;
+			/* Шаг колонки держим меньше ширины карточки — иначе перекрытий нет */
+			if (width >= 1300) return 5;
+			if (width >= 1000) return 4;
+			return 3;
+		};
+
+		/* ── раскладка ───────────────────────────────────────────────── */
+		function layout(nextSeed = seed, nextCount = count) {
+			seed = nextSeed;
+			count = Math.max(1, Math.min(items.length, nextCount));
+			section!.dataset.seed = String(seed);
+			section!.dataset.count = String(count);
+
+			const rand = mulberry32(seed);
+			const wide = wideQuery.matches;
+			const cols = wide ? Math.min(columnCount(), count) : 1;
+			const rows = Math.ceil(count / cols);
+			const fieldWidth = field.clientWidth;
+			const colStep = cols > 1 ? fieldWidth / cols : fieldWidth;
+
+			cards = items.slice(0, count).map((item, index) => {
+				const col = index % cols;
+				const row = Math.floor(index / cols);
+				const w = wide ? Math.round(WIDTH_MIN + rand() * (WIDTH_MAX - WIDTH_MIN)) : fieldWidth;
+				const jitterX = (rand() - 0.5) * 2 * JITTER_X * colStep;
+				const jitterY = (rand() - 0.5) * 2 * JITTER_Y * ROW_STEP;
+				const x = Math.max(0, Math.min(fieldWidth - w, col * colStep + (colStep - w) / 2 + jitterX));
+				const y = Math.max(0, row * ROW_STEP + jitterY);
+				const depth = Math.floor(rand() * 3); /* 0..2 — слой параллакса */
+				return {
+					index,
+					x: Math.round(x),
+					y: Math.round(y),
+					w,
+					ampY: 6 + rand() * 4,
+					ampX: 3 + rand() * 2,
+					periodY: 6 + rand() * 4,
+					periodX: 7 + rand() * 4,
+					phase: rand(),
+					phaseX: rand(),
+					z: 1 + Math.floor(rand() * count),
+					rate: 10 + depth * 8,
+				};
+			});
+
+			/* Ставим позиции и ширины. Высота поля — по факту: карточки
+			   разной высоты (высота идёт по контенту). */
+			items.forEach((item, index) => {
+				const card = cards[index];
+				item.toggleAttribute('data-off', index >= count);
+				if (!card) {
+					item.removeAttribute('style');
+					return;
+				}
+				item.style.width = wide ? `${card.w}px` : '';
+				item.style.zIndex = String(card.z);
+				/* Базовая позиция — только в свободном поле: в списке на
+				   телефоне карточки стоят потоком, transform не нужен. */
+				item.style.transform = wide ? `translate3d(${card.x}px, ${card.y}px, 0)` : '';
+				item.style.setProperty('--wi', String(index));
+			});
+			applyDrift(performance.now() / 1000);
+			measureField(rows);
+			scheduleSwap();
+			return count;
+		}
+
+		function measureField(rows: number) {
+			/* Меряем только когда карточки уже стоят свободным полем: иначе
+			   (список до включения раскладки) получится высота колонки. */
+			if (!wideQuery.matches || !section!.hasAttribute('data-js')) {
+				field.style.height = '';
+				return;
+			}
+			const nominal = (rows - 1) * ROW_STEP + 340;
+			const fieldTop = field.getBoundingClientRect().top;
+			let bottom = 0;
+			cards.forEach((card) => {
+				const rect = items[card.index].getBoundingClientRect();
+				bottom = Math.max(bottom, rect.bottom - fieldTop);
+			});
+			field.style.height = `${Math.max(nominal, Math.round(bottom) + 48)}px`;
+		}
+
+		/* ── кадр: парение + параллакс ───────────────────────────────── */
+		function applyDrift(now: number) {
+			if (!cards.length) return;
+			/* Без парения (reduce) слои движения не трогаем вовсе — позиции
+			   карточек остаются статичными. */
+			if (!wideQuery.matches || reduceQuery.matches) {
+				drifters.forEach((layer) => layer.removeAttribute('style'));
+				return;
+			}
+			const t = paused ? frozenAt : now;
+			const box = section!.getBoundingClientRect();
+			const viewport = window.innerHeight;
+			const progress = Math.min(1, Math.max(0, (viewport - box.top) / (box.height + viewport)));
+
+			cards.forEach((card) => {
+				/* Парение: своя фаза и свои периоды у каждой карточки */
+				const dy = Math.sin((t / card.periodY + card.phase) * Math.PI * 2) * card.ampY;
+				const dx = Math.sin((t / card.periodX + card.phaseX) * Math.PI * 2) * card.ampX;
+				/* Параллакс: только от прокрутки, без своей фазы. Складывается
+				   с парением, сумма ограничена пределом. */
+				const py = (progress - 0.5) * -card.rate;
+				const totalY = Math.max(-LIMIT_Y, Math.min(LIMIT_Y, dy + py));
+				const totalX = Math.max(-LIMIT_X, Math.min(LIMIT_X, dx));
+				drifters[card.index].style.transform = `translate3d(${totalX.toFixed(2)}px, ${totalY.toFixed(2)}px, 0)`;
+			});
+		}
+
+		/* ── акцент ──────────────────────────────────────────────────── */
+		function paintAccent(next: number) {
+			if (next === accent) return;
+			accent = next;
+			const viewport = window.innerHeight;
+			items.forEach((item, index) => {
+				item.toggleAttribute('data-accent', index === accent);
+				const rect = item.getBoundingClientRect();
+				const distance = Math.abs(rect.top + rect.height / 2 - viewport / 2);
+				item.toggleAttribute('data-far', distance > viewport * 0.45);
+			});
+		}
+
+		function distanceToCenter(index: number): number {
+			const rect = items[index].getBoundingClientRect();
+			return Math.abs(rect.top + rect.height / 2 - window.innerHeight / 2);
+		}
+
+		function nearestByCenter(previous: number): number {
+			let best = -1;
+			let bestDistance = Infinity;
+			cards.forEach((card) => {
+				const distance = distanceToCenter(card.index);
+				if (distance < bestDistance) {
+					bestDistance = distance;
+					best = card.index;
+				}
+			});
+			/* Гистерезис: если прежний акцент не дальше нового более чем на
+			   40 px — оставляем. Без него на равном удалении акцент прыгал
+			   между двумя карточками каждый кадр (это и был «рывок»). */
+			if (previous >= 0 && previous < items.length && previous !== best) {
+				const prevDistance = distanceToCenter(previous);
+				if (prevDistance <= bestDistance + ACCENT_MARGIN) return previous;
+			}
+			return best;
+		}
+
+		/* ── смена мест ──────────────────────────────────────────────── */
+		function visibleIndexes(): number[] {
+			return cards.map((card) => card.index).filter((index) => !items[index].hasAttribute('data-off'));
+		}
+
+		function startSwap(a?: number, b?: number) {
+			if (swap || reduceQuery.matches || !wideQuery.matches) return false;
+			const pool = visibleIndexes();
+			if (pool.length < 2) return false;
+			let i = a ?? pool[Math.floor(Math.random() * pool.length)];
+			let j = b ?? pool[Math.floor(Math.random() * pool.length)];
+			let guard = 0;
+			while (j === i && guard++ < 40) j = pool[Math.floor(Math.random() * pool.length)];
+			if (i === j) return false;
+			swap = {
+				a: i,
+				b: j,
+				fromA: [cards[i].x, cards[i].y],
+				fromB: [cards[j].x, cards[j].y],
+				toA: [cards[j].x, cards[j].y],
+				toB: [cards[i].x, cards[i].y],
+				t0: performance.now(),
+			};
+			return true;
+		}
+
+		function stepSwap(now: number) {
+			if (!swap) return;
+			const k = Math.min(1, (now - swap.t0) / SWAP_MS);
+			const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; /* ease-in-out-cubic */
+			const lerp = (from: number[], to: number[]) => [
+				from[0] + (to[0] - from[0]) * e,
+				from[1] + (to[1] - from[1]) * e,
+			];
+			const [ax, ay] = lerp(swap.fromA, swap.toA);
+			const [bx, by] = lerp(swap.fromB, swap.toB);
+			items[swap.a].style.transform = `translate3d(${ax.toFixed(2)}px, ${ay.toFixed(2)}px, 0)`;
+			items[swap.b].style.transform = `translate3d(${bx.toFixed(2)}px, ${by.toFixed(2)}px, 0)`;
+			if (k >= 1) {
+				cards[swap.a].x = swap.toA[0];
+				cards[swap.a].y = swap.toA[1];
+				cards[swap.b].x = swap.toB[0];
+				cards[swap.b].y = swap.toB[1];
+				swap = null;
+				measureField(Math.ceil(count / Math.max(1, Math.min(columnCount(), count))));
+				scheduleSwap();
+			}
+		}
+
+		function scheduleSwap() {
+			if (swapTimer !== null) window.clearTimeout(swapTimer);
+			if (paused || reduceQuery.matches || !wideQuery.matches) return;
+			const delay = SWAP_AFTER_MIN + Math.random() * (SWAP_AFTER_MAX - SWAP_AFTER_MIN);
+			swapTimer = window.setTimeout(() => {
+				swapTimer = null;
+				if (!running || !startSwap()) scheduleSwap();
+			}, delay);
+		}
+
+		/* ── цикл кадров ─────────────────────────────────────────────── */
+		function frame(now: number) {
+			if (!running) return;
+			rafId = requestAnimationFrame(frame);
+			stepSwap(now);
+			applyDrift(now / 1000);
+			if (pinned === null) paintAccent(nearestByCenter(accent));
+			frameCounter += 1;
+			if (!fpsWindowStart) fpsWindowStart = now;
+			if (now - fpsWindowStart >= 500) {
+				fps = Math.round((frameCounter * 1000) / (now - fpsWindowStart));
+				frameCounter = 0;
+				fpsWindowStart = now;
+			}
+		}
+
+		function start() {
+			if (running || reduceQuery.matches || !wideQuery.matches) return;
+			running = true;
+			rafId = requestAnimationFrame(frame);
+		}
+
+		function stop() {
+			running = false;
+			if (rafId) cancelAnimationFrame(rafId);
+			rafId = 0;
+			frameCounter = 0;
+			fpsWindowStart = 0;
+		}
+
+		function restart() {
+			stop();
+			start();
+		}
+
+		/* ── статистика для превью ───────────────────────────────────── */
+		function stats() {
+			const shown = cards.filter((card) => !items[card.index].hasAttribute('data-off'));
+			const rects = shown.map((card) => items[card.index].getBoundingClientRect());
+			let pairs = 0;
+			for (let i = 0; i < rects.length; i += 1) {
+				for (let j = i + 1; j < rects.length; j += 1) {
+					const overlapX = Math.min(rects[i].right, rects[j].right) - Math.max(rects[i].left, rects[j].left);
+					const overlapY = Math.min(rects[i].bottom, rects[j].bottom) - Math.max(rects[i].top, rects[j].top);
+					if (overlapX > 8 && overlapY > 8) pairs += 1;
+				}
+			}
+			const widths = shown.map((card) => card.w);
+			return {
+				shown: shown.length,
+				seed,
+				accent,
+				accentWho: accent >= 0 ? items[accent].querySelector('.tw-author')?.textContent?.trim() ?? '—' : '—',
+				avgWidth: widths.length ? Math.round(widths.reduce((a, b) => a + b, 0) / widths.length) : 0,
+				minWidth: widths.length ? Math.min(...widths) : 0,
+				maxWidth: widths.length ? Math.max(...widths) : 0,
+				overlaps: pairs,
+				field: Math.round(field.getBoundingClientRect().height),
+				section: Math.round(section!.getBoundingClientRect().height),
+				paused,
+				pinned: pinned === null ? '—' : pinned,
+				fps,
+			};
+		}
+
+		/* ── события ─────────────────────────────────────────────────── */
+		let wired = false;
+		let unlockAt = 0;
+
+		function onScroll() {
+			if (swapTimer === null) scheduleSwap();
+			/* Первый скролл после клика снимает фиксацию: акцент снова
+			   следит за центром окна. */
+			if (pinned !== null && performance.now() > unlockAt) {
+				pinned = null;
+				items.forEach((item) => item.removeAttribute('data-pinned'));
+				paintAccent(nearestByCenter(accent));
+			}
+		}
+
+		function wire() {
+			if (wired) return;
+			wired = true;
+			window.addEventListener('scroll', onScroll, { passive: true });
+			window.addEventListener('resize', () => restart());
+			items.forEach((item, index) => {
+				const take = () => {
+					pinned = index;
+					unlockAt = performance.now() + 250;
+					items.forEach((other) => other.removeAttribute('data-pinned'));
+					item.setAttribute('data-pinned', '');
+					paintAccent(index);
+				};
+				item.addEventListener('click', take);
+				item.addEventListener('keydown', (event) => {
+					const key = (event as KeyboardEvent).key;
+					if (key === 'Enter' || key === ' ') {
+						event.preventDefault();
+						take();
+					}
+				});
+			});
+		}
+
+		function enable() {
+			section!.setAttribute('data-js', '');
+			wire();
+			if (reduceQuery.matches || !wideQuery.matches) {
+				/* Статичная раскладка: позиции остаются, движения нет */
+				paused = true;
+				frozenAt = 0;
+				drifters.forEach((layer) => layer.removeAttribute('style'));
+				if (wideQuery.matches) {
+					cards.forEach((card) => {
+						items[card.index].style.transform = `translate3d(${card.x}px, ${card.y}px, 0)`;
+					});
+				} else {
+					cards.forEach((card) => {
+						items[card.index].style.transform = '';
+					});
+				}
+				paintAccent(nearestByCenter(accent));
+				stop();
+				return;
+			}
+			paused = false;
+			applyDrift(performance.now() / 1000);
+			start();
+			scheduleSwap();
+		}
+
+		function observe() {
+			const observer = new IntersectionObserver(
+				(entries) => {
+					if (entries.some((entry) => entry.isIntersecting)) start();
+					else stop();
+				},
+				{ rootMargin: '220px 0px' },
+			);
+			observer.observe(section!);
+		}
+
+		/* Флаг ставим ДО первой раскладки: абсолютное позиционирование карточек
+		   включается по нему, а от него зависит замер высоты поля. */
+		section.setAttribute('data-js', '');
+		layout(seed, count);
+		observe();
+		enable();
+		reduceQuery.addEventListener('change', () => {
+			layout(seed, count);
+			enable();
+		});
+		wideQuery.addEventListener('change', () => {
+			layout(seed, count);
+			restart();
+		});
+
+		(window as any).__wall = {
+			total: items.length,
+			layout,
+			setCount: (n: number) => {
+				swap = null;
+				const applied = layout(seed, n);
+				enable();
+				return applied;
+			},
+			setSeed: (s: number) => {
+				swap = null;
+				layout(s, count);
+				enable();
+				return seed;
+			},
+			shuffle: () => {
+				swap = null;
+				layout(Math.floor(Math.random() * 1e9), count);
+				enable();
+				return seed;
+			},
+			swapNow: () => startSwap(),
+			pause: (on?: boolean) => {
+				const next = on ?? !paused;
+				if (next && !paused) frozenAt = performance.now() / 1000;
+				paused = next;
+				if (paused) {
+					if (swapTimer !== null) window.clearTimeout(swapTimer);
+					swapTimer = null;
+					swap = null;
+					cards.forEach((card) => {
+						items[card.index].style.transform = `translate3d(${card.x}px, ${card.y}px, 0)`;
+					});
+					applyDrift(performance.now() / 1000);
+				} else {
+					scheduleSwap();
+				}
+				return paused;
+			},
+			stats,
+			reframe: () => {
+				applyDrift(performance.now() / 1000);
+				paintAccent(nearestByCenter(accent));
+			},
+		};
+	}
+</script>
