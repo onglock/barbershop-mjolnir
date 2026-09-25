@@ -1,0 +1,361 @@
+---
+// /manifest-filter-preview — SVG-фильтр на текст, реагирующий на скролл
+// (референс: Codrops «Scroll-based SVG Filter Animations on Text»).
+// Секция рендерится НАСТОЯЩИМ компонентом Manifest.astro — эффект видно в контексте.
+// Три варианта: A — лёгкое дыхание по позиции скролла, B — сила по скорости
+// скролла, C — рунические помехи (короткие всплески). Управление — в дровере
+// PreviewPanel: амплитуда, скорость отклика, что фильтруем, поведение на 390,
+// режим reduced-motion.
+import Layout from '../layouts/Layout.astro';
+import Manifest from '../components/Manifest.astro';
+
+const rows = [
+	{
+		group: 'anim',
+		label: 'Вариант',
+		options: [
+			{ value: 'off', label: 'выключено' },
+			{ value: 'a', label: 'A дыхание' },
+			{ value: 'b', label: 'B по скорости' },
+			{ value: 'c', label: 'C руны-глитч' },
+		],
+	},
+	{
+		group: 'amp',
+		label: 'Амплитуда',
+		options: [
+			{ value: 'low', label: 'мало (1,5 px)' },
+			{ value: 'mid', label: 'средне (3 px)' },
+			{ value: 'high', label: 'сильно (6 px)' },
+		],
+	},
+	{
+		group: 'resp',
+		label: 'Скорость отклика',
+		options: [
+			{ value: 'fast', label: 'быстро' },
+			{ value: 'mid', label: 'средне' },
+			{ value: 'slow', label: 'плавно' },
+		],
+	},
+	{
+		group: 'target',
+		label: 'Что фильтруем',
+		options: [
+			{ value: 'h2', label: 'заголовок h2' },
+			{ value: 'ghost', label: 'призрачный знак' },
+			{ value: 'stats', label: 'цифры' },
+			{ value: 'h2ghost', label: 'заголовок + знак' },
+			{ value: 'all', label: 'все три' },
+		],
+	},
+	{
+		group: 'mob',
+		label: '390 — фильтр',
+		options: [
+			{ value: 'off', label: 'отключён (безопасно)' },
+			{ value: 'on', label: 'включён' },
+		],
+	},
+	{
+		group: 'rm',
+		label: 'prefers-reduced-motion',
+		options: [
+			{ value: 'off', label: 'без фильтра' },
+			{ value: 'on', label: 'фильтр как есть' },
+		],
+	},
+];
+---
+
+<Layout title="Manifest — SVG-фильтр по скроллу (превью)">
+	<!-- Определения фильтров. scale у feDisplacementMap меняет скрипт. -->
+	<svg class="mf-defs" aria-hidden="true" focusable="false">
+		<filter id="mf-a" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB">
+			<feTurbulence type="fractalNoise" baseFrequency="0.006 0.011" numOctaves="2" seed="4" result="n" />
+			<feDisplacementMap in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G" />
+		</filter>
+		<filter id="mf-b" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB">
+			<feTurbulence type="fractalNoise" baseFrequency="0.005 0.014" numOctaves="2" seed="11" result="n" />
+			<feDisplacementMap in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G" />
+		</filter>
+		<filter id="mf-c" x="-14%" y="-14%" width="128%" height="128%" color-interpolation-filters="sRGB">
+			<feTurbulence type="turbulence" baseFrequency="0.02 0.03" numOctaves="3" seed="7" result="n" />
+			<feDisplacementMap in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G" />
+		</filter>
+	</svg>
+
+	<div class="mf-space mf-space--top" aria-hidden="true">
+		<span class="mf-hint">Прокрутите вниз — секция «Манифест» ниже, фильтр реагирует на скролл</span>
+	</div>
+
+	<main id="main" class="relative z-10">
+		<Manifest />
+	</main>
+
+	<div class="mf-space mf-space--bottom" aria-hidden="true"></div>
+
+	<!-- Панель параметров: PreviewPanel перенесёт её в дровер -->
+	<aside class="mf-panel" data-pp>
+		<p class="mf-panel-title">Манифест · SVG-фильтр по скроллу</p>
+		{
+			rows.map((row) => (
+				<div class="mf-row">
+					<span class="mf-row-label">{row.label}</span>
+					<span class="mf-row-btns">
+						{row.options.map((opt) => (
+							<button type="button" data-mf-group={row.group} data-mf-value={opt.value} aria-pressed="false">
+								{opt.label}
+							</button>
+						))}
+					</span>
+				</div>
+			))
+		}
+		<p class="mf-state" id="mf-state">—</p>
+	</aside>
+</Layout>
+
+<style>
+	.mf-defs {
+		position: absolute;
+		width: 0;
+		height: 0;
+		overflow: hidden;
+	}
+	.mf-space {
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+	}
+	.mf-space--top {
+		min-height: 70vh;
+		padding-top: 96px;
+	}
+	.mf-space--bottom {
+		min-height: 120vh;
+	}
+	.mf-hint {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.mf-panel-title {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.mf-row {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		margin-top: 14px;
+	}
+	.mf-row-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.mf-row-btns {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+	.mf-row-btns button {
+		min-height: 40px;
+		padding: 8px 12px;
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		background: transparent;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		cursor: pointer;
+		transition: border-color 200ms cubic-bezier(0.33, 1, 0.68, 1), color 200ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.mf-row-btns button:hover {
+		border-color: var(--accent);
+		color: var(--text);
+	}
+	.mf-row-btns button[aria-pressed='true'] {
+		border-color: var(--accent);
+		color: var(--text);
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+	}
+	.mf-state {
+		margin-top: 14px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		line-height: 1.5;
+		color: var(--accent-warm);
+	}
+</style>
+
+<script>
+	type Groups = { anim: string; amp: string; resp: string; target: string; mob: string; rm: string };
+
+	const groups: Groups = { anim: 'a', amp: 'mid', resp: 'mid', target: 'h2', mob: 'off', rm: 'off' };
+
+	const LABELS: Record<string, Record<string, string>> = {
+		anim: { off: 'выключено', a: 'A дыхание', b: 'B по скорости', c: 'C руны-глитч' },
+		amp: { low: '1,5 px', mid: '3 px', high: '6 px' },
+		resp: { fast: 'быстро', mid: 'средне', slow: 'плавно' },
+		target: { h2: 'заголовок', ghost: 'знак', stats: 'цифры', h2ghost: 'заголовок+знак', all: 'все три' },
+		mob: { off: '390 отключён', on: '390 включён' },
+		rm: { off: 'rm без фильтра', on: 'rm как есть' },
+	};
+
+	const AMP: Record<string, number> = { low: 1.5, mid: 3, high: 6 };
+	const SMOOTH: Record<string, number> = { fast: 0.5, mid: 0.75, slow: 0.9 };
+	const SEL: Record<string, string[]> = {
+		h2: ['#manifest h2'],
+		ghost: ['#manifest > span'],
+		stats: ['#manifest p.font-display'],
+		h2ghost: ['#manifest h2', '#manifest > span'],
+		all: ['#manifest h2', '#manifest > span', '#manifest p.font-display'],
+	};
+
+	let targets: HTMLElement[] = [];
+	let vel = 0;
+	let lastY = window.scrollY;
+	let lastT = performance.now();
+	let lastKick = 0;
+	let rafId = 0;
+	let glitchAt = 0;
+	let glitchFrames = 0;
+
+	const filterFor = (v: string) => document.getElementById('mf-' + v);
+	const scaleNode = (v: string) => filterFor(v)?.querySelector('feDisplacementMap') ?? null;
+
+	function clearFilters() {
+		for (const sel of Object.values(SEL).flat()) {
+			document.querySelectorAll<HTMLElement>(sel).forEach((el) => { el.style.filter = ''; });
+		}
+		for (const v of ['a', 'b', 'c']) {
+			const n = scaleNode(v);
+			if (n) n.setAttribute('scale', '0');
+		}
+	}
+
+	function apply() {
+		const root = document.documentElement;
+		root.dataset.mfAnim = groups.anim;
+		root.dataset.mfAmp = groups.amp;
+		root.dataset.mfTarget = groups.target;
+
+		const narrow = window.innerWidth < 1024;
+		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		const allowed =
+			groups.anim !== 'off' && !(narrow && groups.mob === 'off') && !(reduced && groups.rm === 'off');
+
+		clearFilters();
+		targets = allowed
+			? SEL[groups.target].flatMap((sel) => Array.from(document.querySelectorAll<HTMLElement>(sel)))
+			: [];
+		targets.forEach((el) => { el.style.filter = `url(#mf-${groups.anim})`; });
+
+		document.querySelectorAll<HTMLButtonElement>('[data-mf-group]').forEach((btn) => {
+			const g = btn.dataset.mfGroup || '';
+			btn.setAttribute('aria-pressed', String(btn.dataset.mfValue === groups[g as keyof Groups]));
+		});
+
+		const state = document.getElementById('mf-state');
+		if (state) {
+			state.textContent =
+				`${LABELS.anim[groups.anim]} · ${LABELS.amp[groups.amp]} · отклик ${LABELS.resp[groups.resp]} · ` +
+				`цель: ${LABELS.target[groups.target]} · ${LABELS.mob[groups.mob]} · ${LABELS.rm[groups.rm]}` +
+				(allowed ? '' : ' — фильтр сейчас не применяется');
+		}
+		if (!allowed) vel = 0;
+	}
+
+	function setScale(v: number) {
+		const node = scaleNode(groups.anim);
+		if (node) node.setAttribute('scale', v.toFixed(2));
+	}
+
+	function tick() {
+		const now = performance.now();
+		const y = window.scrollY;
+		const dt = Math.max(1, now - lastT);
+		const inst = Math.abs(y - lastY) / dt; /* px за мс */
+		vel = vel * SMOOTH[groups.resp] + inst * (1 - SMOOTH[groups.resp]);
+		lastY = y;
+		lastT = now;
+
+		const amp = AMP[groups.amp];
+		let scale = 0;
+
+		if (groups.anim === 'a') {
+			/* Дыхание по позиции скролла: прокрутка остановилась — картинка стоит. */
+			scale = amp * (0.45 + 0.55 * Math.sin(y / 110));
+		} else if (groups.anim === 'b') {
+			/* Сила по скорости: быстро едешь — сильнее, стоишь — гаснет в ноль. */
+			scale = amp * Math.min(1, vel / 2.2);
+		} else if (groups.anim === 'c') {
+			/* Руны-глитч: короткие всплески при движении, а не постоянный шум. */
+			if (vel > 0.25 && now > glitchAt && glitchFrames <= 0) {
+				glitchAt = now + 260 + Math.random() * 320;
+				glitchFrames = 5 + Math.floor(Math.random() * 5);
+				const t = filterFor('c')?.querySelector('feTurbulence');
+				if (t) t.setAttribute('seed', String(3 + Math.floor(Math.random() * 60)));
+			}
+			scale = glitchFrames > 0 ? amp * (1.6 + Math.random() * 1.6) : amp * Math.min(0.35, vel / 4);
+			if (glitchFrames > 0) glitchFrames -= 1;
+		}
+
+		setScale(Math.max(0, scale));
+
+		/* Цикл живёт ещё ~480 мс после последнего события прокрутки: иначе он
+		   умирает на первом же кадре, где скорость ещё мала, и варианты B и C
+		   не успевают сработать вовсе. */
+		if (now - lastKick > 480) {
+			if (groups.anim !== 'a') {
+				vel = 0;
+				setScale(0);
+			}
+			rafId = 0;
+			return;
+		}
+		rafId = requestAnimationFrame(tick);
+	}
+
+	function kick() {
+		lastKick = performance.now();
+		if (!targets.length) return;
+		if (!rafId) {
+			lastT = performance.now();
+			lastY = window.scrollY;
+			rafId = requestAnimationFrame(tick);
+		}
+	}
+
+	window.addEventListener('scroll', kick, { passive: true });
+	window.addEventListener('resize', apply);
+	document.querySelectorAll<HTMLButtonElement>('[data-mf-group]').forEach((btn) => {
+		btn.addEventListener('click', () => {
+			const g = btn.dataset.mfGroup as keyof Groups;
+			groups[g] = btn.dataset.mfValue || '';
+			apply();
+		});
+	});
+
+	apply();
+	if (groups.anim === 'a') kick();
+
+	(window as any).__mf = {
+		set: (o: Partial<Groups>) => { Object.assign(groups, o); apply(); if (groups.anim === 'a') kick(); return { ...groups }; },
+		state: () => ({ ...groups, применено: targets.length, scale: scaleNode(groups.anim)?.getAttribute('scale') ?? null, vel: +vel.toFixed(3) }),
+		scaleNow: () => targets.length ? scaleNode(groups.anim)?.getAttribute('scale') : null,
+		scrollTo: (y: number) => { window.scrollTo(0, y); return window.scrollY; },
+	};
+</script>
