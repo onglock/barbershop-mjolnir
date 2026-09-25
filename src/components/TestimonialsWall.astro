@@ -38,6 +38,12 @@ interface Props {
 	   ровно боевое количество, а превью-странице нужен весь набор. */
 	renderMax?: number;
 	seed?: number;
+	/* Режим акцента:
+	   'scroll-hover' (A, боевой) — акцент следит за центром окна, но пока
+	     курсор на стене, он гаснет: горит только карточка под курсором;
+	   'hover-only' (B) — акцента от скролла нет вовсе, горят только карточка
+	     под курсором и зафиксированная кликом. */
+	accentMode?: 'scroll-hover' | 'hover-only';
 }
 
 const {
@@ -45,6 +51,7 @@ const {
 	count = 8,
 	renderMax = count,
 	seed = 20260925,
+	accentMode = 'scroll-hover',
 } = Astro.props;
 ---
 
@@ -54,6 +61,7 @@ const {
 	data-wall
 	data-seed={seed}
 	data-count={count}
+	data-accent-mode={accentMode}
 >
 	<div class="tw-inner">
 		<p class="font-label text-label uppercase text-text-muted">Молва</p>
@@ -254,6 +262,9 @@ const {
 
 		let seed = Number(section.dataset.seed || 20260925);
 		let count = Math.max(1, Math.min(items.length, Number(section.dataset.count || items.length)));
+		let accentMode: 'scroll-hover' | 'hover-only' =
+			(section.dataset.accentMode as 'scroll-hover' | 'hover-only') || 'scroll-hover';
+		let hovering = false;
 		let cards: Card[] = [];
 		let paused = false;
 		let frozenAt = 0;
@@ -492,7 +503,11 @@ const {
 			rafId = requestAnimationFrame(frame);
 			stepSwap(now);
 			applyDrift(now / 1000);
-			if (pinned === null) paintAccent(nearestByCenter(accent));
+			/* Акцент от скролла: не трогаем, пока карточка зафиксирована кликом,
+			   пока курсор на стене (режим A) и не показываем вовсе в режиме B. */
+			if (pinned === null && !hovering && accentMode === 'scroll-hover') {
+				paintAccent(nearestByCenter(accent));
+			}
 			frameCounter += 1;
 			if (!fpsWindowStart) fpsWindowStart = now;
 			if (now - fpsWindowStart >= 500) {
@@ -547,6 +562,8 @@ const {
 				section: Math.round(section!.getBoundingClientRect().height),
 				paused,
 				pinned: pinned === null ? '—' : pinned,
+				accentMode,
+				hovering,
 				fps,
 			};
 		}
@@ -570,6 +587,20 @@ const {
 			if (wired) return;
 			wired = true;
 			window.addEventListener('scroll', onScroll, { passive: true });
+			/* Курсор на стене (режим A): акцент от скролла гаснет — горит только
+			   карточка под курсором. Ушёл курсор — акцент снова следит за центром.
+			   Слушаем ПОЛЕ, а не карточки: переход между карточками внутри поля не
+			   считается уходом, иначе акцент мигал бы на каждом движении. */
+			field.addEventListener('pointerenter', () => {
+				if (accentMode !== 'scroll-hover') return;
+				hovering = true;
+				if (pinned === null) paintAccent(-1);
+			});
+			field.addEventListener('pointerleave', () => {
+				if (accentMode !== 'scroll-hover') return;
+				hovering = false;
+				if (pinned === null) paintAccent(nearestByCenter(accent));
+			});
 			window.addEventListener('resize', () => restart());
 			items.forEach((item, index) => {
 				const take = () => {
@@ -665,6 +696,19 @@ const {
 				return seed;
 			},
 			swapNow: () => startSwap(),
+			/* Переключение режима акцента (превью). A 'scroll-hover' — акцент
+			   следит за центром, под курсором гаснет; B 'hover-only' — только
+			   курсор и клик. */
+			accentMode: (mode?: 'scroll-hover' | 'hover-only') => {
+				if (mode) {
+					accentMode = mode;
+					section!.dataset.accentMode = mode;
+					hovering = false;
+					paintAccent(-1);
+					if (mode === 'scroll-hover') paintAccent(nearestByCenter(-1));
+				}
+				return accentMode;
+			},
 			pause: (on?: boolean) => {
 				const next = on ?? !paused;
 				if (next && !paused) frozenAt = performance.now() / 1000;

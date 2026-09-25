@@ -22,6 +22,12 @@ export default function HeroIntro() {
 	const reduced = useReducedMotion() ?? false;
 	const words = TITLE.split(' ');
 
+	useEffect(() => {
+		/* Метка для страховки Hero (см. скрипт в Hero.astro): остров поднялся —
+		   финальный вид покажет сама анимация, страховка не вмешивается. */
+		document.documentElement.dataset.heroIntro = '1';
+	}, []);
+
 	/* Пиксельные «Авто-равные» на главной: модуль берём ДИНАМИЧЕСКИМ импортом
 	   и считаем в requestAnimationFrame (watchHeroGaps) — в критический путь
 	   загрузки это не попадает. Отключается флагом data-hero-gaps="fixed" на

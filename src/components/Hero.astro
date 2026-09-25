@@ -797,6 +797,46 @@ import HeroIntro from './HeroIntro';
 	};
 </script>
 
+<style is:global>
+	/* ── Страховка Hero (см. скрипт ниже) ───────────────────────────────
+	   Сцена входа показывает текст из СТАРТОВОГО состояния: в SSR-разметке он
+	   скрыт (opacity 0, blur(8px), сдвиг), конечный вид проявляет остров
+	   HeroIntro. Пока остров не поднялся, hero выглядит пустым: фон, шапка и
+	   знак «МЬЁЛЬНИР» рисуются, а заголовка, подзаголовка и кнопки нет.
+	   Замер 2026-09-25 (чанки острова недоступны): слова H1 — opacity 0,
+	   blur(8px); подзаголовок — opacity 0; фон и знак на месте.
+	   Правило включается только флагом html[data-hero-fallback] и только если
+	   остров не отметился — в обычной загрузке не срабатывает. */
+	html[data-hero-fallback] #top h1 span,
+	html[data-hero-fallback] #top h1 span span,
+	html[data-hero-fallback] #top .hero-sub,
+	html[data-hero-fallback] #top .hero-intro > p,
+	html[data-hero-fallback] #top .hero-cta > * {
+		opacity: 1 !important;
+		filter: none !important;
+		transform: none !important;
+	}
+</style>
+
+<script>
+	/* Страховка Hero. Если остров HeroIntro не поднялся (упал дев-сервер,
+	   потерялся чанк, страница отдана из кэша, ошибка в React) — текст так и
+	   остался бы в стартовом (невидимом) состоянии, и hero выглядел бы пустым.
+	   Проверяем метку острова: нет метки — показываем конечный вид.
+	   Метку ставит сам остров при монтировании, до старта анимации, поэтому
+	   медленная, но успешная гидратация страховку не включает. */
+	(() => {
+		const reveal = () => {
+			const root = document.documentElement;
+			if (root.dataset.heroIntro === '1') return;
+			root.dataset.heroFallback = '1';
+		};
+		const arm = () => window.setTimeout(reveal, 2000);
+		if (document.readyState === 'complete') arm();
+		else window.addEventListener('load', arm, { once: true });
+	})();
+</script>
+
 <noscript>
 	<!-- Без JS сцена входа не проигрывается, а в SSR-разметке лежат её
 	     стартовые стили. Принудительно показываем текст в конечном виде. -->

@@ -18,6 +18,7 @@ pnpm-debug.log*
 
 # environment variables
 .env
+.env.*
 .env.production
 
 # macOS-specific files
@@ -30,4 +31,13 @@ pnpm-debug.log*
 coordinator-request.md
 coordinator-response.md
 coordinator-log.md
+
+# Внутренние документы проекта — остаются на диске, но в публичный репозиторий
+# не попадают (убраны из истории через git filter-repo 2026-09-25)
+PROJECT-STATE.md
+COORDINATOR-PROMPT.md
+HERMES-RULES.md
+RESTART-CHECKLIST.md
+coordinator.sh
+
 

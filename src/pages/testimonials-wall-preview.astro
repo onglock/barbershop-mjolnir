@@ -70,6 +70,14 @@ const seed = 20260925;
 		</div>
 
 		<div class="wp-row">
+			<span class="wp-row-label">Акцент</span>
+			<span class="wp-row-btns">
+				<button type="button" data-wp-accent="scroll-hover" aria-pressed="true">A · скролл + курсор</button>
+				<button type="button" data-wp-accent="hover-only" aria-pressed="false">B · только курсор</button>
+			</span>
+		</div>
+
+		<div class="wp-row">
 			<span class="wp-row-label">Раскладка и движение</span>
 			<span class="wp-row-btns">
 				<button type="button" data-wp-shuffle>Перемешать</button>
@@ -207,11 +215,19 @@ const seed = 20260925;
 		shuffle: () => number;
 		swapNow: () => boolean;
 		pause: (on?: boolean) => boolean;
+		accentMode: (mode?: 'scroll-hover' | 'hover-only') => 'scroll-hover' | 'hover-only';
 		reframe: () => void;
 		stats: () => Record<string, string | number | boolean>;
 	};
 
 	const wall = (): Api | undefined => (window as any).__wall;
+
+	function paintAccentButtons() {
+		const mode = wall()?.accentMode();
+		document.querySelectorAll<HTMLButtonElement>('[data-wp-accent]').forEach((button) => {
+			button.setAttribute('aria-pressed', String(button.dataset.wpAccent === mode));
+		});
+	}
 
 	function rowsFor(data: Record<string, any>, total: number): Array<[string, string]> {
 		return [
@@ -223,6 +239,8 @@ const seed = 20260925;
 			['Высота поля', `${data.field} px`],
 			['Высота секции', `${data.section} px`],
 			['Парение', data.paused ? 'на паузе' : 'идёт'],
+			['Акцент', data.accentMode === 'scroll-hover' ? 'A · скролл + курсор' : 'B · только курсор'],
+			['Курсор на стене', data.hovering ? 'да' : 'нет'],
 			['FPS', `${data.fps}`],
 		];
 	}
@@ -255,6 +273,7 @@ const seed = 20260925;
 				`отзывов ${data.shown} · seed ${data.seed} · акцент: ${data.accentWho} · FPS ${data.fps}`;
 			if (state.textContent !== line) state.textContent = line;
 		}
+		paintAccentButtons();
 	}
 
 	function setCount(n: number, fromRange = false) {
@@ -304,6 +323,12 @@ const seed = 20260925;
 	document.querySelector('[data-wp-swap]')?.addEventListener('click', () => {
 		wall()?.swapNow();
 		paintStats();
+	});
+	document.querySelectorAll<HTMLButtonElement>('[data-wp-accent]').forEach((button) => {
+		button.addEventListener('click', () => {
+			wall()?.accentMode(button.dataset.wpAccent as 'scroll-hover' | 'hover-only');
+			paintStats();
+		});
 	});
 	pauseButton?.addEventListener('click', () => {
 		wall()?.pause();
