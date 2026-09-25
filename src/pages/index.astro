@@ -60,6 +60,23 @@ import Footer from '../components/Footer.astro';
 		opacity: 0.3;
 	}
 
+	/* Панель раскрытия карточек услуг (Services): при reduced-motion показана
+	   сразу, без анимации. Селектор через :global() обязателен — панель живёт в
+	   React-острове и атрибута скоупа страницы не имеет, иначе правило молча не
+	   срабатывает. Утилиты motion-reduce: не годятся: у вариантов Tailwind свой
+	   порядок, и lg: перебивает motion-reduce:. */
+	@media (prefers-reduced-motion: reduce) {
+		:global(.svc-reveal) {
+			transform: none !important;
+			translate: none !important;
+			opacity: 1 !important;
+			transition: none !important;
+		}
+		:global(.svc-arrow) {
+			transition: none !important;
+		}
+	}
+
 	/* На мобильном фон выключен — как в Hero: при cover на узком экране кадр
 	   сильно зумится и читается как размытое пятно (решение Кирилла). */
 	@media (max-width: 1023px) {

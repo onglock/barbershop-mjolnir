@@ -1,0 +1,520 @@
+---
+// /services-hover-preview — четыре варианта Grid Item Reveal для карточек услуг
+// (референс: Codrops «Grid Item Reveal Animation on Hover»). Развилки — кнопками
+// (правило 20.6): вариант A/B/C/D, длительность, easing, что показывать в
+// раскрытии, судьба прежнего −7px hover, стрелка раскрытия, поведение на тапе,
+// режим reduced-motion.
+//
+// Данные берём из самого компонента: Services.tsx экспортирует массив services,
+// поэтому превью не расходится с сайтом. Остров не тянем — разметка повторена
+// вручную, чтобы превью было статическим и легким.
+import Layout from '../layouts/Layout.astro';
+import { services } from '../components/Services';
+
+const rows = [
+	{
+		group: 'anim',
+		label: 'Вариант раскрытия',
+		options: [
+			{ value: 'a', label: 'A — выезд снизу' },
+			{ value: 'b', label: 'B — затемнение' },
+			{ value: 'c', label: 'C — масштаб 1.03' },
+			{ value: 'd', label: 'D — clip-path' },
+		],
+	},
+	{
+		group: 'dur',
+		label: 'Длительность',
+		options: [
+			{ value: '300', label: '300 мс' },
+			{ value: '500', label: '500 мс' },
+			{ value: '800', label: '800 мс' },
+		],
+	},
+	{
+		group: 'ease',
+		label: 'Easing',
+		options: [
+			{ value: 'out', label: 'ease-out-cubic' },
+			{ value: 'inout', label: 'ease-in-out' },
+		],
+	},
+	{
+		group: 'what',
+		label: 'Что показывать в раскрытии',
+		options: [
+			{ value: 'text', label: 'описание' },
+			{ value: 'price+text', label: 'цена + описание' },
+			{ value: 'all', label: 'всё (время + цена + описание)' },
+		],
+	},
+	{
+		group: 'lift',
+		label: 'Прежний hover −7px',
+		options: [
+			{ value: 'on', label: 'оставить' },
+			{ value: 'off', label: 'убрать' },
+		],
+	},
+	{
+		group: 'arrow',
+		label: 'Стрелка раскрытия (руна ᛏ)',
+		options: [
+			{ value: 'on', label: 'показывать' },
+			{ value: 'off', label: 'нет' },
+		],
+	},
+	{
+		group: 'dir',
+		label: 'Куда смотрит руна',
+		options: [
+			{ value: 'downup', label: 'покой ↓ / hover ↑' },
+			{ value: 'updown', label: 'покой ↑ / hover ↓' },
+		],
+	},
+	{
+		group: 'mob',
+		label: '390 — без эффекта',
+		options: [
+			{ value: 'on', label: 'включено (как на сайте)' },
+			{ value: 'off', label: 'выключено (эффект и на 390)' },
+		],
+	},
+	{
+		group: 'tap',
+		label: 'Тап на 390 (наведения нет)',
+		options: [
+			{ value: 'toggle', label: 'мгновенно (тап включает)' },
+			{ value: 'sequence', label: 'последовательно (гаснет через 2 с)' },
+			{ value: 'none', label: 'ничего' },
+		],
+	},
+	{
+		group: 'rm',
+		label: 'prefers-reduced-motion',
+		options: [
+			{ value: 'instant', label: 'показать мгновенно' },
+			{ value: 'none', label: 'не показывать' },
+		],
+	},
+];
+---
+
+<Layout title="Услуги — Grid Item Reveal (превью)">
+	<main id="main" class="relative z-10">
+		<section class="sh-head">
+			<p class="font-label text-label uppercase text-text-muted">Превью · Услуги</p>
+			<h1 class="mt-6 text-h2 uppercase text-text">Grid Item Reveal</h1>
+			<p class="mt-6 max-w-[70ch] text-body text-text-muted">
+				Четыре варианта раскрытия скрытой части карточки при наведении. Кнопки — панель
+				«Параметры превью» в правом нижнем углу. Карточки повторяют разметку Services,
+				данные берутся из самого компонента.
+			</p>
+		</section>
+
+		<section class="sh-gridwrap">
+			<div class="sh-grid">
+				{
+					services.map((service) => (
+						<article class="sh-card" data-card tabindex="0">
+							<div class="sh-static">
+								<p class="sh-label sh-sd">{service.duration}</p>
+								<h3 class="sh-name">{service.name}</h3>
+								<p class="mt-3 font-price text-body font-medium whitespace-nowrap text-accent sh-sp">{service.price}</p>
+							</div>
+
+							<div class="sh-reveal">
+								<p class="sh-label sh-rd">{service.duration}</p>
+								<p class="font-price text-body font-medium whitespace-nowrap text-accent sh-rp">{service.price}</p>
+								<p class="sh-text sh-rt">{service.text}</p>
+							</div>
+
+							{/* Руническая стрелка — та же ᛏ, что в Faq и в самом Services */}
+							<span class="sh-arrow" aria-hidden="true">ᛏ</span>
+						</article>
+					))
+				}
+			</div>
+		</section>
+	</main>
+
+	<!-- Панель параметров: PreviewPanel перенесёт её в выезжающий дровер -->
+	<aside class="sh-panel" data-pp>
+		<p class="sh-panel-title">Услуги · Grid Item Reveal</p>
+		{
+			rows.map((row) => (
+				<div class="sh-row">
+					<span class="sh-row-label">{row.label}</span>
+					<span class="sh-row-btns">
+						{row.options.map((opt) => (
+							<button type="button" data-sh-group={row.group} data-sh-value={opt.value} aria-pressed="false">
+								{opt.label}
+							</button>
+						))}
+					</span>
+				</div>
+			))
+		}
+		<p class="sh-state" id="sh-state">—</p>
+	</aside>
+</Layout>
+
+<style>
+	/* Панель живёт в дровере PreviewPanel — стили под его узкую ширину. */
+	.sh-panel-title {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.sh-row {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		margin-top: 14px;
+	}
+	.sh-row-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.sh-row-btns {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+	.sh-row-btns button {
+		min-height: 40px;
+		padding: 8px 12px;
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		background: transparent;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		cursor: pointer;
+		transition: border-color 200ms cubic-bezier(0.33, 1, 0.68, 1), color 200ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.sh-row-btns button:hover {
+		border-color: var(--accent);
+		color: var(--text);
+	}
+	.sh-row-btns button[aria-pressed='true'] {
+		border-color: var(--accent);
+		color: var(--text);
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+	}
+	.sh-state {
+		margin-top: 14px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		line-height: 1.5;
+		color: var(--accent-warm);
+	}
+</style>
+
+<style>
+	.sh-head {
+		margin: 0 auto;
+		max-width: 1400px;
+		padding: 40px 24px 0;
+	}
+
+	.sh-grid {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 24px;
+	}
+	@media (min-width: 640px) {
+		.sh-grid { grid-template-columns: repeat(2, 1fr); }
+	}
+	@media (min-width: 1024px) {
+		.sh-grid { grid-template-columns: repeat(3, 1fr); }
+	}
+
+	.sh-gridwrap {
+		margin: 32px auto 0;
+		max-width: 1400px;
+		padding: 0 24px 80px;
+	}
+
+	/* ── Карточка ───────────────────────────────────────────────────────
+	   Скрытая часть лежит отдельным слоем .sh-reveal; вариант задаёт, как она
+	   появляется. min-height даёт место раскрытию, иначе карточка в закрытом
+	   состоянии короткая и выезжать некуда. */
+	.sh-card {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		min-height: 300px;
+		overflow: hidden;
+		border: 1px solid var(--border);
+		padding: 32px;
+		background: var(--bg-deep);
+		transition: border-color var(--sh-dur) var(--sh-ease), transform var(--sh-dur) var(--sh-ease);
+	}
+	.sh-card:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 3px;
+	}
+
+	.sh-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.sh-name {
+		margin-top: 20px;
+		font-size: var(--text-body);
+		font-weight: 500;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.sh-static { position: relative; z-index: 2; }
+
+	.sh-reveal {
+		position: absolute;
+		z-index: 1;
+		pointer-events: none;
+	}
+	.sh-text {
+		font-size: var(--text-body);
+		line-height: 1.6;
+		color: var(--text-muted);
+	}
+
+	/* Что показывать в раскрытии: состав обоих блоков. */
+	html[data-sh-what='text'] .sh-rp,
+	html[data-sh-what='text'] .sh-rd { display: none; }
+	html[data-sh-what='price+text'] .sh-rd { display: none; }
+	html[data-sh-what='price+text'] .sh-sp { visibility: hidden; }
+	html[data-sh-what='all'] .sh-sp { visibility: hidden; }
+
+	.sh-arrow {
+		position: absolute;
+		right: 20px;
+		bottom: 20px;
+		z-index: 3;
+		font-size: 16px;
+		line-height: 1;
+		color: var(--text-muted);
+		/* 300 мс — как в самом Services (переход руны), не общий --sh-dur */
+		transition: transform 300ms var(--sh-ease), color 300ms var(--sh-ease);
+	}
+	html[data-sh-arrow='off'] .sh-arrow { display: none; }
+	/* Руна ᛏ сама смотрит вверх; «вниз» получается поворотом на 180°. */
+	html[data-sh-dir='downup'] .sh-arrow { transform: rotate(180deg); }
+	html[data-sh-dir='updown'] .sh-arrow { transform: rotate(0deg); }
+	html[data-sh-dir='downup'] .sh-card:hover .sh-arrow,
+	html[data-sh-dir='downup'] .sh-card.is-on .sh-arrow { transform: rotate(0deg); color: var(--accent); }
+	html[data-sh-dir='updown'] .sh-card:hover .sh-arrow,
+	html[data-sh-dir='updown'] .sh-card.is-on .sh-arrow { transform: rotate(180deg); color: var(--accent); }
+
+	/* «390 — без эффекта»: на узком экране карточка показывает всё сразу,
+	   панель встаёт в поток, руны нет — как в Services после решения Кирилла. */
+	@media (max-width: 1023px) {
+		html[data-sh-mob='on'] .sh-reveal {
+			position: static !important;
+			inset: auto !important;
+			transform: none !important;
+			translate: none !important;
+			opacity: 1 !important;
+			clip-path: none !important;
+			border-top: 0 !important;
+			background: none !important;
+			padding: 16px 0 0 !important;
+		}
+		html[data-sh-mob='on'] .sh-arrow { display: none !important; }
+	}
+
+	/* ── Поведение общее: прежний подъём −7px и подсветка границы ─────── */
+	html[data-sh-lift='on'] .sh-card:hover,
+	html[data-sh-lift='on'] .sh-card.is-on { transform: translateY(-7px); }
+	html[data-sh-lift='off'] .sh-card:hover,
+	html[data-sh-lift='off'] .sh-card.is-on { transform: none; }
+
+	/* ══ ВАРИАНТ A — выезд деталей снизу ══════════════════════════════ */
+	html[data-sh-anim='a'] .sh-reveal {
+		inset: auto 0 0 0;
+		padding: 24px 32px 32px;
+		background: color-mix(in srgb, var(--bg-deep) 92%, transparent);
+		border-top: 1px solid var(--border);
+		transform: translateY(101%);
+		transition: transform var(--sh-dur) var(--sh-ease);
+	}
+	html[data-sh-anim='a'] .sh-card:hover .sh-reveal,
+	html[data-sh-anim='a'] .sh-card.is-on .sh-reveal { transform: translateY(0); }
+	html[data-sh-anim='a'] .sh-card:hover,
+	html[data-sh-anim='a'] .sh-card.is-on { border-color: var(--accent); }
+
+	/* ══ ВАРИАНТ B — затемнение, детали крупным текстом поверх ════════ */
+	html[data-sh-anim='b'] .sh-reveal {
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		gap: 14px;
+		padding: 32px;
+		background: color-mix(in srgb, var(--bg-deep) 88%, transparent);
+		backdrop-filter: blur(2px);
+		opacity: 0;
+		transition: opacity var(--sh-dur) var(--sh-ease);
+	}
+	html[data-sh-anim='b'] .sh-reveal .sh-text {
+		font-size: 1.25rem;
+		line-height: 1.35;
+		color: var(--text);
+	}
+	html[data-sh-anim='b'] .sh-card:hover .sh-reveal,
+	html[data-sh-anim='b'] .sh-card.is-on .sh-reveal { opacity: 1; }
+	html[data-sh-anim='b'] .sh-card:hover,
+	html[data-sh-anim='b'] .sh-card.is-on { border-color: var(--accent); }
+	/* Подложка гасит и статичную часть — «как титры». */
+	html[data-sh-anim='b'] .sh-card:hover .sh-static,
+	html[data-sh-anim='b'] .sh-card.is-on .sh-static { opacity: 0.25; transition: opacity var(--sh-dur) var(--sh-ease); }
+
+	/* ══ ВАРИАНТ C — масштаб контента ═════════════════════════════════ */
+	html[data-sh-anim='c'] .sh-reveal {
+		inset: auto 0 0 0;
+		padding: 0 32px 32px;
+		opacity: 0;
+		transform: translateY(12px);
+		transition: opacity var(--sh-dur) var(--sh-ease), transform var(--sh-dur) var(--sh-ease);
+	}
+	html[data-sh-anim='c'] .sh-card:hover .sh-reveal,
+	html[data-sh-anim='c'] .sh-card.is-on .sh-reveal { opacity: 1; transform: translateY(0); }
+	html[data-sh-anim='c'] .sh-card:hover,
+	html[data-sh-anim='c'] .sh-card.is-on { transform: scale(1.03); border-color: var(--accent); }
+	html[data-sh-anim='c'][data-sh-lift='on'] .sh-card:hover,
+	html[data-sh-anim='c'][data-sh-lift='on'] .sh-card.is-on { transform: translateY(-7px) scale(1.03); }
+
+	/* ══ ВАРИАНТ D — clip-path открывает скрытый слой ═════════════════ */
+	html[data-sh-anim='d'] .sh-reveal {
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		gap: 12px;
+		padding: 32px;
+		background: color-mix(in srgb, var(--bg-deep) 90%, transparent);
+		clip-path: inset(100% 0 0 0);
+		transition: clip-path var(--sh-dur) var(--sh-ease);
+	}
+	html[data-sh-anim='d'] .sh-card:hover .sh-reveal,
+	html[data-sh-anim='d'] .sh-card.is-on .sh-reveal { clip-path: inset(0 0 0 0); }
+	html[data-sh-anim='d'] .sh-card:hover,
+	html[data-sh-anim='d'] .sh-card.is-on { border-color: var(--accent); }
+
+	/* ── Reduced motion: без анимации ───────────────────────────────── */
+	@media (prefers-reduced-motion: reduce) {
+		.sh-card, .sh-reveal, .sh-arrow, .sh-static { transition: none !important; }
+	}
+	html[data-sh-rm='instant'] .sh-card:hover .sh-reveal,
+	html[data-sh-rm='instant'] .sh-card.is-on .sh-reveal {
+		transition: none !important;
+		opacity: 1;
+		transform: none;
+		clip-path: inset(0 0 0 0);
+	}
+	html[data-sh-rm='none'] .sh-card:hover .sh-reveal,
+	html[data-sh-rm='none'] .sh-card.is-on .sh-reveal { opacity: 0; transform: none; clip-path: inset(100% 0 0 0); }
+</style>
+
+<script>
+	type Groups = { anim: string; dur: string; ease: string; what: string; lift: string; arrow: string; dir: string; mob: string; tap: string; rm: string };
+
+	/* Стартовое состояние — как на сайте после решения Кирилла: вариант A,
+	   800 мс, ease-out-cubic, в раскрытии цена + описание, прежний −7px оставлен,
+	   руническая стрелка, на 390 эффекта нет. */
+	const groups: Groups = { anim: 'a', dur: '800', ease: 'out', what: 'price+text', lift: 'on', arrow: 'on', dir: 'downup', mob: 'on', tap: 'toggle', rm: 'instant' };
+
+	const LABELS: Record<string, Record<string, string>> = {
+		anim: { a: 'A выезд снизу', b: 'B затемнение', c: 'C масштаб', d: 'D clip-path' },
+		dur: { '300': '300 мс', '500': '500 мс', '800': '800 мс' },
+		ease: { out: 'ease-out-cubic', inout: 'ease-in-out' },
+		what: { text: 'описание', 'price+text': 'цена+описание', all: 'всё' },
+		lift: { on: '−7px оставлен', off: '−7px убран' },
+		arrow: { on: 'руна есть', off: 'руны нет' },
+		dir: { downup: 'покой ↓ / hover ↑', updown: 'покой ↑ / hover ↓' },
+		mob: { on: '390 без эффекта', off: '390 с эффектом' },
+		tap: { toggle: 'тап: мгновенно', sequence: 'тап: последовательно', none: 'тап: ничего' },
+		rm: { instant: 'rm: мгновенно', none: 'rm: не показывать' },
+	};
+
+	const EASE = { out: 'cubic-bezier(0.33, 1, 0.68, 1)', inout: 'cubic-bezier(0.65, 0, 0.35, 1)' };
+	let seqTimer = 0;
+
+	function apply() {
+		const root = document.documentElement;
+		root.dataset.shAnim = groups.anim;
+		root.dataset.shDur = groups.dur;
+		root.dataset.shEase = groups.ease;
+		root.dataset.shWhat = groups.what;
+		root.dataset.shLift = groups.lift;
+		root.dataset.shArrow = groups.arrow;
+		root.dataset.shDir = groups.dir;
+		root.dataset.shMob = groups.mob;
+		root.dataset.shTap = groups.tap;
+		root.dataset.shRm = groups.rm;
+		root.style.setProperty('--sh-dur', groups.dur + 'ms');
+		root.style.setProperty('--sh-ease', EASE[groups.ease] ?? EASE.out);
+
+		document.querySelectorAll<HTMLButtonElement>('[data-sh-group]').forEach((btn) => {
+			const g = btn.dataset.shGroup || '';
+			btn.setAttribute('aria-pressed', String(btn.dataset.shValue === groups[g as keyof Groups]));
+		});
+
+		const state = document.getElementById('sh-state');
+		if (state) {
+			state.textContent = Object.keys(LABELS).map((k) => LABELS[k][groups[k as keyof Groups]]).join(' · ');
+		}
+	}
+
+	document.querySelectorAll<HTMLButtonElement>('[data-sh-group]').forEach((btn) => {
+		btn.addEventListener('click', () => {
+			const g = btn.dataset.shGroup as keyof Groups;
+			groups[g] = btn.dataset.shValue || '';
+			apply();
+		});
+	});
+
+	/* Тап: на устройстве без наведения. Режимы — как на превью Мастерской. */
+	document.querySelectorAll<HTMLElement>('[data-card]').forEach((card) => {
+		card.addEventListener('click', () => {
+			const noHover = window.matchMedia('(hover: none)').matches || window.innerWidth < 1024;
+			if (!noHover || groups.tap === 'none') return;
+			window.clearTimeout(seqTimer);
+			if (groups.tap === 'toggle') {
+				card.classList.toggle('is-on');
+			} else {
+				card.classList.add('is-on');
+				seqTimer = window.setTimeout(() => card.classList.remove('is-on'), 2000);
+			}
+		});
+	});
+
+	apply();
+
+	(window as any).__sh = {
+		set: (o: Partial<Groups>) => { Object.assign(groups, o); apply(); return { ...groups }; },
+		state: () => ({ ...groups }),
+		open: (i = 0) => { const c = document.querySelectorAll<HTMLElement>('[data-card]')[i]; c?.classList.add('is-on'); return !!c; },
+		close: (i = 0) => { const c = document.querySelectorAll<HTMLElement>('[data-card]')[i]; c?.classList.remove('is-on'); return !!c; },
+		revealRect: (i = 0) => {
+			const c = document.querySelectorAll<HTMLElement>('[data-card]')[i];
+			const r = c ? c.querySelector('.sh-reveal') : null;
+			if (!r) return null;
+			const b = r.getBoundingClientRect();
+			const cs = getComputedStyle(r);
+			return { box: [Math.round(b.left), Math.round(b.top), Math.round(b.width), Math.round(b.height)],
+				opacity: cs.opacity, transform: cs.transform, clip: cs.clipPath, duration: cs.transitionDuration };
+		},
+	};
+</script>
