@@ -1,0 +1,336 @@
+---
+/* ══ /testimonials-concepts-preview ════════════════════════════════════
+   Пять концепций отзывов на одном месте страницы + «До» — боевая секция
+   как есть. Кнопки 0–5 (хоткеи), описание активной концепции в панели,
+   отдельные кнопки прогона вниз/вверх (для концепций, привязанных к скроллу).
+   В прод не попадает. */
+if (import.meta.env.PROD) return Astro.redirect('/');
+
+import Layout from '../layouts/Layout.astro';
+import Testimonials from '../components/Testimonials.astro';
+import TestimonialsConcepts from '../components/preview/TestimonialsConcepts.astro';
+
+const concepts = [
+	{
+		key: '0',
+		button: '0 · До',
+		title: 'Текущая секция',
+		note: 'Три отзыва карточками: на десктопе сетка 3 колонки, на мобильном горизонтальный snap-скролл без JS.',
+		type: 'нет взаимодействия',
+		content: 'не нужен',
+		test: '—',
+	},
+	{
+		key: 't1',
+		button: '1 · Лента',
+		title: 'T1 «Лента» — скролл ведёт ленту вбок',
+		note: 'Вертикальный скролл превращается в горизонтальное движение цитат: секция липнет, лента едет. Ссылка на тип: горизонтальный пиннинг (Codrops, 3D-карусель).',
+		type: 'scroll-linked горизонт',
+		content: 'нужно 3–5 отзывов сверх трёх: лента из трёх карточек пустует',
+		test: 'ВНИЗ/ВВЕРХ: лента едет обратно',
+	},
+	{
+		key: 't2',
+		button: '2 · Живая стена',
+		title: 'T2 «Живая стена» — карточки дрейфуют',
+		note: 'Отзывы висят на плоскости, каждый дышит своим ритмом и едет с разной глубиной при скролле; центральная карточка поднимается и получает акцент. Тип: самодвижущийся коллаж, а не список.',
+		type: 'непрерывное движение + параллакс',
+		content: 'нужно 8–12 отзывов: стена из трёх карточек пустует',
+		test: 'карточки дрейфуют сами, скролл меняет глубину',
+	},
+	{
+		key: 't3',
+		button: '3 · Разговор',
+		title: 'T3 «Разговор» — отзывы как переписка',
+		note: 'Отзывы разложены в диалог: вопрос гостя справа, ответы клиентов слева, между репликами — «печатает…». Продвижение по клику, Enter или пробелу. Тип: пошаговое чтение вместо одновременного.',
+		type: 'клик/клавиатура, по одной реплике',
+		content: 'нужен один вводный вопрос гостя (в прототипе стоит черновой)',
+		test: 'клик по полю или Enter — следующая реплика',
+	},
+	{
+		key: 't4',
+		button: '4 · Голос',
+		title: 'T4 «Голос» — цитата звучит',
+		note: 'Дорожка «проигрывает» отзыв: слова подсвечиваются по ходу, полосы дорожки загораются за курсором воспроизведения. Переключение между отзывами — три кнопки-монограммы. Тип: аудио-плеер вместо карточки.',
+		type: 'клик-воспроизведение, время как интерфейс',
+		content: 'нужны аудио-записи отзывов (3 файла mp3) — сейчас вместо звука таймер',
+		test: 'кнопка «Прослушать»: 0 → 100 %',
+	},
+	{
+		key: 't5',
+		button: '5 · Полный экран',
+		title: 'T5 «Полный экран» — один отзыв целиком',
+		note: 'Отзыв занимает экран крупной антиквой, под ним автор; переключение кнопками, точками и стрелками клавиатуры. Тип: слайды-«кадры» вместо сетки.',
+		type: 'переключение кликом и клавишами',
+		content: 'не нужен (для фото авторов — см. общий флажок)',
+		test: 'стрелки ← → или точки',
+	},
+];
+---
+
+<Layout title="Отзывы — концепции (превью)">
+	<main id="main" class="relative z-10 bg-bg">
+		<div class="section-bg" aria-hidden="true"></div>
+
+		<section class="tp-head">
+			<p class="tp-label">Превью · Отзывы</p>
+			<h1 class="tp-title">Концепции подачи</h1>
+			<p class="tp-lead">
+				Пять разных типов взаимодействия на одних и тех же трёх отзывах. Переключение — панель
+				«Параметры превью» в правом нижнем углу, хоткеи <b>0–5</b> или кнопки. Кнопка «Прогон вниз/вверх»
+				прокручивает секцию целиком — так проверяется возврат у концепций, привязанных к скроллу.
+			</p>
+		</section>
+
+		<div class="tp-stage">
+			<Testimonials />
+			<TestimonialsConcepts />
+		</div>
+	</main>
+
+	<aside class="tp-panel" data-pp>
+		<p class="tp-panel-title">Отзывы · концепции</p>
+
+		<div class="tp-row">
+			<span class="tp-row-label">Концепция</span>
+			<span class="tp-row-btns">
+				{
+					concepts.map((concept) => (
+						<button type="button" data-tp-key={concept.key} aria-pressed={concept.key === '0'}>
+							{concept.button}
+						</button>
+					))
+				}
+			</span>
+		</div>
+
+		<div class="tp-row">
+			<span class="tp-row-label">Прогон по секции</span>
+			<span class="tp-row-btns">
+				<button type="button" data-tp-scroll="down">Вниз →</button>
+				<button type="button" data-tp-scroll="up">← Вверх</button>
+			</span>
+		</div>
+
+		<div class="tp-notes">
+			{
+				concepts.map((concept) => (
+					<div class="tp-note" data-tp-note={concept.key} hidden={concept.key !== '0'}>
+						<p class="tp-note-title">{concept.title}</p>
+						<p class="tp-note-text">{concept.note}</p>
+						<dl class="tp-facts">
+							<dt>Тип взаимодействия</dt>
+							<dd>{concept.type}</dd>
+							<dt>Новый контент</dt>
+							<dd>{concept.content}</dd>
+							<dt>Как проверить</dt>
+							<dd>{concept.test}</dd>
+						</dl>
+					</div>
+				))
+			}
+		</div>
+
+		<p class="tp-state" id="tp-state">—</p>
+	</aside>
+
+	<p class="tp-devnote">Dev-only. Удалить перед деплоем.</p>
+</Layout>
+
+<style is:global>
+	.tp-stage > * { display: none; }
+	html[data-tc='0'] .tp-stage > #reviews { display: block; }
+	html[data-tc='t1'] .tp-stage > #tc-t1 { display: block; }
+	html[data-tc='t2'] .tp-stage > #tc-t2 { display: block; }
+	html[data-tc='t3'] .tp-stage > #tc-t3 { display: block; }
+	html[data-tc='t4'] .tp-stage > #tc-t4 { display: block; }
+	html[data-tc='t5'] .tp-stage > #tc-t5 { display: block; }
+	html:not([data-tc]) .tp-stage > #reviews { display: block; }
+</style>
+
+<style>
+	.tp-head { margin: 0 auto; max-width: 1400px; padding: 40px 24px 8px; }
+	@media (min-width: 1024px) {
+		.tp-head { padding: 56px 32px 8px; }
+	}
+	.tp-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.tp-title {
+		margin-top: 24px;
+		font-family: var(--font-manifest);
+		font-size: var(--text-h2);
+		line-height: 0.98;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.tp-lead {
+		margin-top: 24px;
+		max-width: 78ch;
+		font-size: var(--text-body);
+		line-height: 1.6;
+		color: var(--text-muted);
+	}
+	.tp-lead b { color: var(--text); font-weight: 500; }
+	.tp-devnote {
+		padding: 24px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.tp-panel-title {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+	.tp-row {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		margin-top: 14px;
+	}
+	.tp-row-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.tp-row-btns {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+	.tp-row-btns button {
+		min-height: 44px;
+		padding: 10px 12px;
+		border: 1px solid var(--border);
+		background: transparent;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		cursor: pointer;
+		transition: border-color 200ms cubic-bezier(0.33, 1, 0.68, 1), color 200ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+	.tp-row-btns button:hover { border-color: var(--accent); color: var(--text); }
+	.tp-row-btns button[aria-pressed='true'] {
+		border-color: var(--accent);
+		color: var(--text);
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+	}
+	.tp-note {
+		margin-top: 18px;
+		border-top: 1px solid var(--border);
+		padding-top: 16px;
+	}
+	.tp-note-title {
+		font-family: var(--font-display);
+		font-size: 1.2rem;
+		line-height: 1.2;
+		color: var(--text);
+	}
+	.tp-note-text {
+		margin-top: 12px;
+		font-size: var(--text-body);
+		line-height: 1.55;
+		color: var(--text-muted);
+	}
+	.tp-facts {
+		margin-top: 16px;
+		display: grid;
+		gap: 4px;
+	}
+	.tp-facts dt {
+		margin-top: 10px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.tp-facts dd {
+		font-size: var(--text-body);
+		line-height: 1.5;
+		color: var(--text);
+	}
+	.tp-state {
+		margin-top: 18px;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		line-height: 1.6;
+		color: var(--accent-warm);
+	}
+</style>
+
+<script>
+	/* Переключатель концепций: флаг на <html>, boot/reset у каждой концепции. */
+	const KEYS = ['0', 't1', 't2', 't3', 't4', 't5'];
+	const root = document.documentElement;
+	const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-tp-key]'));
+	const notes = Array.from(document.querySelectorAll<HTMLElement>('[data-tp-note]'));
+	const state = document.getElementById('tp-state');
+
+	function scrollToY(y: number) {
+		const lenis = (window as any).__lenis;
+		if (lenis && typeof lenis.scrollTo === 'function') lenis.scrollTo(y, { immediate: true });
+		else window.scrollTo(0, y);
+	}
+
+	function set(key: string, scroll = false) {
+		if (!KEYS.includes(key)) return;
+		root.dataset.tc = key;
+
+		const boot = (window as any).__tcBoot || {};
+		Object.keys(boot).forEach((name) => {
+			if (name === key) boot[name].boot();
+			else boot[name].reset();
+		});
+
+		buttons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.tpKey === key)));
+		notes.forEach((note) => note.toggleAttribute('hidden', note.dataset.tpNote !== key));
+
+		const label = buttons.find((button) => button.dataset.tpKey === key)?.textContent?.trim() || key;
+		if (state) state.textContent = `Активно: ${label}${key === '0' ? ' — боевая секция без изменений' : ' — прототип, не боевой код'}`;
+
+		if (scroll) {
+			const target = key === '0' ? document.getElementById('reviews') : document.getElementById(`tc-${key}`);
+			if (target) scrollToY(Math.max(0, target.getBoundingClientRect().top + window.scrollY - 88));
+		}
+	}
+
+	buttons.forEach((button) => button.addEventListener('click', () => set(button.dataset.tpKey || '0', true)));
+
+	document.querySelectorAll<HTMLButtonElement>('[data-tp-scroll]').forEach((button) => {
+		button.addEventListener('click', () => {
+			const section = root.dataset.tc === '0' ? document.getElementById('reviews') : document.getElementById(`tc-${root.dataset.tc}`);
+			if (!section) return;
+			const box = section.getBoundingClientRect();
+			const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+			const target = button.dataset.tpScroll === 'down'
+				? Math.min(max, box.top + window.scrollY + box.height - window.innerHeight * 0.5)
+				: Math.max(0, box.top + window.scrollY - 88);
+			scrollToY(target);
+		});
+	});
+
+	document.addEventListener('keydown', (event) => {
+		const tag = (event.target as HTMLElement)?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+		if (event.key >= '0' && event.key <= '5') set(KEYS[Number(event.key)], true);
+	});
+
+	set(root.dataset.tc || '0');
+	(window as any).__tp = { set, state: () => root.dataset.tc };
+</script>
