@@ -8,6 +8,8 @@
 // Данные берём из самого компонента: Services.tsx экспортирует массив services,
 // поэтому превью не расходится с сайтом. Остров не тянем — разметка повторена
 // вручную, чтобы превью было статическим и легким.
+if (import.meta.env.PROD) return Astro.redirect('/');
+
 import Layout from '../layouts/Layout.astro';
 import { services } from '../components/Services';
 

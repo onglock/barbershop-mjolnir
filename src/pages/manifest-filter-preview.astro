@@ -6,6 +6,8 @@
 // скролла, C — рунические помехи (короткие всплески). Управление — в дровере
 // PreviewPanel: амплитуда, скорость отклика, что фильтруем, поведение на 390,
 // режим reduced-motion.
+if (import.meta.env.PROD) return Astro.redirect('/');
+
 import Layout from '../layouts/Layout.astro';
 import Manifest from '../components/Manifest.astro';
 

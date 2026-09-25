@@ -2,6 +2,8 @@
 // Превью (правило 20.6): кнопка «Записаться» в шапке — появление при прокрутке.
 // Параметры переключаются кнопками, страница прокручивается как настоящая:
 // сверху макет шапки с той же разметкой слота, ниже блок Hero и блок Manifest.
+if (import.meta.env.PROD) return Astro.redirect('/');
+
 import Layout from '../layouts/Layout.astro';
 import HammerButton from '../components/HammerButton.astro';
 import { CTA_THRESHOLDS, CTA_DURS } from '../lib/headerCta';

@@ -8,6 +8,8 @@
 // Секции рендерятся настоящими компонентами — видно в контексте, а не абстрактно.
 // Hero и ContactForm не участвуют: у Hero своя композиция, у формы своё решение
 // (верхний padding 16 px, прижато к шапке). Hero не трогаем вовсе.
+if (import.meta.env.PROD) return Astro.redirect('/');
+
 import Layout from '../layouts/Layout.astro';
 import Manifest from '../components/Manifest.astro';
 import Services from '../components/Services';
