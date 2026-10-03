@@ -1,0 +1,81 @@
+---
+// Тело страницы «Реквизиты»: данные ИП для документов и оплаты.
+// Только содержимое — каркас даёт LegalDoc.astro; и страница /requisites,
+// и превью /legal-preview берут один и тот же файл.
+import { legal, requisites } from '../../lib/legal';
+---
+
+<p>
+	Реквизиты {legal.executor.status.toLowerCase()}а, оказывающего услуги барбершопа
+	«{legal.brand}». Данные можно использовать для договоров, счетов и платёжных документов.
+</p>
+
+<dl class="req-list">
+	{
+		requisites.map((item) => (
+			<div class="req-row">
+				<dt class="req-label font-label text-label uppercase text-text-muted">{item.label}</dt>
+				<dd class="req-value legal-num">
+					{item.href ? <a href={item.href}>{item.value}</a> : item.value}
+				</dd>
+			</div>
+		))
+	}
+</dl>
+
+<h2>Порядок работы с реквизитами</h2>
+
+<ul>
+	<li>Договор заключается путём акцепта <a href="/oferta">Публичной оферты</a>, отдельный счёт
+		выставляется по запросу.</li>
+	<li>Назначение платежа для безналичной оплаты — «Оплата услуг по договору (акцепт оферты)»,
+		без НДС.</li>
+	<li>Запрос счёта, акта или закрывающих документов — на e-mail
+		<a href={`mailto:${legal.executor.email}`}>{legal.executor.email}</a>.</li>
+	<li>Обработка персональных данных — в соответствии с
+		<a href="/privacy">Политикой конфиденциальности</a>.</li>
+</ul>
+
+<p class="req-note">
+	Адрес в документах указан как «{legal.address}» — точный адрес салона сообщается при подтверждении
+	записи. Если для документов нужен иной адрес, направьте уточнение на e-mail выше.
+</p>
+
+<style>
+	.req-list {
+		margin-top: 8px;
+		border-top: 1px solid var(--border);
+	}
+
+	.req-row {
+		display: grid;
+		grid-template-columns: 240px 1fr;
+		gap: 8px 24px;
+		align-items: baseline;
+		padding: 16px 0;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.req-label {
+		color: var(--text-muted);
+	}
+
+	.req-value {
+		font-size: var(--text-body);
+		line-height: 1.5;
+		color: var(--text);
+		overflow-wrap: anywhere;
+	}
+
+	.req-note {
+		color: var(--text-muted);
+	}
+
+	@media (max-width: 767px) {
+		.req-row {
+			grid-template-columns: 1fr;
+			gap: 6px;
+			padding: 14px 0;
+		}
+	}
+</style>

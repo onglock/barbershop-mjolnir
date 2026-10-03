@@ -1,0 +1,263 @@
+---
+// Каркас юридического документа: верхняя строка с возвратом на главную,
+// надзаголовок, заголовок в Forum, дата обновления, тело документа и та же
+// кнопка возврата внизу. Тело приходит слотом из /oferta, /privacy,
+// /requisites и из /legal-preview — один каркас, три документа.
+//
+// Типографику содержимого каркас задаёт через :global(): содержимое слота
+// принадлежит родительской странице и атрибута скоупа этого компонента не
+// имеет, обычные (не :global) правила до него не доходят.
+import { legal } from '../lib/legal';
+import { buttonVariants } from './ui/button';
+import { cn } from '../lib/utils';
+
+interface Props {
+	/** Надзаголовок мелким лейблом: «Документы». */
+	eyebrow: string;
+	title: string;
+	/** Короткая вводная под датой (когда нужна). */
+	lead?: string;
+	/** id секции — на превью документы стоят рядом, без id не различить. */
+	sectionId?: string;
+}
+
+const { eyebrow, title, lead, sectionId } = Astro.props;
+/* cn обязателен: в базовом классе кнопки живёт border-transparent, в варианте
+   outline — border-border, и в собранном CSS transparent перебивает. Для самой
+   кнопки возврата нужна её настоящая рамка — см. отчёт (у части кнопок сайта
+   тот же порядок классов даёт невидимую рамку). */
+const backClass = cn(buttonVariants({ variant: 'outline', size: 'default' }));
+---
+
+<section id={sectionId} class="legal px-6 py-8 lg:px-8 lg:py-10">
+	<div class="mx-auto max-w-[1400px]">
+		<div class="legal-top">
+			<a class="legal-brand" href="/">
+				<span class="legal-brand-name">Мьёльнир</span>
+				<span class="legal-brand-tag">барбершоп</span>
+			</a>
+			<a class={backClass} href="/">Назад на главную</a>
+		</div>
+
+		<div class="legal-wrap">
+			<p class="font-label text-label uppercase text-text-muted">{eyebrow}</p>
+
+			<h1 class="legal-title mt-6 uppercase text-text">{title}</h1>
+
+			<p class="legal-updated">
+				Дата последнего обновления: {legal.updated}. Город: {legal.city}.
+			</p>
+
+			{lead && <p class="legal-lead">{lead}</p>}
+
+			<div class="legal-body">
+				<slot />
+			</div>
+
+			<div class="legal-foot">
+				<a class={backClass} href="/">Назад на главную</a>
+				<p class="font-label text-label uppercase text-text-muted">
+					{legal.executor.short} · ИНН {legal.executor.inn}
+				</p>
+			</div>
+		</div>
+	</div>
+</section>
+
+<style>
+	/* Ширина документа: 768 px, по центру — как в задании (max-w-3xl). */
+	.legal-wrap {
+		margin: 1rem auto 0;
+		max-width: 48rem;
+	}
+
+	.legal-top {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		padding-bottom: 24px;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.legal-brand {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 8px;
+		min-height: 44px;
+		text-decoration: none;
+	}
+
+	.legal-brand-name {
+		font-family: var(--font-display);
+		font-size: 1.25rem;
+		letter-spacing: -0.045em;
+		text-transform: uppercase;
+		color: var(--text);
+	}
+
+	.legal-brand-tag {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.legal-title {
+		font-family: var(--font-display);
+		font-size: clamp(1.75rem, 4vw, 3rem);
+		line-height: 1.02;
+		letter-spacing: -0.04em;
+		font-weight: 600;
+		max-width: 24ch;
+	}
+
+	.legal-updated {
+		margin-top: 20px;
+		font-family: var(--font-legal);
+		font-size: var(--text-label);
+		letter-spacing: 0.02em;
+		color: var(--text-muted);
+	}
+
+	.legal-lead {
+		margin-top: 20px;
+		font-family: var(--font-legal);
+		font-size: var(--text-body);
+		line-height: 1.6;
+		color: var(--text-muted);
+	}
+
+	.legal-foot {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		margin-top: 56px;
+		padding-top: 24px;
+		border-top: 1px solid var(--border);
+	}
+
+	/* ── Типографика содержимого (слот) ────────────────────────────────
+	   Body — Inter (--font-legal), заголовки разделов — Forum. Тело сайта
+	   остаётся Forum: это требование к юридическим страницам, не общий сдвиг. */
+	.legal-body {
+		margin-top: 40px;
+		font-family: var(--font-legal);
+		font-size: var(--text-body);
+		line-height: 1.65;
+		color: var(--text);
+	}
+
+	.legal-body :global(h2) {
+		margin-top: 40px;
+		padding-top: 20px;
+		border-top: 1px solid var(--border);
+		font-family: var(--font-display);
+		font-size: clamp(1.25rem, 2.2vw, 1.625rem);
+		line-height: 1.15;
+		letter-spacing: -0.02em;
+		font-weight: 600;
+		color: var(--text);
+	}
+
+	.legal-body :global(h2:first-child) {
+		margin-top: 0;
+		padding-top: 0;
+		border-top: 0;
+	}
+
+	.legal-body :global(h3) {
+		margin-top: 28px;
+		font-family: var(--font-display);
+		font-size: clamp(1.0625rem, 1.6vw, 1.25rem);
+		line-height: 1.25;
+		letter-spacing: -0.01em;
+		color: var(--text);
+	}
+
+	.legal-body :global(p) {
+		margin-top: 16px;
+	}
+
+	.legal-body :global(ul),
+	.legal-body :global(ol) {
+		margin-top: 16px;
+		padding-left: 1.35rem;
+	}
+
+	.legal-body :global(ul) {
+		list-style: none;
+	}
+
+	/* Маркер-волосок вместо точки: та же линия, что у границ секций. */
+	.legal-body :global(ul > li) {
+		position: relative;
+	}
+
+	.legal-body :global(ul > li::before) {
+		content: '';
+		position: absolute;
+		left: -1.35rem;
+		top: 0.72em;
+		width: 10px;
+		height: 1px;
+		background: var(--accent);
+	}
+
+	.legal-body :global(ol) {
+		list-style: decimal;
+	}
+
+	.legal-body :global(li) {
+		margin-top: 10px;
+		padding-left: 2px;
+	}
+
+	.legal-body :global(ol > li::marker) {
+		font-family: var(--font-legal);
+		font-size: 0.9em;
+		color: var(--text-muted);
+	}
+
+	.legal-body :global(strong) {
+		font-weight: 600;
+		color: var(--text);
+	}
+
+	.legal-body :global(a) {
+		color: var(--accent);
+		text-decoration: underline;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 3px;
+		transition: color 200ms var(--ease-hover);
+	}
+
+	.legal-body :global(a:hover) {
+		color: var(--accent-hover);
+	}
+
+	/* Моно-начертание для номеров счетов и ИНН: цифры не «плывут» по ширине. */
+	.legal-body :global(.legal-num) {
+		font-variant-numeric: tabular-nums;
+		letter-spacing: 0.01em;
+	}
+
+	@media (max-width: 767px) {
+		.legal-wrap {
+			margin-top: 0.5rem;
+		}
+		.legal-top {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+		.legal-foot {
+			flex-direction: column;
+			align-items: flex-start;
+			margin-top: 40px;
+		}
+	}
+</style>

@@ -62,6 +62,10 @@
   --font-manifest: 'Forum', serif;              /* было 'Literata' — пакет удалён */
   --font-price: 'Inter Variable', sans-serif;   /* цена услуги в Services */
   --font-label: 'Inter Variable', sans-serif;   /* лейбл поля в ContactForm */
+  /* Тело юридических документов (/oferta, /privacy, /requisites): требование
+     Кирилла 2026-10-03 — заголовки Forum, body Inter. Тело остального сайта
+     остаётся Forum, поэтому это отдельный токен, а не правка --font-sans. */
+  --font-legal: 'Inter Variable', sans-serif;
 
   /* ── Смысловые токены → утилиты Tailwind ───────────────────────── */
   --color-bg: var(--bg);

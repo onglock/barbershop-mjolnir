@@ -1,0 +1,23 @@
+---
+// /oferta — Публичная оферта. Документ собирается из каркаса LegalDoc.astro
+// и тела OfertaBody.astro: то же тело показывает превью /legal-preview.
+import Layout from '../layouts/Layout.astro';
+import LegalDoc from '../components/LegalDoc.astro';
+import OfertaBody from '../components/legal/OfertaBody.astro';
+---
+
+<Layout
+	title="Публичная оферта — Мьёльнир"
+	description="Публичная оферта барбершопа «Мьёльнир»: условия оказания парикмахерских услуг, стоимость, порядок записи, отмены и разрешения споров."
+>
+	<main id="main" class="relative z-10 bg-bg">
+		<LegalDoc
+			sectionId="oferta"
+			eyebrow="Документы"
+			title="Публичная оферта"
+			lead="Условия оказания парикмахерских услуг барбершопа «Мьёльнир». Акцепт оферты — запись на услугу через сайт, по телефону или в мессенджере."
+		>
+			<OfertaBody />
+		</LegalDoc>
+	</main>
+</Layout>

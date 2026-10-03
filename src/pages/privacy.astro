@@ -1,0 +1,23 @@
+---
+// /privacy — Политика конфиденциальности (152-ФЗ). Каркас LegalDoc.astro +
+// тело PrivacyBody.astro; то же тело показывает превью /legal-preview.
+import Layout from '../layouts/Layout.astro';
+import LegalDoc from '../components/LegalDoc.astro';
+import PrivacyBody from '../components/legal/PrivacyBody.astro';
+---
+
+<Layout
+	title="Политика конфиденциальности — Мьёльнир"
+	description="Политика конфиденциальности и обработки персональных данных барбершопа «Мьёльнир»: какие данные собираются, зачем, как хранятся и как отозвать согласие."
+>
+	<main id="main" class="relative z-10 bg-bg">
+		<LegalDoc
+			sectionId="privacy"
+			eyebrow="Документы"
+			title="Политика конфиденциальности"
+			lead="Обработка персональных данных в соответствии с Федеральным законом № 152-ФЗ. Текст, на который ссылается галочка согласия в форме записи."
+		>
+			<PrivacyBody />
+		</LegalDoc>
+	</main>
+</Layout>

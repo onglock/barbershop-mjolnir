@@ -1,0 +1,241 @@
+---
+// /legal-preview — быстрый просмотр трёх юридических документов: кнопки
+// «Оферта / Политика / Реквизиты» переключают документ без перезагрузки
+// (хоткеи 1/2/3 и ←/→), кнопка «Назад» возвращает на предыдущую страницу.
+// Рендерятся те же тела (OfertaBody / PrivacyBody / RequisitesBody), что и на
+// боевых страницах, поэтому превью и бой не расходятся.
+//
+// Дев-страница: в прод-сборке отдаёт заглушку-редирект на главную — как
+// остальные превью.
+if (import.meta.env.PROD) return Astro.redirect('/');
+
+import Layout from '../layouts/Layout.astro';
+import LegalDoc from '../components/LegalDoc.astro';
+import OfertaBody from '../components/legal/OfertaBody.astro';
+import PrivacyBody from '../components/legal/PrivacyBody.astro';
+import RequisitesBody from '../components/legal/RequisitesBody.astro';
+
+const docs = [
+	{ id: 'oferta', label: 'Оферта' },
+	{ id: 'privacy', label: 'Политика' },
+	{ id: 'requisites', label: 'Реквизиты' },
+];
+---
+
+<Layout title="Документы · превью — Мьёльнир">
+	<main id="main" class="relative z-10 bg-bg">
+		<div class="lp-bar">
+			<p class="lp-note">
+				Три юридические страницы: тела те же, что на <a href="/oferta">/oferta</a>,
+				<a href="/privacy">/privacy</a>, <a href="/requisites">/requisites</a>. Тексты — типовые
+				шаблоны, <strong>юридическая проверка рекомендована</strong>.
+			</p>
+			<div class="lp-row">
+				<span class="lp-label">Документ</span>
+				<span class="lp-btns" id="lp-btns">
+					{
+						docs.map((doc, index) => (
+							<button
+								type="button"
+								data-doc-btn={doc.id}
+								aria-pressed={index === 0 ? 'true' : 'false'}
+							>
+								{doc.label}
+							</button>
+						))
+					}
+					<button type="button" id="lp-back">Назад</button>
+				</span>
+			</div>
+		</div>
+
+		<div data-doc="oferta" class="is-on">
+			<LegalDoc
+				sectionId="lp-oferta"
+				eyebrow="Превью · документы"
+				title="Публичная оферта"
+				lead="Условия оказания парикмахерских услуг барбершопа «Мьёльнир»."
+			>
+				<OfertaBody />
+			</LegalDoc>
+		</div>
+
+		<div data-doc="privacy">
+			<LegalDoc
+				sectionId="lp-privacy"
+				eyebrow="Превью · документы"
+				title="Политика конфиденциальности"
+				lead="Обработка персональных данных в соответствии с Федеральным законом № 152-ФЗ."
+			>
+				<PrivacyBody />
+			</LegalDoc>
+		</div>
+
+		<div data-doc="requisites">
+			<LegalDoc
+				sectionId="lp-requisites"
+				eyebrow="Превью · документы"
+				title="Реквизиты"
+				lead="Данные индивидуального предпринимателя, оказывающего услуги барбершопа."
+			>
+				<RequisitesBody />
+			</LegalDoc>
+		</div>
+	</main>
+</Layout>
+
+<style>
+	/* Панель переключения: липкая, чтобы документ можно было листать и
+	   переключаться с любой позиции. */
+	.lp-bar {
+		position: sticky;
+		top: 0;
+		z-index: 40;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px 24px;
+		padding: 14px 24px;
+		border-bottom: 1px solid var(--border);
+		background: color-mix(in srgb, var(--bg-deep) 94%, transparent);
+		backdrop-filter: blur(10px);
+	}
+
+	.lp-note {
+		max-width: 68ch;
+		font-family: var(--font-legal);
+		font-size: var(--text-label);
+		line-height: 1.5;
+		color: var(--text-muted);
+	}
+
+	.lp-note a {
+		color: var(--accent);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	.lp-note strong {
+		font-weight: 600;
+		color: var(--text);
+	}
+
+	.lp-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.lp-label {
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.lp-btns {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	.lp-btns button {
+		min-height: 40px;
+		padding: 8px 12px;
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		background: transparent;
+		font-family: var(--font-label);
+		font-size: var(--text-label);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		cursor: pointer;
+		transition:
+			border-color 200ms cubic-bezier(0.33, 1, 0.68, 1),
+			color 200ms cubic-bezier(0.33, 1, 0.68, 1);
+	}
+
+	.lp-btns button:hover {
+		border-color: var(--accent);
+		color: var(--text);
+	}
+
+	.lp-btns button[aria-pressed='true'] {
+		border-color: var(--accent);
+		color: var(--text);
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+	}
+
+	#lp-back {
+		border-color: var(--border);
+		color: var(--text);
+	}
+
+	/* Показ ровно одного документа. Класс ставит скрипт; в SSR-разметке
+	   активна оферта, поэтому без JS страница тоже читается. */
+	[data-doc] {
+		display: none;
+	}
+
+	[data-doc].is-on {
+		display: block;
+	}
+
+	@media (max-width: 767px) {
+		.lp-bar {
+			padding: 12px 16px;
+		}
+		.lp-row {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 6px;
+		}
+	}
+</style>
+
+<script>
+	const root = document.documentElement;
+	const buttons = [...document.querySelectorAll<HTMLButtonElement>('[data-doc-btn]')];
+	const sections = [...document.querySelectorAll<HTMLElement>('[data-doc]')];
+
+	const order = buttons.map((button) => button.dataset.docBtn!);
+
+	const show = (id: string) => {
+		root.dataset.lpDoc = id;
+		sections.forEach((section) => section.classList.toggle('is-on', section.dataset.doc === id));
+		buttons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.docBtn === id)));
+		window.scrollTo(0, 0);
+	};
+
+	const current = () => root.dataset.lpDoc ?? 'oferta';
+
+	buttons.forEach((button) => {
+		button.addEventListener('click', () => show(button.dataset.docBtn!));
+	});
+
+	/* «Назад» — на предыдущую страницу, если она наша; иначе на главную:
+	   прямой переход по ссылке из чата не должен уводить за пределы сайта. */
+	document.getElementById('lp-back')?.addEventListener('click', () => {
+		const sameSite = document.referrer.startsWith(window.location.origin);
+		if (sameSite && history.length > 1) history.back();
+		else window.location.href = '/';
+	});
+
+	/* Хоткеи: 1/2/3 — документ, ← → — соседний, стрелки не мешают
+	   прокрутке, потому что документ переключается без фокуса на поле ввода. */
+	document.addEventListener('keydown', (event) => {
+		const index = order.indexOf(current());
+		if (event.key === '1' || event.key === '2' || event.key === '3') {
+			show(order[Number(event.key) - 1]);
+		} else if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+			const step = event.key === 'ArrowRight' ? 1 : -1;
+			show(order[(index + step + order.length) % order.length]);
+		}
+	});
+
+	show('oferta');
+	(window as unknown as { __lp?: unknown }).__lp = { show, current };
+</script>

@@ -1,9 +1,10 @@
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { useMagnetic } from '@/lib/useMagnetic';
 import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from './ui/button';
 import { services } from './Services';
+import { consentText } from '@/lib/legal';
 
 /**
  * Секция «Запись» (решение C3 «Поле-подчёркивание» + сегментная полоса
@@ -21,6 +22,11 @@ import { services } from './Services';
  *
  * Бэкенда нет: отправка — заглушка, реального запроса не уходит.
  * TODO: подключить приёмник (Formspree / mailto / свой эндпоинт) — решение за Кириллом.
+ *
+ * Согласие на обработку персональных данных (152-ФЗ, требование Кирилла
+ * 2026-10-03): форма собирает имя и телефон, поэтому чекбокс обязателен —
+ * без него submit не проходит, под чекбоксом показывается ошибка. Ссылка ведёт
+ * на /privacy, формулировка берётся из lib/legal.ts и совпадает с §9 политики.
  */
 
 const EASE_HOVER: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -75,11 +81,21 @@ export default function ContactForm() {
 	const [values, setValues] = useState<Values>(EMPTY);
 	const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
 	const [sent, setSent] = useState(false);
+	/* Согласие на обработку данных: обязательное, но не поле ввода — поэтому
+	   живёт отдельным состоянием, а не в Values. */
+	const [consent, setConsent] = useState(false);
+	const [consentTouched, setConsentTouched] = useState(false);
+	const consentRef = useRef<HTMLInputElement>(null);
+	const consentId = `${uid}-consent`;
+	const consentErrId = `${consentId}-error`;
 
 	const errors = Object.fromEntries(FIELDS.map((f) => [f.name, validate(f.name, values[f.name])])) as Record<
 		FieldName,
 		string | null
 	>;
+
+	const consentError = consent ? null : `${consentText} — без согласия заявку принять нельзя`;
+	const showConsentError = consentTouched && Boolean(consentError);
 
 	// Поле считается заполненным: обязательное — прошло проверку, опциональное — просто непустое
 	const isFilled = (name: FieldName) =>
@@ -100,9 +116,15 @@ export default function ContactForm() {
 	const submit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		setTouched(Object.fromEntries(FIELDS.map((f) => [f.name, true])));
+		setConsentTouched(true);
 		const firstBad = FIELDS.find((f) => f.required && validate(f.name, values[f.name]));
 		if (firstBad) {
 			document.getElementById(`${uid}-${firstBad.name}`)?.focus();
+			return;
+		}
+		// Согласие обязательно: без него заявка не уходит, фокус — на чекбоксе.
+		if (!consent) {
+			consentRef.current?.focus();
 			return;
 		}
 		// TODO: реальной отправки нет — заглушка до решения по приёмнику
@@ -259,6 +281,69 @@ export default function ContactForm() {
 							<p className="sr-only">
 								Заполнено полей: {filledCount} из 5
 							</p>
+
+							{/* Согласие на обработку персональных данных (152-ФЗ). Чекбокс
+							    обязателен: без него submit не проходит, ошибка — под ним.
+							    Галочка — SVG в цвете фона: на прозрачной клетке её не видно,
+							    на акцентной заливке (checked) читается. */}
+							<div className="mt-10">
+								<label
+									htmlFor={consentId}
+									className="flex min-h-11 cursor-pointer items-start gap-3 py-1"
+								>
+									<input
+										ref={consentRef}
+										id={consentId}
+										name="consent"
+										type="checkbox"
+										checked={consent}
+										onChange={(e) => setConsent(e.target.checked)}
+										onBlur={() => setConsentTouched(true)}
+										aria-invalid={showConsentError || undefined}
+										aria-describedby={showConsentError ? consentErrId : undefined}
+										className="peer sr-only"
+									/>
+									<span
+										aria-hidden="true"
+										className={cn(
+											'relative mt-0.5 flex h-5 w-5 flex-none items-center justify-center border transition-colors duration-200 ease-hover',
+											'peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent',
+											'peer-checked:border-accent peer-checked:bg-accent',
+											showConsentError ? 'border-error' : 'border-border'
+										)}
+									>
+										<svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-3 w-3 text-bg">
+											<path
+												d="M2.5 8.5 6 12l7.5-8"
+												stroke="currentColor"
+												strokeWidth="2"
+												strokeLinecap="square"
+											/>
+										</svg>
+									</span>
+									<span className="text-body text-text-muted">
+										{consentText}.{' '}
+										<a
+											href="/privacy"
+											className="text-accent underline decoration-1 underline-offset-3 transition-colors duration-200 ease-hover hover:text-accent-hover"
+										>
+											Политика конфиденциальности
+										</a>
+									</span>
+								</label>
+
+								{showConsentError && (
+									<motion.p
+										id={consentErrId}
+										initial={reduced ? false : { opacity: 0 }}
+										animate={{ opacity: 1 }}
+										transition={errorTransition}
+										className="mt-2 text-label text-error"
+									>
+										{consentError}
+									</motion.p>
+								)}
+							</div>
 
 							<div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
 								<button ref={submitRef} type="submit" className={cn(buttonVariants({ variant: 'accent', size: 'lg' }))}>

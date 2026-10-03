@@ -1,0 +1,23 @@
+---
+// /requisites — Реквизиты ИП. Каркас LegalDoc.astro + тело RequisitesBody.astro;
+// то же тело показывает превью /legal-preview.
+import Layout from '../layouts/Layout.astro';
+import LegalDoc from '../components/LegalDoc.astro';
+import RequisitesBody from '../components/legal/RequisitesBody.astro';
+---
+
+<Layout
+	title="Реквизиты — Мьёльнир"
+	description="Реквизиты ИП Минасов Кирилл Георгиевич: ИНН, расчётный счёт, банк, контакты — для договоров, счетов и платёжных документов."
+>
+	<main id="main" class="relative z-10 bg-bg">
+		<LegalDoc
+			sectionId="requisites"
+			eyebrow="Документы"
+			title="Реквизиты"
+			lead="Данные индивидуального предпринимателя, оказывающего услуги барбершопа «Мьёльнир»."
+		>
+			<RequisitesBody />
+		</LegalDoc>
+	</main>
+</Layout>

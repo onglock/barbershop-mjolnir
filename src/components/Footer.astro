@@ -13,6 +13,7 @@
 // в левой колонке, поэтому для поиска и скринридеров потерь нет.
 
 import { buttonVariants } from './ui/button';
+import { legalLinks } from '../lib/legal';
 
 const links = [
 	{ href: '#services', label: 'Услуги' },
@@ -51,7 +52,7 @@ const ctaClass = buttonVariants({ variant: 'outline', size: 'lg' });
 	</span>
 
 	<div class="relative mx-auto max-w-[1400px] px-6 lg:px-8">
-		<div class="grid gap-12 md:grid-cols-3">
+		<div class="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
 			<!-- Название -->
 			<div>
 				<a href="#top" class="group inline-flex min-h-11 items-center gap-2">
@@ -135,6 +136,34 @@ const ctaClass = buttonVariants({ variant: 'outline', size: 'lg' });
 
 				<a href="#contact" data-magnetic class={`${ctaClass} mt-8`}>Записаться</a>
 			</div>
+
+			<!-- Документы. Отдельная колонка, а не строка под копирайтом: три
+			     ссылки в одну линию с «© 2026» теснились бы (решение Кирилла
+			     2026-10-03). Тот же приём, что у «Разделов»: магнит и подчёркивание. -->
+			<nav aria-label="Юридические документы">
+				<p class="font-label text-label uppercase text-text-muted">Документы</p>
+				<ul class="mt-6 space-y-3">
+					{
+						legalLinks.map((link) => (
+							<li>
+								<a
+									href={link.href}
+									data-magnetic
+									class="group inline-flex min-h-11 items-center py-2 text-body text-text transition-colors duration-200 ease-hover hover:text-accent-warm"
+								>
+									<span class="relative">
+										{link.label}
+										<span
+											aria-hidden="true"
+											class="absolute -bottom-1 left-0 h-px w-full origin-left scale-x-0 bg-accent-warm transition-transform duration-300 ease-hover group-hover:scale-x-100"
+										/>
+									</span>
+								</a>
+							</li>
+						))
+					}
+				</ul>
+			</nav>
 		</div>
 
 		<div
