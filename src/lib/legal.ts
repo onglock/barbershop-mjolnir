@@ -31,8 +31,8 @@ export const legal = {
 		bank: 'АО «АЛЬФА-БАНК»',
 		bik: '044525593',
 		corr: '30101810200000000593',
-		phone: '+7 988 098-74-78',
-		phoneHref: 'tel:+79880987478',
+		phone: '+7 (933) 182-56-34',
+		phoneHref: 'tel:+79331825634',
 		email: 'ttat4296@gmail.com',
 	},
 } as const;

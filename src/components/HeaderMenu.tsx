@@ -86,12 +86,11 @@ export default function HeaderMenu({ links }: Props) {
             </nav>
 
             <div className="flex flex-col gap-4 border-t border-border px-6 py-8">
-              {/* TODO: заменить на реальные контакты */}
               <a
-                href="tel:+74951234567"
-                className="font-label text-label uppercase text-text-muted transition-colors duration-200 ease-hover hover:text-text"
+                href="tel:+79331825634"
+                className="inline-flex min-h-11 items-center font-label text-label uppercase text-text-muted transition-colors duration-200 ease-hover hover:text-text"
               >
-                +7 (495) 123-45-67
+                +7 (933) 182-56-34
               </a>
               <Button asChild size="lg" className="w-full">
                 <a href="#contact" onClick={() => setOpen(false)}>
